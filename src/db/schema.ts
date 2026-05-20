@@ -1,0 +1,83 @@
+import {pgTable, bigint, integer, real, text, jsonb} from 'drizzle-orm/pg-core';
+
+export const activities = pgTable('activities', {
+  id: bigint('id', {mode: 'number'}).primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
+  data: jsonb('data').notNull(),
+  date: text('date').notNull(),
+  fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});
+
+export const activityDetails = pgTable('activity_details', {
+  id: bigint('id', {mode: 'number'}).primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
+  data: jsonb('data').notNull(),
+  fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});
+
+export const activityStreams = pgTable('activity_streams', {
+  activityId: bigint('activity_id', {mode: 'number'}).primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
+  data: jsonb('data').notNull(),
+  fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});
+
+export const athleteStats = pgTable('athlete_stats', {
+  athleteId: bigint('athlete_id', {mode: 'number'}).primaryKey(),
+  data: jsonb('data').notNull(),
+  fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});
+
+export const athleteZones = pgTable('athlete_zones', {
+  key: text('key').primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
+  data: jsonb('data').notNull(),
+  fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});
+
+export const athleteGear = pgTable('athlete_gear', {
+  key: text('key').primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
+  bikes: jsonb('bikes').notNull(),
+  shoes: jsonb('shoes').notNull(),
+  retiredGearIds: jsonb('retired_gear_ids').notNull().default([]),
+  fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});
+
+export const zoneBreakdowns = pgTable('zone_breakdowns', {
+  activityId: bigint('activity_id', {mode: 'number'}).primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
+  settingsHash: text('settings_hash').notNull(),
+  zones: jsonb('zones').notNull(),
+  computedAt: bigint('computed_at', {mode: 'number'}).notNull(),
+});
+
+export const dashboardCache = pgTable('dashboard_cache', {
+  key: text('key').primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  settingsHash: text('settings_hash').notNull(),
+  lastActivityId: bigint('last_activity_id', {mode: 'number'}).notNull(),
+  lastActivityCount: integer('last_activity_count').notNull(),
+  lastDate: text('last_date').notNull(),
+  continuationState: jsonb('continuation_state').notNull(),
+  data: jsonb('data').notNull(),
+  computedAt: bigint('computed_at', {mode: 'number'}).notNull(),
+});
+
+export const bestEffortsCache = pgTable('best_efforts_cache', {
+  athleteId: bigint('athlete_id', {mode: 'number'}).primaryKey(),
+  bests: jsonb('bests').notNull(),
+  activityCount: integer('activity_count').notNull(),
+  computedAt: bigint('computed_at', {mode: 'number'}).notNull(),
+});
+
+export const userSettings = pgTable('user_settings', {
+  athleteId: bigint('athlete_id', {mode: 'number'}).primaryKey(),
+  maxHr: integer('max_hr').notNull().default(190),
+  restingHr: integer('resting_hr').notNull().default(55),
+  zones: jsonb('zones').notNull(),
+  paceZones: jsonb('pace_zones'),
+  weight: real('weight'),
+  city: text('city'),
+  updatedAt: bigint('updated_at', {mode: 'number'}).notNull(),
+});

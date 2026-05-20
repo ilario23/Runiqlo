@@ -1,0 +1,400 @@
+// Two-tier cache: Supabase (persistent) → Strava API (source of truth)
+// React Query provides the in-memory session layer on top.
+
+import {
+  fetchActivitiesSinceEpoch,
+  fetchAllActivities,
+  fetchActivityDetail,
+  fetchActivityStreams,
+  fetchAthleteStats,
+  fetchAthleteZones,
+  fetchAthleteWithGear,
+  isStravaAuthError,
+  transformActivity,
+  transformStreams,
+} from './strava';
+import type {StravaDetailedActivity, StravaAthleteStats, StravaAthleteZones, StravaSummaryGear} from './strava';
+import type {ActivitySummary, StreamPoint, UserSettings} from './activityModel';
+import {computeZoneBreakdown, hashZoneSettings} from './zoneCompute';
+import type {ZoneBreakdown} from './zoneCompute';
+import {calcFitnessData, appendFitnessData, hashTrainingSettings} from '@/utils/trainingLoad';
+import type {FitnessDataPoint} from '@/utils/trainingLoad';
+import {
+  dbGetActivities,
+  dbGetRecentActivities,
+  dbGetActivitiesPaginated,
+  dbSyncActivities,
+  dbGetActivityDetail,
+  dbSyncActivityDetail,
+  dbGetActivityStreams,
+  dbSyncActivityStreams,
+  dbGetAthleteStats,
+  dbSyncAthleteStats,
+  dbGetAthleteZones,
+  dbSyncAthleteZones,
+  dbGetAthleteGear,
+  dbSyncAthleteGear,
+  dbGetZoneBreakdown,
+  dbSyncZoneBreakdown,
+  dbGetZoneBreakdownsBulk,
+  dbGetActivityStreamsBulk,
+  dbGetDashboardCache,
+  dbSyncDashboardCache,
+  dbSyncAthleteProfile,
+} from './dbSync';
+import type {CachedActivity} from './cacheTypes';
+
+const STALE = {
+  activities: 60 * 60 * 1000,
+  activityDetail: Infinity,
+  activityStreams: Infinity,
+  athleteStats: 60 * 60 * 1000,
+  athleteZones: 24 * 60 * 60 * 1000,
+  athleteGear: 60 * 60 * 1000,
+} as const;
+
+const isFresh = (fetchedAt: number, maxAge: number): boolean => {
+  if (maxAge === Infinity) return true;
+  return Date.now() - fetchedAt < maxAge;
+};
+
+const sortToSummaries = (rows: CachedActivity[]): ActivitySummary[] =>
+  [...rows]
+    .sort((a, b) => (b.date > a.date ? 1 : a.date > b.date ? -1 : 0))
+    .map((r) => transformActivity(r.data));
+
+// ---- Background sync dedup ----
+
+const syncInFlight = new Set<number>();
+const syncCallbacks = new Map<number, Set<() => void>>();
+
+export type CachedActivitiesOptions = {
+  staleWhileRevalidate?: boolean;
+  onBackgroundSyncComplete?: () => void;
+};
+
+export const scheduleBackgroundActivitiesSync = (
+  athleteId: number,
+  onComplete?: () => void,
+): void => {
+  if (onComplete) {
+    let set = syncCallbacks.get(athleteId);
+    if (!set) { set = new Set(); syncCallbacks.set(athleteId, set); }
+    set.add(onComplete);
+  }
+  if (syncInFlight.has(athleteId)) return;
+  syncInFlight.add(athleteId);
+  void (async () => {
+    try {
+      await syncActivitiesForAthlete(athleteId, 'incremental');
+      const cbs = syncCallbacks.get(athleteId);
+      syncCallbacks.delete(athleteId);
+      cbs?.forEach((cb) => { try { cb(); } catch { /* noop */ } });
+    } catch (error) {
+      if (!isStravaAuthError(error)) console.error('Background Strava sync failed', error);
+    } finally {
+      syncInFlight.delete(athleteId);
+    }
+  })();
+};
+
+async function touchLatestFetchedAt(athleteId: number): Promise<void> {
+  const latest = await dbGetActivitiesPaginated(athleteId, 1, 0);
+  if (!latest?.[0]) return;
+  await dbSyncActivities([{...latest[0], fetchedAt: Date.now()}]);
+}
+
+async function syncActivitiesForAthlete(
+  athleteId: number,
+  mode: 'incremental' | 'full',
+): Promise<void> {
+  const now = Date.now();
+  if (mode === 'full') {
+    const raw = await fetchAllActivities();
+    await dbSyncActivities(raw.map((a) => ({
+      id: a.id,
+      athleteId,
+      data: a,
+      date: a.start_date_local.split('T')[0],
+      fetchedAt: now,
+    })));
+    return;
+  }
+  const latest = await dbGetActivitiesPaginated(athleteId, 1, 0);
+  if (!latest || latest.length === 0) {
+    return syncActivitiesForAthlete(athleteId, 'full');
+  }
+  const afterEpoch = Math.max(
+    0,
+    Math.floor(new Date(latest[0].data.start_date as string).getTime() / 1000) - 1,
+  );
+  const raw = await fetchActivitiesSinceEpoch(afterEpoch);
+  if (raw.length === 0) { await touchLatestFetchedAt(athleteId); return; }
+  await dbSyncActivities(raw.map((a) => ({
+    id: a.id, athleteId, data: a, date: a.start_date_local.split('T')[0], fetchedAt: now,
+  })));
+}
+
+// ---- Activities ----
+
+export const cachedGetAllActivities = async (
+  athleteId: number,
+  afterDate?: string,
+  options?: CachedActivitiesOptions,
+): Promise<ActivitySummary[]> => {
+  const rows = afterDate
+    ? await dbGetRecentActivities(athleteId, afterDate)
+    : await dbGetActivities(athleteId);
+
+  if (rows && rows.length > 0) {
+    const newest = rows.reduce((a, b) => (a.fetchedAt > b.fetchedAt ? a : b));
+    if (isFresh(newest.fetchedAt, STALE.activities)) return sortToSummaries(rows);
+
+    if (options?.staleWhileRevalidate && afterDate) {
+      scheduleBackgroundActivitiesSync(athleteId, options.onBackgroundSyncComplete);
+      return sortToSummaries(rows);
+    }
+  }
+
+  const mode: 'incremental' | 'full' = rows && rows.length > 0 ? 'incremental' : 'full';
+  await syncActivitiesForAthlete(athleteId, mode);
+
+  const fresh = afterDate
+    ? await dbGetRecentActivities(athleteId, afterDate)
+    : await dbGetActivities(athleteId);
+  return fresh && fresh.length > 0 ? sortToSummaries(fresh) : [];
+};
+
+export const cachedGetActivitiesPage = async (
+  athleteId: number,
+  limit: number,
+  offset = 0,
+): Promise<ActivitySummary[]> => {
+  const rows = await dbGetActivitiesPaginated(athleteId, limit, offset);
+  if (!rows || rows.length === 0) return [];
+  return rows.map((r) => transformActivity(r.data));
+};
+
+// ---- Activity Detail ----
+
+export const cachedGetActivityDetail = async (
+  athleteId: number,
+  activityId: number,
+): Promise<StravaDetailedActivity> => {
+  const cached = await dbGetActivityDetail(athleteId, activityId);
+  if (cached && isFresh(cached.fetchedAt, STALE.activityDetail)) return cached.data;
+
+  const detail = await fetchActivityDetail(activityId);
+  await dbSyncActivityDetail({id: activityId, athleteId, data: detail, fetchedAt: Date.now()});
+  return detail;
+};
+
+// ---- Activity Streams ----
+
+export const cachedGetActivityStreams = async (
+  athleteId: number,
+  activityId: number,
+): Promise<StreamPoint[]> => {
+  const cached = await dbGetActivityStreams(athleteId, activityId);
+  if (cached && isFresh(cached.fetchedAt, STALE.activityStreams)) return transformStreams(cached.data);
+
+  const raw = await fetchActivityStreams(activityId);
+  await dbSyncActivityStreams({activityId, athleteId, data: raw, fetchedAt: Date.now()});
+  return transformStreams(raw);
+};
+
+// ---- Athlete Stats ----
+
+export const cachedGetAthleteStats = async (athleteId: number): Promise<StravaAthleteStats> => {
+  const cached = await dbGetAthleteStats(athleteId);
+  if (cached && isFresh(cached.fetchedAt, STALE.athleteStats)) return cached.data;
+
+  const stats = await fetchAthleteStats(athleteId);
+  await dbSyncAthleteStats({athleteId, data: stats, fetchedAt: Date.now()});
+  return stats;
+};
+
+// ---- Athlete Zones ----
+
+export const cachedGetAthleteZones = async (athleteId: number): Promise<StravaAthleteZones> => {
+  const ZONES_KEY = `athlete-zones:${athleteId}`;
+  const cached = await dbGetAthleteZones(athleteId);
+  if (cached && isFresh(cached.fetchedAt, STALE.athleteZones)) return cached.data;
+
+  const zones = await fetchAthleteZones();
+  await dbSyncAthleteZones({key: ZONES_KEY, athleteId, data: zones, fetchedAt: Date.now()});
+  return zones;
+};
+
+// ---- Athlete Gear ----
+
+export const cachedGetAthleteGear = async (
+  athleteId: number,
+): Promise<{bikes: StravaSummaryGear[]; shoes: StravaSummaryGear[]; retiredGearIds: string[]}> => {
+  const GEAR_KEY = `athlete-gear:${athleteId}`;
+  const cached = await dbGetAthleteGear(athleteId);
+  if (cached && isFresh(cached.fetchedAt, STALE.athleteGear)) {
+    return {bikes: cached.bikes, shoes: cached.shoes, retiredGearIds: cached.retiredGearIds ?? []};
+  }
+
+  const existingRetiredIds = cached?.retiredGearIds ?? [];
+  const profile = await fetchAthleteWithGear();
+  const bikes = profile.bikes ?? [];
+  const shoes = profile.shoes ?? [];
+  await dbSyncAthleteGear({key: GEAR_KEY, athleteId, bikes, shoes, retiredGearIds: existingRetiredIds, fetchedAt: Date.now()});
+  dbSyncAthleteProfile(profile.id, profile.weight ?? null, profile.city ?? null).catch(() => {});
+  return {bikes, shoes, retiredGearIds: existingRetiredIds};
+};
+
+// ---- Zone Breakdowns ----
+
+export const cachedGetZoneBreakdown = async (
+  athleteId: number,
+  activityId: number,
+  zones: UserSettings['zones'],
+): Promise<ZoneBreakdown> => {
+  const currentHash = hashZoneSettings(zones);
+  const cached = await dbGetZoneBreakdown(athleteId, activityId);
+  if (cached && cached.settingsHash === currentHash) {
+    return {zones: cached.zones, settingsHash: cached.settingsHash};
+  }
+
+  const stream = await cachedGetActivityStreams(athleteId, activityId);
+  const breakdown = computeZoneBreakdown(stream, zones);
+  await dbSyncZoneBreakdown({activityId, athleteId, settingsHash: breakdown.settingsHash, zones: breakdown.zones, computedAt: Date.now()});
+  return breakdown;
+};
+
+const inflight = new Map<string, Promise<Map<number, ZoneBreakdown>>>();
+
+export const batchGetZoneBreakdowns = async (
+  athleteId: number,
+  activityIds: number[],
+  zones: UserSettings['zones'],
+  onProgress?: (done: number, total: number) => void,
+): Promise<Map<number, ZoneBreakdown>> => {
+  const currentHash = hashZoneSettings(zones);
+  const dedupeKey = `${currentHash}:${[...activityIds].sort().join(',')}`;
+  const existing = inflight.get(dedupeKey);
+  if (existing) {
+    const result = await existing;
+    onProgress?.(result.size, activityIds.length);
+    return result;
+  }
+
+  const promise = batchGetZoneBreakdownsInternal(athleteId, activityIds, zones, onProgress);
+  inflight.set(dedupeKey, promise);
+  try {
+    return await promise;
+  } finally {
+    inflight.delete(dedupeKey);
+  }
+};
+
+const batchGetZoneBreakdownsInternal = async (
+  athleteId: number,
+  activityIds: number[],
+  zones: UserSettings['zones'],
+  onProgress?: (done: number, total: number) => void,
+): Promise<Map<number, ZoneBreakdown>> => {
+  const results = new Map<number, ZoneBreakdown>();
+  const total = activityIds.length;
+  const currentHash = hashZoneSettings(zones);
+
+  const cachedBreakdowns = await dbGetZoneBreakdownsBulk(athleteId, activityIds);
+  const cachedMap = new Map(cachedBreakdowns.map((b) => [b.activityId, b]));
+  const missingIds: number[] = [];
+
+  for (const id of activityIds) {
+    const cached = cachedMap.get(id);
+    if (cached && cached.settingsHash === currentHash) {
+      results.set(id, {zones: cached.zones, settingsHash: cached.settingsHash});
+    } else {
+      missingIds.push(id);
+    }
+  }
+
+  let done = results.size;
+  onProgress?.(done, total);
+  if (missingIds.length === 0) return results;
+
+  const cachedStreams = await dbGetActivityStreamsBulk(athleteId, missingIds);
+  const streamMap = new Map(cachedStreams.map((s) => [s.activityId, s]));
+
+  const MAX_CONCURRENCY = 5;
+  for (let i = 0; i < missingIds.length; i += MAX_CONCURRENCY) {
+    const batch = missingIds.slice(i, i + MAX_CONCURRENCY);
+    const batchResults = await Promise.allSettled(
+      batch.map(async (id) => {
+        const cachedStream = streamMap.get(id);
+        const stream: StreamPoint[] = cachedStream
+          ? transformStreams(cachedStream.data)
+          : await cachedGetActivityStreams(athleteId, id);
+        const breakdown = computeZoneBreakdown(stream, zones);
+        dbSyncZoneBreakdown({activityId: id, athleteId, settingsHash: breakdown.settingsHash, zones: breakdown.zones, computedAt: Date.now()});
+        return {id, breakdown};
+      }),
+    );
+    for (const result of batchResults) {
+      done++;
+      if (result.status === 'fulfilled') results.set(result.value.id, result.value.breakdown);
+    }
+    onProgress?.(done, total);
+  }
+
+  return results;
+};
+
+// ---- Dashboard Fitness Cache ----
+
+const FITNESS_DAYS_BACK = 365;
+
+export const cachedCalcFitnessData = async (
+  athleteId: number,
+  activities: ActivitySummary[],
+  settings: UserSettings,
+): Promise<FitnessDataPoint[]> => {
+  const currentHash = hashTrainingSettings(settings.zones, settings.maxHr, settings.restingHr);
+  const latestId = activities[0]?.id ? Number(activities[0].id) : 0;
+  const actCount = activities.length;
+  const cacheKey = `fitness:${athleteId}`;
+
+  const cached = await dbGetDashboardCache(cacheKey);
+
+  if (cached) {
+    if (cached.settingsHash === currentHash && cached.lastActivityId === latestId && cached.lastActivityCount === actCount) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (cached.lastDate === todayStr) return cached.data;
+
+      const result = appendFitnessData([], {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
+      const {bf, li} = result.continuation;
+      await dbSyncDashboardCache({key: cacheKey, athleteId, settingsHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+      return result.data;
+    }
+
+    if (cached.settingsHash === currentHash) {
+      const newActivities = activities.filter((a) => a.date > cached.lastDate);
+      const result = appendFitnessData(newActivities, {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
+      const {bf, li} = result.continuation;
+      await dbSyncDashboardCache({key: cacheKey, athleteId, settingsHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+      return result.data;
+    }
+  }
+
+  const result = calcFitnessData(activities, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
+  const {bf, li} = result.continuation;
+  await dbSyncDashboardCache({key: cacheKey, athleteId, settingsHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+  return result.data;
+};
+
+// ---- Force refresh ----
+
+export const forceRefreshActivities = async (athleteId: number): Promise<ActivitySummary[]> => {
+  const raw = await fetchAllActivities();
+  const now = Date.now();
+  const records = raw.map((a) => ({id: a.id, athleteId, data: a, date: a.start_date_local.split('T')[0], fetchedAt: now}));
+  await dbSyncActivities(records);
+  return [...records]
+    .sort((a, b) => (b.date > a.date ? 1 : a.date > b.date ? -1 : 0))
+    .map((r) => transformActivity(r.data));
+};
