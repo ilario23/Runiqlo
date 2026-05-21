@@ -26,6 +26,7 @@ import {
   dbSyncActivities,
   dbGetActivityDetail,
   dbSyncActivityDetail,
+  dbGetActivityDetailsBulk,
   dbGetActivityStreams,
   dbSyncActivityStreams,
   dbGetAthleteStats,
@@ -385,6 +386,79 @@ export const cachedCalcFitnessData = async (
   const {bf, li} = result.continuation;
   await dbSyncDashboardCache({key: cacheKey, athleteId, settingsHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
   return result.data;
+};
+
+// ---- All Segments ----
+
+export interface AggregatedSegment {
+  id: number;
+  name: string;
+  distance: number;
+  average_grade: number;
+  maximum_grade: number;
+  elevation_high: number;
+  elevation_low: number;
+  city: string;
+  state: string;
+  climb_category: number;
+  starred: boolean;
+  effortCount: number;
+  prTime: number;
+  lastRunDate: string;
+}
+
+export const cachedGetAllSegments = async (
+  athleteId: number,
+): Promise<{segments: AggregatedSegment[]; activitiesWithDetails: number; totalActivities: number}> => {
+  const allActivities = await dbGetActivities(athleteId);
+  const totalActivities = allActivities?.length ?? 0;
+
+  if (!allActivities || allActivities.length === 0) {
+    return {segments: [], activitiesWithDetails: 0, totalActivities: 0};
+  }
+
+  const ids = allActivities.map((a) => a.id);
+  const details = await dbGetActivityDetailsBulk(athleteId, ids);
+  const activitiesWithDetails = details.length;
+
+  const map = new Map<number, AggregatedSegment>();
+
+  for (const detail of details) {
+    const efforts = detail.data.segment_efforts ?? [];
+    const actDate = detail.data.start_date_local?.slice(0, 10) ?? '';
+    for (const effort of efforts) {
+      const seg = effort.segment;
+      const existing = map.get(seg.id);
+      if (!existing) {
+        map.set(seg.id, {
+          id: seg.id,
+          name: seg.name,
+          distance: seg.distance,
+          average_grade: seg.average_grade,
+          maximum_grade: seg.maximum_grade,
+          elevation_high: seg.elevation_high,
+          elevation_low: seg.elevation_low,
+          city: seg.city,
+          state: seg.state,
+          climb_category: seg.climb_category,
+          starred: seg.starred,
+          effortCount: 1,
+          prTime: effort.elapsed_time,
+          lastRunDate: actDate,
+        });
+      } else {
+        existing.effortCount += 1;
+        if (effort.elapsed_time < existing.prTime) existing.prTime = effort.elapsed_time;
+        if (actDate > existing.lastRunDate) existing.lastRunDate = actDate;
+      }
+    }
+  }
+
+  return {
+    segments: Array.from(map.values()),
+    activitiesWithDetails,
+    totalActivities,
+  };
 };
 
 // ---- Force refresh ----

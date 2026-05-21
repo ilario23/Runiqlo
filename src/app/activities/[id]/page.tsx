@@ -1,7 +1,8 @@
 'use client';
 
-import {use, useMemo, useState} from 'react';
+import {use, useMemo, useState, useCallback, useEffect} from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {motion, type Variants} from 'framer-motion';
 import {
   AreaChart,
@@ -20,9 +21,13 @@ import {
   useActivityStreams,
   useActivityZoneBreakdown,
 } from '@/hooks/useStrava';
-import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES} from '@/lib/activityModel';
-import {decodePolyline, polylineToSvgPath} from '@/lib/polyline';
+import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, getZoneForHr} from '@/lib/activityModel';
+import {useSettings} from '@/contexts/SettingsContext';
 import AppHeader from '@/components/AppHeader';
+import type {ZoneSegment} from '@/components/RouteMapLeaflet';
+
+// Leaflet map is client-only (no SSR)
+const RouteMapLeaflet = dynamic(() => import('@/components/RouteMapLeaflet'), {ssr: false});
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -41,8 +46,6 @@ const cardVariant: Variants = {
 const containerVariant: Variants = {
   show: {transition: {staggerChildren: 0.06}},
 };
-
-type ChartTab = 'elevation' | 'hr' | 'pace';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -67,156 +70,209 @@ function fmtDateLong(iso: string) {
   });
 }
 
-// ─── Route Map ────────────────────────────────────────────────────────────────
-
-function RouteMap({polyline, color}: {polyline: string | undefined; color: string}) {
-  const W = 600;
-  const H = 280;
-
-  const path = useMemo(() => {
-    if (!polyline) return '';
-    const pts = decodePolyline(polyline);
-    return polylineToSvgPath(pts, W, H, 16);
-  }, [polyline]);
-
-  if (!polyline || !path) {
-    return (
-      <div className="w-full h-[280px] flex items-center justify-center">
-        <p className="text-sm text-white/25">No route data</p>
-      </div>
-    );
-  }
-
-  return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="xMidYMid meet"
-      className="w-full h-[280px]"
-    >
-      <defs>
-        <filter id="route-glow">
-          <feGaussianBlur stdDeviation="2" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
-        </filter>
-      </defs>
-      {/* Shadow path */}
-      <path d={path} fill="none" stroke={color} strokeWidth="5" strokeOpacity={0.15} strokeLinecap="round" strokeLinejoin="round" />
-      {/* Main path */}
-      <path d={path} fill="none" stroke={color} strokeWidth="2.5" strokeOpacity={0.9} strokeLinecap="round" strokeLinejoin="round" filter="url(#route-glow)" />
-    </svg>
-  );
-}
-
-// ─── Charts ───────────────────────────────────────────────────────────────────
+// ─── Chart types ──────────────────────────────────────────────────────────────
 
 interface ChartPoint {
+  idx: number;
   dist: number;
   elevation?: number;
   hr?: number;
   pace?: number;
+  lat?: number;
+  lng?: number;
 }
 
-function StreamCharts({chartData, color}: {chartData: ChartPoint[]; color: string}) {
-  const [tab, setTab] = useState<ChartTab>('elevation');
+type TooltipPayload = Array<{payload?: ChartPoint; value?: unknown}>;
 
-  const tabs: {value: ChartTab; label: string}[] = [
-    {value: 'elevation', label: 'Elevation'},
-    {value: 'hr', label: 'Heart Rate'},
-    {value: 'pace', label: 'Pace'},
-  ];
+// ─── Tooltip content components (module-level so identity is stable) ──────────
+// recharts v3 cloneElement's these — they must be proper React components
+// so we can use useEffect to fire the hover callback without render-phase side effects.
 
+function ElevTooltip({
+  active,
+  payload,
+  onHover,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload;
+  onHover: (idx: number | null) => void;
+}) {
+  const activeIdx = active && payload?.length ? (payload[0]?.payload?.idx ?? null) : null;
+  useEffect(() => { onHover(activeIdx); }, [activeIdx, onHover]);
+  if (!active || !payload?.length) return null;
+  const pt = payload[0]?.payload;
+  if (!pt) return null;
+  return (
+    <div className="bento-card px-2.5 py-1.5 text-[11px]">
+      <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
+      <p className="text-white font-medium">{Math.round(Number(payload[0]?.value))} m</p>
+    </div>
+  );
+}
+
+function HRTooltip({
+  active,
+  payload,
+  onHover,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload;
+  onHover: (idx: number | null) => void;
+}) {
+  const activeIdx = active && payload?.length ? (payload[0]?.payload?.idx ?? null) : null;
+  useEffect(() => { onHover(activeIdx); }, [activeIdx, onHover]);
+  if (!active || !payload?.length) return null;
+  const pt = payload[0]?.payload;
+  if (!pt) return null;
+  return (
+    <div className="bento-card px-2.5 py-1.5 text-[11px]">
+      <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
+      <p style={{color: '#ff453a'}} className="font-medium">{Math.round(Number(payload[0]?.value))} bpm</p>
+    </div>
+  );
+}
+
+function PaceTooltip({
+  active,
+  payload,
+  onHover,
+}: {
+  active?: boolean;
+  payload?: TooltipPayload;
+  onHover: (idx: number | null) => void;
+}) {
+  const activeIdx = active && payload?.length ? (payload[0]?.payload?.idx ?? null) : null;
+  useEffect(() => { onHover(activeIdx); }, [activeIdx, onHover]);
+  if (!active || !payload?.length) return null;
+  const pt = payload[0]?.payload;
+  if (!pt) return null;
+  const pace = Number(payload[0]?.value);
+  if (!pace || pace <= 0) return null;
+  return (
+    <div className="bento-card px-2.5 py-1.5 text-[11px]">
+      <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
+      <p className="text-white font-medium">{formatPace(pace)}/km</p>
+    </div>
+  );
+}
+
+// ─── Individual chart panels ──────────────────────────────────────────────────
+
+interface ChartPanelProps {
+  data: ChartPoint[];
+  color: string;
+  onHover: (idx: number | null) => void;
+  syncId: string;
+}
+
+function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
+  if (!data.some((p) => p.elevation != null)) return null;
   return (
     <div>
-      {/* Tab switcher */}
-      <div className="flex items-center gap-1 mb-4">
-        {tabs.map(({value, label}) => (
-          <button
-            key={value}
-            onClick={() => setTab(value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-              tab === value
-                ? 'bg-white/[0.10] text-white'
-                : 'text-white/40 hover:text-white/60'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="h-[160px]">
+      <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1.5">Elevation</p>
+      <div className="h-[100px]">
         <ResponsiveContainer width="100%" height="100%">
-          {tab === 'elevation' ? (
-            <AreaChart data={chartData} margin={{top: 4, right: 4, left: -24, bottom: 0}}>
-              <defs>
-                <linearGradient id="gradElev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={color} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} tickFormatter={(v) => `${v.toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={40} />
-              <YAxis tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}m`} />
-              <RechartsTooltip
-                content={({active, payload}) => {
-                  if (!active || !payload?.length) return null;
-                  return (
-                    <div className="bento-card px-3 py-2 text-xs">
-                      <p className="text-white/60">{Number(payload[0]?.payload?.dist).toFixed(2)} km</p>
-                      <p className="text-white font-medium">{Math.round(Number(payload[0]?.value))} m</p>
-                    </div>
-                  );
-                }}
-                cursor={{stroke: 'rgba(255,255,255,0.1)'}}
-              />
-              <Area type="monotone" dataKey="elevation" stroke={color} strokeWidth={1.5} fill="url(#gradElev)" dot={false} activeDot={{r: 3, fill: color}} />
-            </AreaChart>
-          ) : tab === 'hr' ? (
-            <AreaChart data={chartData} margin={{top: 4, right: 4, left: -24, bottom: 0}}>
-              <defs>
-                <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ff453a" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#ff453a" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} tickFormatter={(v) => `${v.toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={40} />
-              <YAxis tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}`} />
-              <RechartsTooltip
-                content={({active, payload}) => {
-                  if (!active || !payload?.length) return null;
-                  return (
-                    <div className="bento-card px-3 py-2 text-xs">
-                      <p className="text-white/60">{Number(payload[0]?.payload?.dist).toFixed(2)} km</p>
-                      <p className="text-white font-medium">{Math.round(Number(payload[0]?.value))} bpm</p>
-                    </div>
-                  );
-                }}
-                cursor={{stroke: 'rgba(255,255,255,0.1)'}}
-              />
-              <Area type="monotone" dataKey="hr" stroke="#ff453a" strokeWidth={1.5} fill="url(#gradHR)" dot={false} activeDot={{r: 3, fill: '#ff453a'}} />
-            </AreaChart>
-          ) : (
-            <LineChart data={chartData} margin={{top: 4, right: 4, left: -24, bottom: 0}}>
-              <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} tickFormatter={(v) => `${v.toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={40} />
-              <YAxis tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 9}} axisLine={false} tickLine={false} tickFormatter={(v) => (v > 0 ? formatPace(v) : '')} reversed />
-              <RechartsTooltip
-                content={({active, payload}) => {
-                  if (!active || !payload?.length) return null;
-                  const pace = Number(payload[0]?.value);
-                  if (!pace || pace <= 0) return null;
-                  return (
-                    <div className="bento-card px-3 py-2 text-xs">
-                      <p className="text-white/60">{Number(payload[0]?.payload?.dist).toFixed(2)} km</p>
-                      <p className="text-white font-medium">{formatPace(pace)}/km</p>
-                    </div>
-                  );
-                }}
-                cursor={{stroke: 'rgba(255,255,255,0.1)'}}
-              />
-              <Line type="monotone" dataKey="pace" stroke={color} strokeWidth={1.5} dot={false} activeDot={{r: 3, fill: color}} />
-            </LineChart>
-          )}
+          <AreaChart
+            data={data}
+            syncId={syncId}
+            margin={{top: 2, right: 4, left: -28, bottom: 0}}
+            onMouseLeave={() => onHover(null)}
+          >
+            <defs>
+              <linearGradient id="gradElev" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                <stop offset="95%" stopColor={color} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
+            <YAxis tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={36} />
+            <RechartsTooltip
+              content={<ElevTooltip onHover={onHover} />}
+              cursor={{stroke: 'rgba(255,255,255,0.08)'}}
+            />
+            <Area type="monotone" dataKey="elevation" stroke={color} strokeWidth={1.5} fill="url(#gradElev)" dot={false} activeDot={{r: 3, fill: color, strokeWidth: 0}} />
+          </AreaChart>
         </ResponsiveContainer>
       </div>
+    </div>
+  );
+}
+
+function HRPanel({data, onHover, syncId}: Omit<ChartPanelProps, 'color'>) {
+  if (!data.some((p) => p.hr != null)) return null;
+  return (
+    <div>
+      <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1.5">Heart Rate</p>
+      <div className="h-[100px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={data}
+            syncId={syncId}
+            margin={{top: 2, right: 4, left: -28, bottom: 0}}
+            onMouseLeave={() => onHover(null)}
+          >
+            <defs>
+              <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#ff453a" stopOpacity={0.25} />
+                <stop offset="95%" stopColor="#ff453a" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
+            <YAxis tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}`} width={36} />
+            <RechartsTooltip
+              content={<HRTooltip onHover={onHover} />}
+              cursor={{stroke: 'rgba(255,255,255,0.08)'}}
+            />
+            <Area type="monotone" dataKey="hr" stroke="#ff453a" strokeWidth={1.5} fill="url(#gradHR)" dot={false} activeDot={{r: 3, fill: '#ff453a', strokeWidth: 0}} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+function PacePanel({data, color, onHover, syncId}: ChartPanelProps) {
+  if (!data.some((p) => p.pace != null)) return null;
+  return (
+    <div>
+      <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1.5">Pace</p>
+      <div className="h-[100px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart
+            data={data}
+            syncId={syncId}
+            margin={{top: 2, right: 4, left: -28, bottom: 0}}
+            onMouseLeave={() => onHover(null)}
+          >
+            <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
+            <YAxis tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => (Number(v) > 0 ? formatPace(Number(v)) : '')} reversed width={40} />
+            <RechartsTooltip
+              content={<PaceTooltip onHover={onHover} />}
+              cursor={{stroke: 'rgba(255,255,255,0.08)'}}
+            />
+            <Line type="monotone" dataKey="pace" stroke={color} strokeWidth={1.5} dot={false} activeDot={{r: 3, fill: color, strokeWidth: 0}} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// ─── Stream Charts ─────────────────────────────────────────────────────────────
+
+interface StreamChartsProps {
+  chartData: ChartPoint[];
+  color: string;
+  onHover: (idx: number | null) => void;
+}
+
+function StreamCharts({chartData, color, onHover}: StreamChartsProps) {
+  const syncId = 'activity-charts';
+  return (
+    <div className="space-y-5">
+      <ElevationPanel data={chartData} color={color} onHover={onHover} syncId={syncId} />
+      <HRPanel data={chartData} onHover={onHover} syncId={syncId} />
+      <PacePanel data={chartData} color={color} onHover={onHover} syncId={syncId} />
     </div>
   );
 }
@@ -238,7 +294,7 @@ function ZoneCard({breakdown}: {breakdown: ReturnType<typeof useActivityZoneBrea
       {([1, 2, 3, 4, 5, 6] as const).map((z) => {
         const zone = breakdown.zones[z];
         const pct = zone ? Math.round((zone.time / totalTime) * 100) : 0;
-        const color = ZONE_COLORS[z];
+        const zColor = ZONE_COLORS[z];
         return (
           <div key={z}>
             <div className="flex items-center justify-between mb-1">
@@ -248,7 +304,7 @@ function ZoneCard({breakdown}: {breakdown: ReturnType<typeof useActivityZoneBrea
             <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
-                style={{background: color}}
+                style={{background: zColor}}
                 initial={{width: 0}}
                 animate={{width: `${pct}%`}}
                 transition={{duration: 0.5, delay: z * 0.05, ease: 'easeOut'}}
@@ -272,26 +328,77 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   const {data: streams, isLoading: streamsLoading} = useActivityStreams(id);
   const {data: zoneBreakdown} = useActivityZoneBreakdown(id);
 
+  // Hover index into chartData → drives the map dot
+  const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+  const handleHover = useCallback((idx: number | null) => setHoverIdx(idx), []);
+
   const summary = useMemo(
     () => allActivities?.find((a) => a.id === id),
     [allActivities, id],
   );
 
   const sportColor = SPORT_COLORS[summary?.type ?? detail?.sport_type ?? 'Run'] ?? '#30d158';
+  const {settings} = useSettings();
 
-  // Subsample stream data for charts (every ~10 points to keep chart snappy)
+  // Zone-coloured map segments — group consecutive GPS points by HR zone.
+  // Falls back to the sport colour when HR data is absent.
+  const mapSegments = useMemo((): ZoneSegment[] => {
+    if (!streams || streams.length === 0) return [];
+
+    // ~500 pts keeps Leaflet fast while preserving zone transitions
+    const step = Math.max(1, Math.floor(streams.length / 500));
+    const sampled = streams.filter((_, i) => i % step === 0);
+
+    const segments: ZoneSegment[] = [];
+    let curColor: string | null = null;
+    let curPts: [number, number][] = [];
+
+    for (const pt of sampled) {
+      if (pt.lat == null || pt.lng == null) continue;
+      const ptColor = pt.heartrate > 0
+        ? ZONE_COLORS[getZoneForHr(pt.heartrate, settings.zones)]
+        : sportColor;
+
+      if (ptColor !== curColor) {
+        if (curPts.length >= 1 && curColor) {
+          segments.push({points: curPts, color: curColor});
+          // Overlap: carry last point into new segment to avoid gaps
+          curPts = [curPts[curPts.length - 1]];
+        }
+        curColor = ptColor;
+      }
+      curPts.push([pt.lat, pt.lng]);
+    }
+    if (curPts.length >= 1 && curColor) {
+      segments.push({points: curPts, color: curColor});
+    }
+    return segments;
+  }, [streams, settings.zones, sportColor]);
+
+  // Subsampled chart data — ~300 points, each carries idx + lat/lng for map sync
   const chartData = useMemo((): ChartPoint[] => {
     if (!streams || streams.length === 0) return [];
     const step = Math.max(1, Math.floor(streams.length / 300));
     return streams
       .filter((_, i) => i % step === 0)
-      .map((pt) => ({
+      .map((pt, i) => ({
+        idx: i,
         dist: pt.distance / 1000,
         elevation: pt.altitude > 0 ? pt.altitude : undefined,
         hr: pt.heartrate > 0 ? pt.heartrate : undefined,
-        pace: pt.velocity > 0.5 ? pt.velocity > 0 ? 1 / (pt.velocity * 60 / 1000) : undefined : undefined,
+        pace: pt.velocity > 0.5 ? 1 / (pt.velocity * 60 / 1000) : undefined,
+        lat: pt.lat,
+        lng: pt.lng,
       }));
   }, [streams]);
+
+  // Hover position on map — derived from the active chart index
+  const hoverPos = useMemo((): [number, number] | null => {
+    if (hoverIdx == null) return null;
+    const pt = chartData[hoverIdx];
+    if (pt?.lat == null || pt?.lng == null) return null;
+    return [pt.lat, pt.lng];
+  }, [hoverIdx, chartData]);
 
   if (authLoading) {
     return (
@@ -357,10 +464,18 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               {/* Map */}
               <motion.div variants={cardVariant} className="bento-card p-4">
                 <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Route</h2>
-                {detailLoading && !summary?.polyline ? (
-                  <Skeleton className="h-[280px] w-full" />
+                {streamsLoading || detailLoading ? (
+                  <Skeleton className="h-[300px] w-full" />
+                ) : mapSegments.length >= 1 ? (
+                  <RouteMapLeaflet
+                    segments={mapSegments}
+                    hoverPos={hoverPos}
+                    color={sportColor}
+                  />
                 ) : (
-                  <RouteMap polyline={summary?.polyline ?? detail?.map?.summary_polyline ?? undefined} color={sportColor} />
+                  <div className="w-full h-[300px] flex items-center justify-center">
+                    <p className="text-sm text-white/25">No GPS data</p>
+                  </div>
                 )}
               </motion.div>
 
@@ -368,13 +483,17 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               <motion.div variants={cardVariant} className="bento-card p-5">
                 <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Analysis</h2>
                 {streamsLoading ? (
-                  <Skeleton className="h-[200px] w-full" />
+                  <div className="space-y-5">
+                    <Skeleton className="h-[100px] w-full" />
+                    <Skeleton className="h-[100px] w-full" />
+                    <Skeleton className="h-[100px] w-full" />
+                  </div>
                 ) : chartData.length === 0 ? (
                   <div className="h-[200px] flex items-center justify-center">
                     <p className="text-sm text-white/25">No stream data available</p>
                   </div>
                 ) : (
-                  <StreamCharts chartData={chartData} color={sportColor} />
+                  <StreamCharts chartData={chartData} color={sportColor} onHover={handleHover} />
                 )}
               </motion.div>
 
@@ -425,25 +544,17 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       const prColors: Record<number, string> = {1: '#F59E0B', 2: '#9CA3AF', 3: '#CD7C32'};
                       const prColor = se.pr_rank ? prColors[se.pr_rank] : undefined;
                       return (
-                        <div
-                          key={se.id}
-                          className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-white/[0.03] transition-colors"
-                        >
+                        <div key={se.id} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-white/[0.03] transition-colors">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm text-white/75 truncate">{se.name}</p>
                               {se.pr_rank && (
-                                <span
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0"
-                                  style={{color: prColor, background: `${prColor}20`}}
-                                >
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0" style={{color: prColor, background: `${prColor}20`}}>
                                   #{se.pr_rank}
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-white/30 mt-0.5">
-                              {(se.distance / 1000).toFixed(1)} km
-                            </p>
+                            <p className="text-[11px] text-white/30 mt-0.5">{(se.distance / 1000).toFixed(1)} km</p>
                           </div>
                           <div className="text-right flex-shrink-0 ml-4">
                             <p className="text-sm font-medium tabular-nums text-white/70">{fmtTime(se.elapsed_time)}</p>
@@ -481,10 +592,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                               <td className="py-2.5 text-right text-white/70 tabular-nums text-xs font-medium">{fmtTime(be.elapsed_time)}</td>
                               <td className="py-2.5 text-right text-xs">
                                 {be.pr_rank ? (
-                                  <span
-                                    className="font-bold px-1.5 py-0.5 rounded-md"
-                                    style={{color: prColor, background: `${prColor}20`}}
-                                  >
+                                  <span className="font-bold px-1.5 py-0.5 rounded-md" style={{color: prColor, background: `${prColor}20`}}>
                                     #{be.pr_rank}
                                   </span>
                                 ) : <span className="text-white/25">—</span>}

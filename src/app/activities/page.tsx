@@ -1,10 +1,10 @@
 'use client';
 
-import {useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {motion, type Variants} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
-import {useActivities} from '@/hooks/useStrava';
+import {useActivitiesPaginated} from '@/hooks/useStrava';
 import {formatPace, formatDuration} from '@/lib/activityModel';
 import type {ActivitySummary, ActivityType} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
@@ -36,6 +36,8 @@ const SORT_OPTIONS: {label: string; value: SortKey}[] = [
   {label: 'Elevation', value: 'elevation'},
   {label: 'Heart Rate', value: 'hr'},
 ];
+
+const BATCH_SIZE = 30;
 
 const containerVariant: Variants = {
   show: {transition: {staggerChildren: 0.04}},
@@ -169,10 +171,12 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
 export default function ActivitiesPage() {
   const router = useRouter();
   const {isAuthenticated, isLoading: authLoading} = useStravaAuth();
-  const {data: activities, isLoading} = useActivities();
+  const {data: activities, isLoading, isFullyLoaded} = useActivitiesPaginated(BATCH_SIZE);
 
   const [sportFilter, setSportFilter] = useState<ActivityType | 'All'>('All');
   const [sortKey, setSortKey] = useState<SortKey>('date');
+  const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     if (!activities) return [];
@@ -187,6 +191,32 @@ export default function ActivitiesPage() {
     });
     return list;
   }, [activities, sportFilter, sortKey]);
+
+  // Reset visible count when filter/sort changes
+  useEffect(() => {
+    setVisibleCount(BATCH_SIZE);
+  }, [sportFilter, sortKey]);
+
+  const visibleActivities = useMemo(
+    () => filtered.slice(0, visibleCount),
+    [filtered, visibleCount],
+  );
+
+  const loadMore = useCallback(() => {
+    setVisibleCount((n) => Math.min(n + BATCH_SIZE, filtered.length));
+  }, [filtered.length]);
+
+  // Intersection observer — load next batch when sentinel enters viewport
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore(); },
+      {rootMargin: '200px'},
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [loadMore]);
 
   if (authLoading) {
     return (
@@ -215,7 +245,11 @@ export default function ActivitiesPage() {
           <div className="pt-2 pb-1">
             <h1 className="text-xl font-semibold tracking-tight text-white">Activities</h1>
             <p className="text-sm text-white/35 mt-0.5">
-              {activities ? `${activities.length} activities synced` : 'Loading…'}
+              {activities
+                ? isFullyLoaded
+                  ? `${activities.length} activities synced`
+                  : `${activities.length}+ activities — loading more…`
+                : 'Loading…'}
             </p>
           </div>
 
@@ -297,7 +331,7 @@ export default function ActivitiesPage() {
                 animate="show"
                 className="p-2"
               >
-                {filtered.map((a) => (
+                {visibleActivities.map((a) => (
                   <ActivityRow
                     key={a.id}
                     activity={a}
@@ -306,11 +340,32 @@ export default function ActivitiesPage() {
                 ))}
               </motion.div>
             )}
+
+            {/* Sentinel — triggers next batch load; hidden once all visible */}
+            {visibleCount < filtered.length && (
+              <div ref={sentinelRef} className="p-4 space-y-2">
+                {Array.from({length: 3}).map((_, i) => (
+                  <div key={i} className="flex items-center gap-4 py-2">
+                    <Skeleton className="w-2 h-2 rounded-full" />
+                    <div className="flex-1 space-y-1.5">
+                      <Skeleton className="h-3.5 w-2/3" />
+                      <Skeleton className="h-2.5 w-1/4" />
+                    </div>
+                    <Skeleton className="h-3 w-20 hidden sm:block" />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {activities && filtered.length > 0 && (
             <p className="text-center text-[11px] text-white/20">
-              {filtered.length} {sportFilter === 'All' ? '' : sportFilter + ' '}activit{filtered.length === 1 ? 'y' : 'ies'}
+              {!isFullyLoaded
+                ? `Showing ${visibleActivities.length} activities…`
+                : visibleCount >= filtered.length
+                  ? `${filtered.length} ${sportFilter === 'All' ? '' : sportFilter + ' '}activit${filtered.length === 1 ? 'y' : 'ies'}`
+                  : `${visibleActivities.length} of ${filtered.length} ${sportFilter === 'All' ? '' : sportFilter + ' '}activities`
+              }
             </p>
           )}
         </div>

@@ -22,6 +22,8 @@ export interface StreamPoint {
   velocity: number;
   heartrate: number;
   altitude: number;
+  lat?: number;
+  lng?: number;
 }
 
 export interface UserSettings {

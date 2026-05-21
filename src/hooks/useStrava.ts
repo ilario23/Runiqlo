@@ -13,9 +13,11 @@ import {
   cachedGetAthleteZones,
   cachedGetAthleteGear,
   cachedCalcFitnessData,
+  cachedGetAllSegments,
   forceRefreshActivities,
   batchGetZoneBreakdowns,
 } from '@/lib/stravaCache';
+import type {AggregatedSegment} from '@/lib/stravaCache';
 import type {ActivitySummary, StreamPoint} from '@/lib/activityModel';
 import type {FitnessDataPoint, AdvancedMetricsDataPoint} from '@/utils/trainingLoad';
 import {calcAdvancedMetricsData} from '@/utils/trainingLoad';
@@ -252,6 +254,18 @@ export const useStarredSegments = () => {
     queryFn: () => fetchStarredSegments(),
     enabled: isAuthenticated && !!athlete?.id,
     staleTime: ONE_DAY,
+    gcTime: ONE_DAY,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useAllSegments = () => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  return useQuery<{segments: AggregatedSegment[]; activitiesWithDetails: number; totalActivities: number}>({
+    queryKey: ['strava', 'segments', 'all', athlete?.id],
+    queryFn: () => cachedGetAllSegments(athlete!.id),
+    enabled: isAuthenticated && !!athlete?.id,
+    staleTime: ONE_HOUR,
     gcTime: ONE_DAY,
     refetchOnWindowFocus: false,
   });
