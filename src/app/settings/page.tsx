@@ -1,9 +1,175 @@
 'use client';
 
-import {useEffect, Suspense} from 'react';
+import {useEffect, Suspense, useState} from 'react';
 import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
+import {useSettings} from '@/contexts/SettingsContext';
+import {ZONE_COLORS, ZONE_NAMES, defaultSettings} from '@/lib/activityModel';
+import type {UserSettings} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
+
+// ─── Section label ─────────────────────────────────────────────────────────────
+
+function SectionLabel({children}: {children: React.ReactNode}) {
+  return (
+    <h2 className="text-[10px] font-semibold text-white/25 uppercase tracking-widest mb-3 px-1">
+      {children}
+    </h2>
+  );
+}
+
+// ─── HR Zones editor ──────────────────────────────────────────────────────────
+
+function HrZonesEditor() {
+  const {settings, updateSettings} = useSettings();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<UserSettings>(settings);
+
+  const startEdit = () => { setDraft(settings); setEditing(true); };
+  const cancel = () => setEditing(false);
+  const save = () => { updateSettings(draft); setEditing(false); };
+  const reset = () => setDraft(defaultSettings);
+
+  const setZoneBound = (zKey: keyof UserSettings['zones'], idx: 0 | 1, val: number) => {
+    setDraft(d => ({
+      ...d,
+      zones: {
+        ...d.zones,
+        [zKey]: idx === 0 ? [val, d.zones[zKey][1]] : [d.zones[zKey][0], val],
+      },
+    }));
+  };
+
+  const viewData = editing ? draft : settings;
+
+  return (
+    <div className="bento-card p-5 space-y-5">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-white">Heart Rate Zones</p>
+          <p className="text-xs text-white/35 mt-0.5">Customize your training zone boundaries</p>
+        </div>
+        {editing ? (
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={reset}
+              className="text-xs text-white/25 hover:text-white/45 transition-colors px-2 py-1"
+            >
+              Reset
+            </button>
+            <button
+              onClick={cancel}
+              className="text-xs text-white/40 hover:text-white/60 transition-colors px-2 py-1"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={save}
+              className="text-xs bg-[#0a84ff] text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0a84ff]/85 transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={startEdit}
+            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 bg-white/[0.05] hover:bg-white/[0.09] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit zones
+          </button>
+        )}
+      </div>
+
+      {/* Max HR + Resting HR */}
+      <div className="grid grid-cols-2 gap-3">
+        {([
+          {label: 'Max HR', field: 'maxHr' as const, min: 100, max: 220},
+          {label: 'Resting HR', field: 'restingHr' as const, min: 30, max: 100},
+        ] as const).map(({label, field, min, max}) => (
+          <div key={field} className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+            <p className="text-[10px] text-white/35 uppercase tracking-wide mb-2">{label}</p>
+            {editing ? (
+              <div className="flex items-baseline gap-1.5">
+                <input
+                  type="number"
+                  value={draft[field]}
+                  onChange={e => setDraft(d => ({...d, [field]: Number(e.target.value)}))}
+                  className="w-16 bg-transparent border-b border-white/20 focus:border-[#0a84ff] text-xl font-bold text-white tabular-nums focus:outline-none transition-colors pb-0.5"
+                  min={min} max={max}
+                />
+                <span className="text-xs text-white/30">bpm</span>
+              </div>
+            ) : (
+              <p className="text-xl font-bold text-white tabular-nums">
+                {settings[field]}<span className="text-xs font-normal text-white/30 ml-1">bpm</span>
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Zone rows */}
+      <div className="space-y-1">
+        {([1, 2, 3, 4, 5, 6] as const).map((z) => {
+          const zKey = `z${z}` as keyof UserSettings['zones'];
+          const [lo, hi] = viewData.zones[zKey];
+          const color = ZONE_COLORS[z];
+          const maxHr = viewData.maxHr;
+          return (
+            <div
+              key={z}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors"
+            >
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: color}} />
+              <span className="text-xs font-medium text-white/55 w-[110px] flex-shrink-0">
+                Z{z} · {ZONE_NAMES[z]}
+              </span>
+              <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-300"
+                  style={{
+                    background: color,
+                    width: `${Math.min(100, ((hi - 60) / (maxHr - 60)) * 100)}%`,
+                    opacity: 0.6,
+                  }}
+                />
+              </div>
+              {editing ? (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <input
+                    type="number"
+                    value={lo}
+                    onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
+                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/60 transition-colors"
+                  />
+                  <span className="text-[10px] text-white/25">–</span>
+                  <input
+                    type="number"
+                    value={hi}
+                    onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
+                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/60 transition-colors"
+                  />
+                  <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
+                </div>
+              ) : (
+                <span className="text-xs font-semibold tabular-nums flex-shrink-0 w-[88px] text-right" style={{color}}>
+                  {lo}–{hi} bpm
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main settings content ────────────────────────────────────────────────────
 
 function SettingsContent() {
   const {isAuthenticated, isLoading, athlete, login, logout, handleOAuthCallback} = useStravaAuth();
@@ -30,68 +196,89 @@ function SettingsContent() {
   return (
     <>
       <AppHeader />
-    <div className="min-h-screen pt-14 flex items-center justify-center p-6">
-      <div className="bento-card p-8 w-full max-w-md space-y-6">
-        {/* Logo */}
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🏃</span>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">Strava Coach</h1>
+      <main className="min-h-screen pt-[72px] pb-10 px-5">
+        <div className="max-w-[600px] mx-auto space-y-7">
+
+          {/* Page title */}
+          <div className="pt-2 pb-1">
+            <h1 className="text-xl font-semibold tracking-tight text-white">Settings</h1>
           </div>
-          <p className="text-sm text-white/50">Connect your Strava account to get started</p>
+
+          {/* ── Account ────────────────────────────────────────────────────── */}
+          <section>
+            <SectionLabel>Account</SectionLabel>
+            <div className="bento-card p-5">
+              {isAuthenticated && athlete ? (
+                <div className="space-y-4">
+                  {/* Athlete row */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-[#fc4c02]/15 flex items-center justify-center text-[#fc4c02] font-bold text-sm flex-shrink-0">
+                      {athlete.firstname[0]}{athlete.lastname[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white">
+                        {athlete.firstname} {athlete.lastname}
+                      </p>
+                      <p className="text-xs text-white/35 mt-0.5">@{athlete.username}</p>
+                    </div>
+                    <span className="text-[10px] bg-[#30d158]/12 text-[#30d158] px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                      Connected
+                    </span>
+                  </div>
+
+                  <div className="h-px bg-white/[0.06]" />
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-xs text-white/30 leading-relaxed">
+                      Activities, segments, and gear sync from your Strava account.
+                    </p>
+                    <button
+                      onClick={logout}
+                      className="text-xs font-medium text-white/35 hover:text-[#ff453a] transition-colors flex-shrink-0"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-white">Strava</p>
+                    <p className="text-xs text-white/35 mt-1 leading-relaxed">
+                      Connect your account to sync activities, segments, and gear.
+                    </p>
+                  </div>
+                  <button
+                    onClick={login}
+                    className="w-full flex items-center justify-center gap-2.5 bg-[#fc4c02] hover:bg-[#e84402] text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
+                    </svg>
+                    Connect with Strava
+                  </button>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* ── Training ───────────────────────────────────────────────────── */}
+          {isAuthenticated && (
+            <section>
+              <SectionLabel>Training</SectionLabel>
+              <HrZonesEditor />
+            </section>
+          )}
+
+          {/* ── Footer note ─────────────────────────────────────────────────── */}
+          <p className="text-xs text-white/20 text-center leading-relaxed px-6">
+            Your data lives in your private Supabase database.
+            Strava credentials are never stored in the browser.
+          </p>
+
         </div>
-
-        <div className="h-px bg-white/10" />
-
-        {isAuthenticated && athlete ? (
-          <div className="space-y-5">
-            {/* Athlete card */}
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5">
-              <div className="w-10 h-10 rounded-full bg-[#0a84ff]/20 flex items-center justify-center text-[#0a84ff] font-semibold text-sm">
-                {athlete.firstname[0]}{athlete.lastname[0]}
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">{athlete.firstname} {athlete.lastname}</p>
-                <p className="text-xs text-white/40">@{athlete.username}</p>
-              </div>
-              <div className="ml-auto">
-                <span className="text-xs bg-[#30d158]/15 text-[#30d158] px-2 py-0.5 rounded-full font-medium">Connected</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <a
-                href="/"
-                className="flex-1 bg-[#0a84ff] hover:bg-[#0a84ff]/90 text-white text-sm font-medium py-2.5 rounded-xl text-center transition-colors"
-              >
-                Go to Dashboard
-              </a>
-              <button
-                onClick={logout}
-                className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white text-sm font-medium py-2.5 rounded-xl transition-colors"
-              >
-                Disconnect
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={login}
-            className="w-full flex items-center justify-center gap-3 bg-[#fc4c02] hover:bg-[#fc4c02]/90 text-white font-semibold py-3.5 rounded-xl transition-colors text-sm"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
-            </svg>
-            Connect with Strava
-          </button>
-        )}
-
-        <p className="text-xs text-white/30 text-center leading-relaxed">
-          Your data is synced to your private Supabase database.
-          Strava credentials are never stored in the browser.
-        </p>
-      </div>
-    </div>
+      </main>
     </>
   );
 }

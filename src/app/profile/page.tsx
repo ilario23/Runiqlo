@@ -1,5 +1,6 @@
 'use client';
 
+import {useState} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {motion, type Variants} from 'framer-motion';
@@ -8,6 +9,7 @@ import {useSettings} from '@/contexts/SettingsContext';
 import {useAthleteStats, useAthleteGear} from '@/hooks/useStrava';
 import {formatDuration, ZONE_COLORS, ZONE_NAMES} from '@/lib/activityModel';
 import type {StravaActivityTotal} from '@/lib/strava';
+import type {UserSettings} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -147,9 +149,26 @@ const ShoeIcon = () => (
 
 export default function ProfilePage() {
   const {isAuthenticated, isLoading: authLoading, athlete} = useStravaAuth();
-  const {settings} = useSettings();
+  const {settings, updateSettings} = useSettings();
   const {data: stats, isLoading: statsLoading} = useAthleteStats();
   const {data: gear, isLoading: gearLoading} = useAthleteGear();
+
+  const [editingZones, setEditingZones] = useState(false);
+  const [zoneDraft, setZoneDraft] = useState<UserSettings>(settings);
+
+  const startZoneEdit = () => { setZoneDraft(settings); setEditingZones(true); };
+  const cancelZoneEdit = () => setEditingZones(false);
+  const saveZones = () => { updateSettings(zoneDraft); setEditingZones(false); };
+
+  const setZoneBound = (zKey: keyof UserSettings['zones'], idx: 0 | 1, val: number) => {
+    setZoneDraft(d => ({
+      ...d,
+      zones: {
+        ...d.zones,
+        [zKey]: idx === 0 ? [val, d.zones[zKey][1]] : [d.zones[zKey][0], val],
+      },
+    }));
+  };
 
   if (authLoading) {
     return (
@@ -315,40 +334,106 @@ export default function ProfilePage() {
 
               {/* Zone Configuration */}
               <motion.div variants={cardVariant} className="bento-card p-5">
+                {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-xs font-medium text-white/40 uppercase tracking-wide">Heart Rate Zones</h3>
-                  <Link
-                    href="/settings"
-                    className="text-[10px] text-white/30 hover:text-white/50 transition-colors"
-                  >
-                    Edit →
-                  </Link>
+                  {editingZones ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={cancelZoneEdit}
+                        className="text-[11px] text-white/30 hover:text-white/50 transition-colors px-2 py-0.5"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={saveZones}
+                        className="text-[11px] bg-[#0a84ff] text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-[#0a84ff]/85 transition-colors"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={startZoneEdit}
+                      className="text-[10px] text-white/30 hover:text-white/60 transition-colors flex items-center gap-1"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                      Edit
+                    </button>
+                  )}
                 </div>
+
+                {/* Max HR + Resting HR — editable */}
+                {editingZones && (
+                  <div className="flex gap-3 mb-4 pb-4 border-b border-white/[0.06]">
+                    {([
+                      {label: 'Max HR', field: 'maxHr' as const, min: 100, max: 220},
+                      {label: 'Resting HR', field: 'restingHr' as const, min: 30, max: 100},
+                    ] as const).map(({label, field, min, max}) => (
+                      <div key={field} className="flex-1 bg-white/[0.04] rounded-xl p-3">
+                        <p className="text-[10px] text-white/35 uppercase tracking-wide mb-1.5">{label}</p>
+                        <div className="flex items-baseline gap-1">
+                          <input
+                            type="number"
+                            value={zoneDraft[field]}
+                            onChange={e => setZoneDraft(d => ({...d, [field]: Number(e.target.value)}))}
+                            className="w-14 bg-transparent border-b border-white/20 focus:border-[#0a84ff] text-base font-bold text-white tabular-nums focus:outline-none transition-colors"
+                            min={min} max={max}
+                          />
+                          <span className="text-[11px] text-white/30">bpm</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Zone rows */}
                 <div className="space-y-2.5">
                   {([1, 2, 3, 4, 5, 6] as const).map((z) => {
-                    const zKey = `z${z}` as keyof typeof settings.zones;
-                    const [lo, hi] = settings.zones[zKey];
+                    const zKey = `z${z}` as keyof UserSettings['zones'];
+                    const data = editingZones ? zoneDraft.zones : settings.zones;
+                    const [lo, hi] = data[zKey];
                     const color = ZONE_COLORS[z];
+                    const maxHr = editingZones ? zoneDraft.maxHr : settings.maxHr;
                     return (
                       <div key={z} className="flex items-center gap-3">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                          style={{background: color}}
-                        />
+                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: color}} />
                         <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-white/60 font-medium">Z{z} · {ZONE_NAMES[z]}</span>
-                            <span className="text-[11px] font-semibold tabular-nums" style={{color}}>
-                              {lo}–{hi} bpm
-                            </span>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-white/60 font-medium flex-shrink-0">Z{z} · {ZONE_NAMES[z]}</span>
+                            {editingZones ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="number"
+                                  value={lo}
+                                  onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
+                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/50 transition-colors"
+                                />
+                                <span className="text-[10px] text-white/25">–</span>
+                                <input
+                                  type="number"
+                                  value={hi}
+                                  onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
+                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/50 transition-colors"
+                                />
+                                <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
+                              </div>
+                            ) : (
+                              <span className="text-[11px] font-semibold tabular-nums" style={{color}}>
+                                {lo}–{hi} bpm
+                              </span>
+                            )}
                           </div>
                           <div className="mt-1 h-1 rounded-full bg-white/[0.06] overflow-hidden">
                             <div
-                              className="h-full rounded-full"
+                              className="h-full rounded-full transition-all duration-300"
                               style={{
                                 background: color,
-                                width: `${Math.min(100, ((hi - 60) / (settings.maxHr - 60)) * 100)}%`,
-                                opacity: 0.7,
+                                width: `${Math.min(100, ((hi - 60) / (maxHr - 60)) * 100)}%`,
+                                opacity: 0.65,
                               }}
                             />
                           </div>
@@ -357,10 +442,14 @@ export default function ProfilePage() {
                     );
                   })}
                 </div>
-                <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-white/30">
-                  <span>Max HR: <span className="text-white/50 font-medium">{settings.maxHr} bpm</span></span>
-                  <span>Resting: <span className="text-white/50 font-medium">{settings.restingHr} bpm</span></span>
-                </div>
+
+                {/* Footer: max/resting HR (view mode only) */}
+                {!editingZones && (
+                  <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-white/30">
+                    <span>Max HR: <span className="text-white/50 font-medium">{settings.maxHr} bpm</span></span>
+                    <span>Resting: <span className="text-white/50 font-medium">{settings.restingHr} bpm</span></span>
+                  </div>
+                )}
               </motion.div>
             </div>
 
