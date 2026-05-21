@@ -26,7 +26,10 @@ import type {
   StravaAthleteStats,
   StravaAthleteZones,
   StravaSummaryGear,
+  StravaStarredSegment,
 } from '@/lib/strava';
+import {fetchStarredSegments} from '@/lib/strava';
+import {computeZoneBreakdown} from '@/lib/zoneCompute';
 
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -240,6 +243,34 @@ export const useZoneBreakdowns = (weeks: number): {data: AggregatedZoneTotals | 
     return aggregateZoneBreakdowns(Array.from(breakdownMap.values()));
   }, [breakdownMap]);
   return {data: aggregated, isLoading, progress};
+};
+
+export const useStarredSegments = () => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  return useQuery<StravaStarredSegment[]>({
+    queryKey: ['strava', 'segments', 'starred', athlete?.id],
+    queryFn: () => fetchStarredSegments(),
+    enabled: isAuthenticated && !!athlete?.id,
+    staleTime: ONE_DAY,
+    gcTime: ONE_DAY,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useActivityZoneBreakdown = (activityId: string | undefined) => {
+  const {settings} = useSettings();
+  const {data: streams} = useActivityStreams(activityId);
+
+  return useQuery<ZoneBreakdown | null>({
+    queryKey: ['strava', 'zone-breakdown-single', activityId, hashZoneSettings(settings.zones)],
+    queryFn: () => {
+      if (!streams || streams.length === 0) return null;
+      return computeZoneBreakdown(streams, settings.zones);
+    },
+    enabled: !!activityId && !!streams && streams.length > 0,
+    staleTime: Infinity,
+    gcTime: ONE_DAY,
+  });
 };
 
 export const useForceRefreshActivities = () => {

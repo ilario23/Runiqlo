@@ -3,6 +3,7 @@
 import {useEffect, Suspense} from 'react';
 import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
+import AppHeader from '@/components/AppHeader';
 
 function SettingsContent() {
   const {isAuthenticated, isLoading, athlete, login, logout, handleOAuthCallback} = useStravaAuth();
@@ -27,7 +28,9 @@ function SettingsContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6">
+    <>
+      <AppHeader />
+    <div className="min-h-screen pt-14 flex items-center justify-center p-6">
       <div className="bento-card p-8 w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="space-y-1">
@@ -89,6 +92,7 @@ function SettingsContent() {
         </p>
       </div>
     </div>
+    </>
   );
 }
 
