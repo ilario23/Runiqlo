@@ -132,7 +132,7 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium text-white">Training Load</h2>
-          <p className="text-xs text-white/35 mt-0.5">Base Fitness · Load Impact · Intensity Trend</p>
+          <p className="text-xs text-white/45 mt-0.5">Base Fitness · Load Impact · Intensity Trend</p>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-medium">
           <span className="flex items-center gap-1">
@@ -160,15 +160,15 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
             <AreaChart data={last90} margin={{top: 4, right: 4, left: 0, bottom: 0}}>
               <defs>
                 <linearGradient id="gradBF" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0a84ff" stopOpacity={0.25} />
-                  <stop offset="95%" stopColor="#0a84ff" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#0a84ff" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="#0a84ff" stopOpacity={0.03} />
                 </linearGradient>
                 <linearGradient id="gradLI" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ff9f0a" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#ff9f0a" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#ff9f0a" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#ff9f0a" stopOpacity={0.02} />
                 </linearGradient>
                 <filter id="glow-blue">
-                  <feGaussianBlur stdDeviation="2.5" result="blur" />
+                  <feGaussianBlur stdDeviation="3" result="blur" />
                   <feComposite in="SourceGraphic" in2="blur" operator="over" />
                 </filter>
               </defs>
@@ -193,20 +193,20 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
                 dataKey="li"
                 name="LI"
                 stroke="#ff9f0a"
-                strokeWidth={1.5}
+                strokeWidth={2}
                 fill="url(#gradLI)"
                 dot={false}
-                activeDot={{r: 3, fill: '#ff9f0a'}}
+                activeDot={{r: 4, fill: '#ff9f0a'}}
               />
               <Area
                 type="monotone"
                 dataKey="bf"
                 name="BF"
                 stroke="#0a84ff"
-                strokeWidth={2}
+                strokeWidth={3}
                 fill="url(#gradBF)"
                 dot={false}
-                activeDot={{r: 3, fill: '#0a84ff'}}
+                activeDot={{r: 4, fill: '#0a84ff'}}
                 filter="url(#glow-blue)"
               />
               <Area
@@ -214,11 +214,11 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
                 dataKey="it"
                 name="IT"
                 stroke="#bf5af2"
-                strokeWidth={1}
+                strokeWidth={1.5}
                 fill="none"
                 dot={false}
                 activeDot={{r: 3, fill: '#bf5af2'}}
-                strokeDasharray="3 3"
+                strokeDasharray="4 3"
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -257,7 +257,7 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
       ) : (
         <>
           <div>
-            <p className="text-xs text-white/40 font-medium">{label}</p>
+            <p className="text-xs text-white/55 font-medium">{label}</p>
             <p className="text-[10px] text-white/25 mt-0.5">{sublabel}</p>
           </div>
           <div className="mt-2">
@@ -266,7 +266,7 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
             </p>
           </div>
           {typeof delta === 'number' && (
-            <p className={`text-[10px] mt-1.5 font-medium ${isUp ? 'text-[#30d158]' : isDown ? 'text-[#ff453a]' : 'text-white/30'}`}>
+            <p className={`text-[10px] mt-1.5 font-medium ${isUp ? 'text-[#30d158]' : isDown ? 'text-[#ff453a]' : 'text-white/45'}`}>
               {isUp ? '↑' : isDown ? '↓' : '→'} {Math.abs(delta).toFixed(1)} vs 7d ago
             </p>
           )}
@@ -294,10 +294,10 @@ function HRZoneCard({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium text-white">Zone Distribution</h2>
-          <p className="text-xs text-white/35 mt-0.5">Last 4 weeks · Heart rate</p>
+          <p className="text-xs text-white/45 mt-0.5">Last 4 weeks · Heart rate</p>
         </div>
         {isLoading && progress.total > 0 && (
-          <span className="text-[10px] text-white/30">
+          <span className="text-[10px] text-white/45">
             {progress.done}/{progress.total}
           </span>
         )}
@@ -379,7 +379,7 @@ function ActivityRow({activity}: {activity: ActivitySummary}) {
         <p className="text-sm text-white/80 truncate font-medium leading-tight">
           {activity.name}
         </p>
-        <p className="text-[11px] text-white/30 mt-0.5">
+        <p className="text-[11px] text-white/45 mt-0.5">
           {dateStr} · {activity.type}
         </p>
       </div>
@@ -388,7 +388,7 @@ function ActivityRow({activity}: {activity: ActivitySummary}) {
           {activity.distance.toFixed(1)} km
         </p>
         {activity.avgPace > 0 && (
-          <p className="text-[11px] text-white/30 tabular-nums">
+          <p className="text-[11px] text-white/45 tabular-nums">
             {formatPace(activity.avgPace)}/km
           </p>
         )}
@@ -411,7 +411,7 @@ function RecentActivitiesCard({
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-medium text-white">Recent Activities</h2>
         {activities && (
-          <span className="text-[10px] text-white/30">{activities.length} total</span>
+          <span className="text-[10px] text-white/45">{activities.length} total</span>
         )}
       </div>
 
@@ -468,7 +468,7 @@ function StatTile({label, value, sub, color, isLoading}: StatTileProps) {
             <p className="text-2xl font-semibold tracking-tight" style={{color: color ?? '#f5f5f7'}}>
               {value}
             </p>
-            {sub && <span className="text-xs text-white/30">{sub}</span>}
+            {sub && <span className="text-xs text-white/45">{sub}</span>}
           </div>
         </>
       )}

@@ -1,6 +1,6 @@
 'use client';
 
-import {useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {useEffect, useMemo, useState} from 'react';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
@@ -294,5 +294,56 @@ export const useForceRefreshActivities = () => {
     if (!athlete?.id) return;
     const freshData = await forceRefreshActivities(athlete.id);
     queryClient.setQueryData(['strava', 'activities', athlete.id], freshData);
+  };
+};
+
+export type InjuryEntry = {bodyPart: string; severity: 'mild' | 'moderate' | 'severe'; resolved: boolean};
+
+export type AthleteNotesData = {
+  athleteId: number;
+  injuryHistory: InjuryEntry[];
+  preferences: Record<string, string>;
+  responsePatterns: Record<string, string>;
+  freeformNotes: string | null;
+  lastUpdatedAt: number;
+};
+
+export const useAthleteNotes = () => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery<AthleteNotesData | null>({
+    queryKey: ['coach', 'notes', athlete?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/coach/notes?athleteId=${athlete!.id}`);
+      if (!res.ok) throw new Error('Failed to fetch notes');
+      return res.json();
+    },
+    enabled: isAuthenticated && !!athlete?.id,
+    staleTime: ONE_HOUR,
+    gcTime: ONE_DAY,
+    refetchOnWindowFocus: false,
+  });
+
+  const mutation = useMutation({
+    mutationFn: async (patch: Partial<Omit<AthleteNotesData, 'athleteId' | 'lastUpdatedAt'>>) => {
+      const res = await fetch('/api/coach/notes', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({athleteId: athlete!.id, ...patch}),
+      });
+      if (!res.ok) throw new Error('Failed to save notes');
+      return res.json() as Promise<AthleteNotesData>;
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['coach', 'notes', athlete?.id], updated);
+    },
+  });
+
+  return {
+    notes: query.data,
+    isLoading: query.isLoading,
+    saveNotes: mutation.mutateAsync,
+    isSaving: mutation.isPending,
   };
 };

@@ -1,4 +1,4 @@
-import {pgTable, bigint, integer, real, text, jsonb} from 'drizzle-orm/pg-core';
+import {pgTable, bigint, integer, real, text, jsonb, boolean} from 'drizzle-orm/pg-core';
 
 export const activities = pgTable('activities', {
   id: bigint('id', {mode: 'number'}).primaryKey(),
@@ -80,4 +80,64 @@ export const userSettings = pgTable('user_settings', {
   weight: real('weight'),
   city: text('city'),
   updatedAt: bigint('updated_at', {mode: 'number'}).notNull(),
+});
+
+// ── Coach tables ──────────────────────────────────────────────────────────────
+
+export const coachGoal = pgTable('coach_goal', {
+  athleteId: bigint('athlete_id', {mode: 'number'}).primaryKey(),
+  goalType: text('goal_type').notNull(), // 'marathon'|'half_marathon'|'10k'|'5k'|'general_fitness'
+  targetDate: text('target_date'), // YYYY-MM-DD; null for general fitness
+  targetEventName: text('target_event_name'),
+  weeklyHoursAvailable: real('weekly_hours_available').notNull().default(6),
+  experienceLevel: text('experience_level').notNull().default('intermediate'),
+  injuryHistory: text('injury_history'),
+  additionalNotes: text('additional_notes'),
+  createdAt: bigint('created_at', {mode: 'number'}).notNull(),
+  updatedAt: bigint('updated_at', {mode: 'number'}).notNull(),
+});
+
+export const trainingPlan = pgTable('training_plan', {
+  id: bigint('id', {mode: 'number'}).primaryKey(), // Date.now()
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  goalType: text('goal_type').notNull(),
+  targetDate: text('target_date'),
+  startDate: text('start_date').notNull(),
+  phases: jsonb('phases').notNull(), // TrainingPhase[]
+  currentPhaseIndex: integer('current_phase_index').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  generatedAt: bigint('generated_at', {mode: 'number'}).notNull(),
+  updatedAt: bigint('updated_at', {mode: 'number'}).notNull(),
+});
+
+export const weeklyPlan = pgTable('weekly_plan', {
+  id: bigint('id', {mode: 'number'}).primaryKey(), // Date.now()
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  trainingPlanId: bigint('training_plan_id', {mode: 'number'}).notNull(),
+  weekStart: text('week_start').notNull(), // YYYY-MM-DD (always Monday)
+  phase: text('phase').notNull(),
+  weekNumber: integer('week_number').notNull(),
+  targetWeeklyKm: real('target_weekly_km'),
+  days: jsonb('days').notNull(), // PlannedDay[7]
+  coachNotes: text('coach_notes'),
+  generatedAt: bigint('generated_at', {mode: 'number'}).notNull(),
+});
+
+export const coachMessages = pgTable('coach_messages', {
+  id: bigint('id', {mode: 'number'}).primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  role: text('role').notNull(), // 'user' | 'assistant' | 'tool'
+  content: text('content').notNull(),
+  toolCallId: text('tool_call_id'),
+  toolName: text('tool_name'),
+  createdAt: bigint('created_at', {mode: 'number'}).notNull(),
+});
+
+export const athleteNotes = pgTable('athlete_notes', {
+  athleteId: bigint('athlete_id', {mode: 'number'}).primaryKey(),
+  injuryHistory: jsonb('injury_history').notNull().default([]),
+  preferences: jsonb('preferences').notNull().default({}),
+  responsePatterns: jsonb('response_patterns').notNull().default({}),
+  freeformNotes: text('freeform_notes'),
+  lastUpdatedAt: bigint('last_updated_at', {mode: 'number'}).notNull(),
 });

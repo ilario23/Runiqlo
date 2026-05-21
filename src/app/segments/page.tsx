@@ -88,7 +88,7 @@ function SegmentRow({segment}: {segment: AggregatedSegment}) {
             </span>
           )}
         </div>
-        <p className="text-[11px] text-white/35 mt-0.5">
+        <p className="text-[11px] text-white/45 mt-0.5">
           {[segment.city, segment.state].filter(Boolean).join(', ')}
         </p>
       </div>
@@ -98,21 +98,21 @@ function SegmentRow({segment}: {segment: AggregatedSegment}) {
         <div className="text-right w-[55px]">
           <p className="text-sm font-semibold tabular-nums text-white/80">
             {(segment.distance / 1000).toFixed(1)}
-            <span className="text-[11px] font-normal text-white/35 ml-0.5">km</span>
+            <span className="text-[11px] font-normal text-white/45 ml-0.5">km</span>
           </p>
-          <p className="text-[11px] text-white/35">dist</p>
+          <p className="text-[11px] text-white/45">dist</p>
         </div>
 
         <div className="text-right w-[44px]">
           <p className="text-sm font-semibold tabular-nums text-white/80">{segment.effortCount}</p>
-          <p className="text-[11px] text-white/35">runs</p>
+          <p className="text-[11px] text-white/45">runs</p>
         </div>
 
         <div className="text-right w-[60px]">
           <p className="text-sm font-semibold tabular-nums text-[#F59E0B]">
             {fmtTime(segment.prTime)}
           </p>
-          <p className="text-[11px] text-white/35">PR</p>
+          <p className="text-[11px] text-white/45">PR</p>
         </div>
 
         <div className="text-right w-[90px]">
@@ -199,17 +199,30 @@ export default function SegmentsPage() {
     <>
       <AppHeader />
       <main className="pt-[72px] pb-8 px-5 min-h-screen">
-        <div className="max-w-[960px] mx-auto space-y-4">
+        <div className="max-w-[1100px] mx-auto space-y-4">
 
           {/* Title + controls */}
           <div className="pt-2 pb-1 flex items-end justify-between gap-4 flex-wrap">
             <div>
               <h1 className="text-xl font-semibold tracking-tight text-white">Segments</h1>
-              <p className="text-sm text-white/35 mt-0.5">
+              <p className="text-sm text-white/50 mt-0.5">
                 {data
                   ? `${sorted.length} segment${sorted.length !== 1 ? 's' : ''} · ${coverage}`
                   : 'Loading…'}
               </p>
+              {data && data.activitiesWithDetails < data.totalActivities && (
+                <div className="mt-2 flex items-center gap-2">
+                  <div className="h-1 w-40 rounded-full bg-white/[0.08] overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-[#0a84ff] transition-all duration-500"
+                      style={{width: `${Math.round((data.activitiesWithDetails / data.totalActivities) * 100)}%`}}
+                    />
+                  </div>
+                  <span className="text-[11px] text-white/45">
+                    Scanning {data.activitiesWithDetails}/{data.totalActivities} activities…
+                  </span>
+                </div>
+              )}
             </div>
             {data && data.segments.some((s) => s.starred) && (
               <button

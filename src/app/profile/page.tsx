@@ -6,7 +6,8 @@ import Link from 'next/link';
 import {motion, type Variants} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
-import {useAthleteStats, useAthleteGear} from '@/hooks/useStrava';
+import {useAthleteStats, useAthleteGear, useAthleteNotes} from '@/hooks/useStrava';
+import type {InjuryEntry} from '@/hooks/useStrava';
 import {formatDuration, ZONE_COLORS, ZONE_NAMES} from '@/lib/activityModel';
 import type {StravaActivityTotal} from '@/lib/strava';
 import type {UserSettings} from '@/lib/activityModel';
@@ -64,7 +65,7 @@ function SportStats({
         <div className="space-y-2">
           <div>
             <p className="text-xl font-bold tabular-nums tracking-tight text-white">{fmtKm(totals.distance)}</p>
-            <p className="text-[11px] text-white/35">km</p>
+            <p className="text-[11px] text-white/45">km</p>
           </div>
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div>
@@ -122,7 +123,7 @@ function GearItem({
             </span>
           )}
         </div>
-        <p className="text-[11px] text-white/35 mt-0.5">
+        <p className="text-[11px] text-white/45 mt-0.5">
           {fmtKm(distanceM)} km
         </p>
       </div>
@@ -144,6 +145,201 @@ const ShoeIcon = () => (
     <path d="M3 14v3h15v-3" />
   </svg>
 );
+
+const SEVERITY_COLORS: Record<string, string> = {
+  mild: '#ffd60a',
+  moderate: '#ff9f0a',
+  severe: '#ff453a',
+};
+
+const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'] as const;
+
+function AthleteNotesCard() {
+  const {notes, isLoading, saveNotes, isSaving} = useAthleteNotes();
+
+  const [editing, setEditing] = useState(false);
+  const [freeformDraft, setFreeformDraft] = useState('');
+  const [injuriesDraft, setInjuriesDraft] = useState<InjuryEntry[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const startEdit = () => {
+    setFreeformDraft(notes?.freeformNotes ?? '');
+    setInjuriesDraft(notes?.injuryHistory ? [...notes.injuryHistory] : []);
+    setError(null);
+    setEditing(true);
+  };
+
+  const cancel = () => { setEditing(false); setError(null); };
+
+  const save = async () => {
+    setError(null);
+    try {
+      await saveNotes({freeformNotes: freeformDraft || null, injuryHistory: injuriesDraft});
+      setEditing(false);
+    } catch {
+      setError('Failed to save — please try again.');
+    }
+  };
+
+  const addInjury = () =>
+    setInjuriesDraft(d => [...d, {bodyPart: '', severity: 'mild', resolved: false}]);
+
+  const removeInjury = (i: number) =>
+    setInjuriesDraft(d => d.filter((_, idx) => idx !== i));
+
+  const updateInjury = <K extends keyof InjuryEntry>(i: number, key: K, val: InjuryEntry[K]) =>
+    setInjuriesDraft(d => d.map((entry, idx) => idx === i ? {...entry, [key]: val} : entry));
+
+  return (
+    <motion.div variants={cardVariant} className="bento-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Athlete Notes</h3>
+        {editing ? (
+          <div className="flex items-center gap-2">
+            <button onClick={cancel} className="text-[11px] text-white/30 hover:text-white/50 transition-colors px-2 py-0.5">
+              Cancel
+            </button>
+            <button
+              onClick={save}
+              disabled={isSaving}
+              className="text-[11px] bg-[#0a84ff] text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-[#0a84ff]/85 transition-colors disabled:opacity-50"
+            >
+              {isSaving ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={startEdit}
+            className="text-[11px] text-white/50 hover:text-white/80 transition-colors flex items-center gap-1.5"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Edit
+          </button>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+        </div>
+      ) : editing ? (
+        <div className="space-y-4">
+          {/* Injury History */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide">Injury History</p>
+              <button
+                onClick={addInjury}
+                className="text-[10px] text-[#0a84ff] hover:text-[#0a84ff]/80 transition-colors flex items-center gap-0.5"
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                Add
+              </button>
+            </div>
+            {injuriesDraft.length === 0 ? (
+              <p className="text-[11px] text-white/20 py-1">No injuries logged</p>
+            ) : (
+              <div className="space-y-2">
+                {injuriesDraft.map((inj, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      placeholder="Body part…"
+                      value={inj.bodyPart}
+                      onChange={e => updateInjury(i, 'bodyPart', e.target.value)}
+                      className="flex-1 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder:text-white/20 focus:outline-none focus:border-[#0a84ff]/50 transition-colors"
+                    />
+                    <select
+                      value={inj.severity}
+                      onChange={e => updateInjury(i, 'severity', e.target.value as InjuryEntry['severity'])}
+                      className="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#0a84ff]/50 transition-colors appearance-none"
+                    >
+                      {SEVERITY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <label className="flex items-center gap-1 text-[11px] text-white/40 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={inj.resolved}
+                        onChange={e => updateInjury(i, 'resolved', e.target.checked)}
+                        className="accent-[#30d158]"
+                      />
+                      Resolved
+                    </label>
+                    <button onClick={() => removeInjury(i)} className="text-white/20 hover:text-[#ff453a] transition-colors flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Freeform Notes */}
+          <div>
+            <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Free-form Notes</p>
+            <textarea
+              value={freeformDraft}
+              onChange={e => setFreeformDraft(e.target.value)}
+              placeholder="Anything the coach should know — training preferences, lifestyle constraints, goals…"
+              rows={5}
+              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-[12px] text-white placeholder:text-white/20 focus:outline-none focus:border-[#0a84ff]/40 transition-colors resize-none leading-relaxed"
+            />
+          </div>
+
+          {error && <p className="text-[11px] text-[#ff453a]">{error}</p>}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Injury History — view */}
+          {notes?.injuryHistory && notes.injuryHistory.length > 0 && (
+            <div>
+              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Injury History</p>
+              <div className="flex flex-wrap gap-1.5">
+                {notes.injuryHistory.map((inj, i) => (
+                  <span
+                    key={i}
+                    className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border"
+                    style={{
+                      borderColor: `${SEVERITY_COLORS[inj.severity]}30`,
+                      color: inj.resolved ? 'rgba(255,255,255,0.3)' : SEVERITY_COLORS[inj.severity],
+                      background: `${SEVERITY_COLORS[inj.severity]}10`,
+                    }}
+                  >
+                    <span className={inj.resolved ? 'line-through' : ''}>{inj.bodyPart}</span>
+                    <span className="opacity-50 text-[10px]">{inj.severity}</span>
+                    {inj.resolved && <span className="opacity-40 text-[10px]">✓</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Freeform Notes — view */}
+          {notes?.freeformNotes ? (
+            <div>
+              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Notes</p>
+              <p className="text-[12px] text-white/55 leading-relaxed whitespace-pre-wrap">{notes.freeformNotes}</p>
+            </div>
+          ) : null}
+
+          {(!notes || (!notes.freeformNotes && (!notes.injuryHistory || notes.injuryHistory.length === 0))) && (
+            <p className="text-[12px] text-white/20 py-2">
+              No notes yet — add context the AI coach should know about you.
+            </p>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+}
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
@@ -195,7 +391,7 @@ export default function ProfilePage() {
     <>
       <AppHeader athleteName={`${athlete.firstname} ${athlete.lastname}`} />
       <main className="pt-[72px] pb-8 px-5 min-h-screen">
-        <div className="max-w-[900px] mx-auto space-y-4">
+        <div className="max-w-[1100px] mx-auto space-y-4">
 
           {/* Page title */}
           <div className="pt-2 pb-1">
@@ -227,9 +423,9 @@ export default function ProfilePage() {
                   <h2 className="text-xl font-semibold tracking-tight text-white">
                     {athlete.firstname} {athlete.lastname}
                   </h2>
-                  <p className="text-sm text-white/40 mt-0.5">@{athlete.username}</p>
+                  <p className="text-sm text-white/55 mt-0.5">@{athlete.username}</p>
                   {(athlete.city || athlete.country) && (
-                    <p className="text-sm text-white/35 mt-1 flex items-center gap-1.5">
+                    <p className="text-sm text-white/45 mt-1 flex items-center gap-1.5">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
                         <circle cx="12" cy="10" r="3"/>
@@ -248,7 +444,7 @@ export default function ProfilePage() {
 
             {/* YTD Stats */}
             <motion.div variants={cardVariant} className="bento-card p-6">
-              <h3 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-5">Year to Date</h3>
+              <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-5">Year to Date</h3>
               <div className="flex gap-6 divide-x divide-white/[0.06]">
                 <SportStats label="Run" color="#30d158" totals={stats?.ytd_run_totals} isLoading={statsLoading} />
                 <div className="pl-6">
@@ -262,7 +458,7 @@ export default function ProfilePage() {
 
             {/* All-time Stats */}
             <motion.div variants={cardVariant} className="bento-card p-6">
-              <h3 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-5">All Time</h3>
+              <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-5">All Time</h3>
               <div className="flex gap-6 divide-x divide-white/[0.06]">
                 <SportStats label="Run" color="#30d158" totals={stats?.all_run_totals} isLoading={statsLoading} />
                 <div className="pl-6">
@@ -277,7 +473,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Gear */}
               <motion.div variants={cardVariant} className="bento-card p-5">
-                <h3 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Gear</h3>
+                <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-3">Gear</h3>
                 {gearLoading ? (
                   <div className="space-y-2">
                     {Array.from({length: 3}).map((_, i) => (
@@ -336,7 +532,7 @@ export default function ProfilePage() {
               <motion.div variants={cardVariant} className="bento-card p-5">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-medium text-white/40 uppercase tracking-wide">Heart Rate Zones</h3>
+                  <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Heart Rate Zones</h3>
                   {editingZones ? (
                     <div className="flex items-center gap-2">
                       <button
@@ -355,7 +551,7 @@ export default function ProfilePage() {
                   ) : (
                     <button
                       onClick={startZoneEdit}
-                      className="text-[10px] text-white/30 hover:text-white/60 transition-colors flex items-center gap-1"
+                      className="text-[11px] text-white/50 hover:text-white/80 transition-colors flex items-center gap-1.5"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -374,7 +570,7 @@ export default function ProfilePage() {
                       {label: 'Resting HR', field: 'restingHr' as const, min: 30, max: 100},
                     ] as const).map(({label, field, min, max}) => (
                       <div key={field} className="flex-1 bg-white/[0.04] rounded-xl p-3">
-                        <p className="text-[10px] text-white/35 uppercase tracking-wide mb-1.5">{label}</p>
+                        <p className="text-[10px] text-white/45 uppercase tracking-wide mb-1.5">{label}</p>
                         <div className="flex items-baseline gap-1">
                           <input
                             type="number"
@@ -455,7 +651,7 @@ export default function ProfilePage() {
 
             {/* Recent stats summary */}
             <motion.div variants={cardVariant} className="bento-card p-5">
-              <h3 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Recent (4 weeks)</h3>
+              <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-4">Recent (4 weeks)</h3>
               <div className="grid grid-cols-3 gap-4">
                 {[
                   {label: 'Run', color: '#30d158', totals: stats?.recent_run_totals},
@@ -481,6 +677,9 @@ export default function ProfilePage() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Athlete Notes */}
+            <AthleteNotesCard />
 
           </motion.div>
         </div>

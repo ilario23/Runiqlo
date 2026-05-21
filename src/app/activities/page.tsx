@@ -100,7 +100,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         <p className="text-sm font-medium text-white/85 truncate group-hover:text-white transition-colors">
           {activity.name}
         </p>
-        <p className="text-[11px] text-white/35 mt-0.5">
+        <p className="text-[11px] text-white/45 mt-0.5">
           {fmtDate(activity.date)} · {activity.type}
         </p>
       </div>
@@ -110,10 +110,10 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         <div>
           <p className="text-sm font-semibold tabular-nums text-white/80">
             {activity.distance.toFixed(1)}
-            <span className="text-[11px] font-normal text-white/35 ml-0.5">km</span>
+            <span className="text-[11px] font-normal text-white/45 ml-0.5">km</span>
           </p>
           {activity.avgPace > 0 && (
-            <p className="text-[11px] text-white/35 tabular-nums">
+            <p className="text-[11px] text-white/45 tabular-nums">
               {formatPace(activity.avgPace)}/km
             </p>
           )}
@@ -124,9 +124,9 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
             <>
               <p className="text-sm font-semibold tabular-nums text-white/80">
                 {Math.round(activity.elevationGain)}
-                <span className="text-[11px] font-normal text-white/35 ml-0.5">m</span>
+                <span className="text-[11px] font-normal text-white/45 ml-0.5">m</span>
               </p>
-              <p className="text-[11px] text-white/35">elev</p>
+              <p className="text-[11px] text-white/45">elev</p>
             </>
           )}
         </div>
@@ -137,7 +137,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
               <p className="text-sm font-semibold tabular-nums text-white/80">
                 {Math.round(activity.avgHr)}
               </p>
-              <p className="text-[11px] text-white/35">bpm</p>
+              <p className="text-[11px] text-white/45">bpm</p>
             </>
           )}
         </div>
@@ -146,7 +146,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
           <p className="text-sm font-semibold tabular-nums text-white/80">
             {formatDuration(activity.duration)}
           </p>
-          <p className="text-[11px] text-white/35">time</p>
+          <p className="text-[11px] text-white/45">time</p>
         </div>
       </div>
 
@@ -239,18 +239,28 @@ export default function ActivitiesPage() {
     <>
       <AppHeader />
       <main className="pt-[72px] pb-8 px-5 min-h-screen">
-        <div className="max-w-[900px] mx-auto space-y-4">
+        <div className="max-w-[1100px] mx-auto space-y-4">
 
           {/* Page title */}
           <div className="pt-2 pb-1">
             <h1 className="text-xl font-semibold tracking-tight text-white">Activities</h1>
-            <p className="text-sm text-white/35 mt-0.5">
-              {activities
-                ? isFullyLoaded
-                  ? `${activities.length} activities synced`
-                  : `${activities.length}+ activities — loading more…`
-                : 'Loading…'}
-            </p>
+            <div className="flex items-center gap-3 mt-0.5">
+              <p className="text-sm text-white/50">
+                {activities
+                  ? isFullyLoaded
+                    ? `${activities.length} activities synced`
+                    : `${activities.length}+ activities`
+                  : 'Loading…'}
+              </p>
+              {activities && !isFullyLoaded && (
+                <div className="flex items-center gap-2">
+                  <div className="h-1 w-24 rounded-full bg-white/[0.08] overflow-hidden">
+                    <div className="h-full w-1/3 rounded-full bg-[#0a84ff] animate-pulse" />
+                  </div>
+                  <span className="text-[11px] text-white/45">syncing…</span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Filters */}
