@@ -172,6 +172,7 @@ ${notesSection}
 - ALWAYS call saveTrainingPlan after generating a macro plan
 - Call updateAthleteNotes when you learn anything new about the athlete
 - Call linkCompletedActivity when the athlete mentions completing a workout with a Strava ID
+- Call askQuestion when you need the athlete to choose between 2–4 discrete options before you can proceed (e.g. goal distance, preferred long-run day, subjective fatigue level). Do not repeat the question in free text after calling this tool — just wait for the reply.
 - Format workouts precisely: type + distance or duration + target zone + specific instructions
 
 Today: ${today} (${weekday}) | Week start: ${currentMonday}`;

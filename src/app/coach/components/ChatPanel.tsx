@@ -19,7 +19,45 @@ const TOOL_LABELS: Record<string, string> = {
   saveWeeklyPlan: 'Saving weekly plan',
   updateAthleteNotes: 'Updating athlete notes',
   linkCompletedActivity: 'Linking Strava activity',
+  askQuestion: 'Asking a question',
 };
+
+function AskQuestionCard({
+  question,
+  options,
+  disabled,
+  onSelect,
+}: {
+  question: string;
+  options: Array<{value: string; label: string}>;
+  disabled: boolean;
+  onSelect: (label: string) => void;
+}) {
+  return (
+    <div className="flex justify-start my-1">
+      <div className="max-w-[85%] rounded-2xl rounded-tl-md px-4 py-3 bg-white/[0.06] border border-white/[0.10] space-y-3">
+        <p className="text-sm text-white/90 leading-snug">{question}</p>
+        <div className="flex flex-wrap gap-2">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              disabled={disabled}
+              onClick={() => onSelect(opt.label)}
+              className={[
+                "px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors",
+                disabled
+                  ? "bg-white/[0.04] border-white/[0.08] text-white/30 cursor-not-allowed"
+                  : "bg-[#0a84ff]/10 border-[#0a84ff]/40 text-[#0a84ff] hover:bg-[#0a84ff]/20 hover:border-[#0a84ff]/70 cursor-pointer",
+              ].join(" ")}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function ToolCallBubble({name, status}: {name: string; status: 'running' | 'done'}) {
   const label = TOOL_LABELS[name] ?? name;
@@ -227,38 +265,62 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
           </div>
         )}
 
-        {messages.map(msg => {
-          if (msg.role === 'user') {
-            const text = typeof msg.content === 'string' ? msg.content : '';
-            return text ? <MessageBubble key={msg.id} role="user" content={text} /> : null;
-          }
+        {(() => {
+          const lastAssistantIdx = messages.reduce(
+            (last, m, i) => (m.role === 'assistant' ? i : last),
+            -1,
+          );
 
-          if (msg.role === 'assistant') {
-            const parts = Array.isArray(msg.content) ? msg.content : [];
-            const textContent = typeof msg.content === 'string'
-              ? msg.content
-              : parts.filter((p): p is {type: 'text'; text: string} => p.type === 'text').map(p => p.text).join('');
+          return messages.map((msg, msgIdx) => {
+            if (msg.role === 'user') {
+              const text = typeof msg.content === 'string' ? msg.content : '';
+              return text ? <MessageBubble key={msg.id} role="user" content={text} /> : null;
+            }
 
-            const toolCalls = Array.isArray(msg.content)
-              ? parts.filter((p): p is {type: 'tool-call'; toolCallId: string; toolName: string; args: unknown} => p.type === 'tool-call')
-              : [];
+            if (msg.role === 'assistant') {
+              const parts = Array.isArray(msg.content) ? msg.content : [];
+              const textContent = typeof msg.content === 'string'
+                ? msg.content
+                : parts.filter((p): p is {type: 'text'; text: string} => p.type === 'text').map(p => p.text).join('');
 
-            return (
-              <div key={msg.id} className="space-y-2">
-                {toolCalls.map(tc => (
-                  <ToolCallBubble
-                    key={tc.toolCallId}
-                    name={tc.toolName}
-                    status={toolStates.get(tc.toolCallId)?.status ?? 'done'}
-                  />
-                ))}
-                {textContent && <MessageBubble role="assistant" content={textContent} />}
-              </div>
-            );
-          }
+              const toolCalls = Array.isArray(msg.content)
+                ? parts.filter((p): p is {type: 'tool-call'; toolCallId: string; toolName: string; args: unknown} => p.type === 'tool-call')
+                : [];
 
-          return null;
-        })}
+              const isLatest = msgIdx === lastAssistantIdx;
+
+              return (
+                <div key={msg.id} className="space-y-2">
+                  {toolCalls.map(tc => {
+                    if (tc.toolName === 'askQuestion') {
+                      const args = tc.args as Partial<{question: string; options: Array<{value: string; label: string}>}>;
+                      if (!args?.question || !args?.options?.length) return null;
+                      return (
+                        <AskQuestionCard
+                          key={tc.toolCallId}
+                          question={args.question}
+                          options={args.options}
+                          disabled={isLoading || !isLatest}
+                          onSelect={(label) => append({role: 'user', content: label})}
+                        />
+                      );
+                    }
+                    return (
+                      <ToolCallBubble
+                        key={tc.toolCallId}
+                        name={tc.toolName}
+                        status={toolStates.get(tc.toolCallId)?.status ?? 'done'}
+                      />
+                    );
+                  })}
+                  {textContent && <MessageBubble role="assistant" content={textContent} />}
+                </div>
+              );
+            }
+
+            return null;
+          });
+        })()}
 
         {isLoading && !messages.some(m => m.role === 'assistant' && messages.indexOf(m) === messages.length - 1) && (
           <div className="flex justify-start gap-2">

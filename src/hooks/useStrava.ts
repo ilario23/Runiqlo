@@ -14,10 +14,12 @@ import {
   cachedGetAthleteGear,
   cachedCalcFitnessData,
   cachedGetAllSegments,
+  cachedGetSegmentEfforts,
+  cachedGetSegmentDetail,
   forceRefreshActivities,
   batchGetZoneBreakdowns,
 } from '@/lib/stravaCache';
-import type {AggregatedSegment} from '@/lib/stravaCache';
+import type {AggregatedSegment, SegmentEffortRecord} from '@/lib/stravaCache';
 import type {ActivitySummary, StreamPoint} from '@/lib/activityModel';
 import type {FitnessDataPoint, AdvancedMetricsDataPoint} from '@/utils/trainingLoad';
 import {calcAdvancedMetricsData} from '@/utils/trainingLoad';
@@ -29,6 +31,7 @@ import type {
   StravaAthleteZones,
   StravaSummaryGear,
   StravaStarredSegment,
+  StravaSegmentDetail,
 } from '@/lib/strava';
 import {fetchStarredSegments} from '@/lib/strava';
 import {computeZoneBreakdown} from '@/lib/zoneCompute';
@@ -266,6 +269,30 @@ export const useAllSegments = () => {
     queryFn: () => cachedGetAllSegments(athlete!.id),
     enabled: isAuthenticated && !!athlete?.id,
     staleTime: ONE_HOUR,
+    gcTime: ONE_DAY,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useSegmentEfforts = (segmentId: number | undefined) => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  return useQuery<SegmentEffortRecord[]>({
+    queryKey: ['strava', 'segment-efforts', athlete?.id, segmentId],
+    queryFn: () => cachedGetSegmentEfforts(athlete!.id, segmentId!),
+    enabled: isAuthenticated && !!athlete?.id && segmentId != null && !isNaN(segmentId),
+    staleTime: ONE_HOUR,
+    gcTime: ONE_DAY,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useSegmentDetail = (segmentId: number | undefined) => {
+  const {isAuthenticated} = useStravaAuth();
+  return useQuery<StravaSegmentDetail>({
+    queryKey: ['strava', 'segment-detail', segmentId],
+    queryFn: () => cachedGetSegmentDetail(segmentId!),
+    enabled: isAuthenticated && segmentId != null && !isNaN(segmentId),
+    staleTime: Infinity,
     gcTime: ONE_DAY,
     refetchOnWindowFocus: false,
   });

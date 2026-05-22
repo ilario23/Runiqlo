@@ -9,11 +9,12 @@ import {
   fetchAthleteStats,
   fetchAthleteZones,
   fetchAthleteWithGear,
+  fetchSegmentDetail,
   isStravaAuthError,
   transformActivity,
   transformStreams,
 } from './strava';
-import type {StravaDetailedActivity, StravaAthleteStats, StravaAthleteZones, StravaSummaryGear} from './strava';
+import type {StravaDetailedActivity, StravaAthleteStats, StravaAthleteZones, StravaSummaryGear, StravaSegmentDetail} from './strava';
 import type {ActivitySummary, StreamPoint, UserSettings} from './activityModel';
 import {computeZoneBreakdown, hashZoneSettings} from './zoneCompute';
 import type {ZoneBreakdown} from './zoneCompute';
@@ -459,6 +460,57 @@ export const cachedGetAllSegments = async (
     activitiesWithDetails,
     totalActivities,
   };
+};
+
+// ---- Segment detail (from Strava API) ----
+
+export const cachedGetSegmentDetail = (segmentId: number): Promise<StravaSegmentDetail> =>
+  fetchSegmentDetail(segmentId);
+
+// ---- Segment efforts (derived from cached activity details) ----
+
+export interface SegmentEffortRecord {
+  activityId: number;
+  effortId: number;
+  activityDate: string;
+  start_date_local: string;
+  elapsed_time: number;
+  moving_time: number;
+  distance: number;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  average_cadence?: number;
+  pr_rank: number | null;
+}
+
+export const cachedGetSegmentEfforts = async (
+  athleteId: number,
+  segmentId: number,
+): Promise<SegmentEffortRecord[]> => {
+  const allActivities = await dbGetActivities(athleteId);
+  if (!allActivities?.length) return [];
+  const details = await dbGetActivityDetailsBulk(athleteId, allActivities.map((a) => a.id));
+  const records: SegmentEffortRecord[] = [];
+  for (const detail of details) {
+    const actDate = detail.data.start_date_local?.slice(0, 10) ?? '';
+    for (const effort of detail.data.segment_efforts ?? []) {
+      if (effort.segment.id !== segmentId) continue;
+      records.push({
+        activityId: detail.id,
+        effortId: effort.id,
+        activityDate: actDate,
+        start_date_local: effort.start_date_local,
+        elapsed_time: effort.elapsed_time,
+        moving_time: effort.moving_time,
+        distance: effort.distance,
+        average_heartrate: effort.average_heartrate,
+        max_heartrate: effort.max_heartrate,
+        average_cadence: effort.average_cadence,
+        pr_rank: effort.pr_rank ?? null,
+      });
+    }
+  }
+  return records.sort((a, b) => a.activityDate.localeCompare(b.activityDate));
 };
 
 // ---- Force refresh ----

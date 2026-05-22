@@ -2,6 +2,7 @@
 
 import {useMemo, useState} from 'react';
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import {motion, type Variants} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useAllSegments} from '@/hooks/useStrava';
@@ -57,13 +58,14 @@ function Skeleton({className = ''}: {className?: string}) {
 
 // ─── Segment row ──────────────────────────────────────────────────────────────
 
-function SegmentRow({segment}: {segment: AggregatedSegment}) {
+function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: () => void}) {
   const gColor = gradeColor(segment.average_grade);
 
   return (
     <motion.div
       variants={rowVariant}
-      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/[0.04] transition-colors group border border-transparent hover:border-white/[0.06]"
+      onClick={onClick}
+      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/[0.04] transition-colors group border border-transparent hover:border-white/[0.06] cursor-pointer"
     >
       {/* Grade badge */}
       <div
@@ -145,6 +147,7 @@ function SortBtn({
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function SegmentsPage() {
+  const router = useRouter();
   const {isAuthenticated, isLoading: authLoading} = useStravaAuth();
   const {data, isLoading} = useAllSegments();
   const [sortKey, setSortKey] = useState<SortKey>('efforts');
@@ -292,7 +295,7 @@ export default function SegmentsPage() {
                 className="p-2"
               >
                 {sorted.map((seg) => (
-                  <SegmentRow key={seg.id} segment={seg} />
+                  <SegmentRow key={seg.id} segment={seg} onClick={() => router.push(`/segments/${seg.id}`)} />
                 ))}
               </motion.div>
             )}

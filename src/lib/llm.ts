@@ -1,7 +1,8 @@
 import {createOpenAI} from '@ai-sdk/openai';
 import {createAnthropic} from '@ai-sdk/anthropic';
 
-export const isAnthropicProvider = () => process.env.LLM_PROVIDER === 'anthropic';
+export const isAnthropicProvider = () =>
+  process.env.LLM_PROVIDER === 'anthropic';
 
 export const getLLMModel = () => {
   if (isAnthropicProvider()) {
@@ -9,5 +10,5 @@ export const getLLMModel = () => {
     return anthropic('claude-sonnet-4-6');
   }
   const openai = createOpenAI({apiKey: process.env.OPENAI_API_KEY!});
-  return openai('gpt-4o');
+  return openai('gpt-4o-mini');
 };

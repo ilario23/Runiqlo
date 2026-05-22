@@ -81,13 +81,12 @@ export default function CoachPage() {
 
   // athleteId is a number past this guard
   const athleteId = athlete.id;
-  const athleteName = `${athlete.firstname} ${athlete.lastname}`;
 
   // Loading goal
   if (goal === undefined) {
     return (
       <div className="min-h-screen bg-gray-950">
-        <AppHeader athleteName={athleteName} />
+        <AppHeader />
         <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
           <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
         </div>
@@ -99,7 +98,7 @@ export default function CoachPage() {
   if (!goal || showWizard) {
     return (
       <>
-        <AppHeader athleteName={athleteName} />
+        <AppHeader />
         <GoalWizard
           athleteId={athleteId}
           initialGoal={goal}
@@ -112,7 +111,7 @@ export default function CoachPage() {
 
   return (
     <div className="flex flex-col h-screen bg-gray-950">
-      <AppHeader athleteName={athleteName} />
+      <AppHeader />
       <div className="flex flex-1 overflow-hidden pt-14">
         {/* Chat panel — left column */}
         <div className="w-96 flex-shrink-0 border-r border-white/[0.07] flex flex-col">

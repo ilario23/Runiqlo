@@ -389,7 +389,7 @@ export default function ProfilePage() {
 
   return (
     <>
-      <AppHeader athleteName={`${athlete.firstname} ${athlete.lastname}`} />
+      <AppHeader />
       <main className="pt-[72px] pb-8 px-5 min-h-screen">
         <div className="max-w-[1100px] mx-auto space-y-4">
 

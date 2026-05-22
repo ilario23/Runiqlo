@@ -3,9 +3,9 @@
 import {useState} from 'react';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
+import {useStravaAuth} from '@/contexts/StravaAuthContext';
 
 interface AppHeaderProps {
-  athleteName?: string;
   onRefresh?: () => Promise<void>;
 }
 
@@ -67,9 +67,11 @@ const NAV_LINKS = [
   },
 ];
 
-export default function AppHeader({athleteName, onRefresh}: AppHeaderProps) {
+export default function AppHeader({onRefresh}: AppHeaderProps) {
   const pathname = usePathname();
   const [refreshing, setRefreshing] = useState(false);
+  const {athlete} = useStravaAuth();
+  const athleteName = athlete ? `${athlete.firstname} ${athlete.lastname}` : undefined;
 
   const isActive = (href: string, exact: boolean) =>
     exact ? pathname === href : pathname === href || pathname.startsWith(href + '/');
@@ -124,27 +126,29 @@ export default function AppHeader({athleteName, onRefresh}: AppHeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-2">
-        {onRefresh && (
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors cursor-pointer disabled:opacity-40"
-            aria-label="Refresh data"
+        <button
+          onClick={onRefresh ? handleRefresh : undefined}
+          disabled={!onRefresh || refreshing}
+          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+            onRefresh
+              ? 'bg-white/[0.06] hover:bg-white/[0.10] cursor-pointer disabled:opacity-40'
+              : 'invisible'
+          }`}
+          aria-label="Refresh data"
+        >
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className={`text-white/60 ${refreshing ? 'animate-spin' : ''}`}
           >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className={`text-white/60 ${refreshing ? 'animate-spin' : ''}`}
-            >
-              <path d="M23 4v6h-6M1 20v-6h6" />
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-            </svg>
-          </button>
-        )}
+            <path d="M23 4v6h-6M1 20v-6h6" />
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+          </svg>
+        </button>
         <Link
           href="/settings"
           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${

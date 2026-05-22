@@ -461,5 +461,27 @@ export function getCoachTools(athleteId: number) {
         return {success: true, message: `Linked Strava activity ${stravaActivityId} to ${workouts[workoutIndex].type} on ${date}.`};
       },
     }),
+
+    askQuestion: tool({
+      description:
+        "Present the user with a structured multiple-choice question when you need clarification or want to guide them through a decision. Use this instead of asking in free text when 2–4 discrete options capture the full range of sensible answers.",
+      parameters: z.object({
+        question: z.string().describe("The question to ask the user — one concise sentence."),
+        options: z
+          .array(z.object({
+            value: z.string().describe("Machine-readable identifier (snake_case)"),
+            label: z.string().describe("Human-readable button text shown to the user"),
+          }))
+          .min(2)
+          .max(4)
+          .describe("2 to 4 answer options"),
+      }),
+      execute: async ({question, options}) => ({
+        status: 'question_presented',
+        question,
+        optionCount: options.length,
+        instruction: "The question has been shown to the user with clickable option buttons. Wait for the user's reply; do not produce additional text in the same turn.",
+      }),
+    }),
   };
 }

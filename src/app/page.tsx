@@ -560,10 +560,7 @@ export default function DashboardPage() {
 
   return (
     <>
-      <AppHeader
-        athleteName={athlete ? `${athlete.firstname} ${athlete.lastname}` : undefined}
-        onRefresh={forceRefresh}
-      />
+      <AppHeader onRefresh={forceRefresh} />
 
       <main className="pt-[72px] pb-6 px-5 min-h-screen">
         <motion.div
@@ -572,7 +569,17 @@ export default function DashboardPage() {
           animate="show"
           className="grid grid-cols-12 gap-4 max-w-[1400px] mx-auto"
         >
-          {/* Row 1: Training Load + BF + LI */}
+          {/* Row 1: Stats strip */}
+          <motion.div variants={cardVariant} className="col-span-12">
+            <StatsStrip
+              stats={stats}
+              currentIT={currentIT}
+              statsLoading={statsLoading}
+              fitnessLoading={fitnessLoading}
+            />
+          </motion.div>
+
+          {/* Row 2: Training Load + BF + LI */}
           <motion.div variants={cardVariant} className="col-span-12 md:col-span-8 h-[260px]">
             <TrainingLoadCard data={fitnessData} isLoading={fitnessLoading} />
           </motion.div>
@@ -611,15 +618,6 @@ export default function DashboardPage() {
             />
           </motion.div>
 
-          {/* Row 3: Stats strip */}
-          <motion.div variants={cardVariant} className="col-span-12">
-            <StatsStrip
-              stats={stats}
-              currentIT={currentIT}
-              statsLoading={statsLoading}
-              fitnessLoading={fitnessLoading}
-            />
-          </motion.div>
         </motion.div>
       </main>
     </>
