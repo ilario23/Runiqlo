@@ -69,7 +69,7 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
     >
       {/* Grade badge */}
       <div
-        className="flex-shrink-0 text-xs font-bold tabular-nums px-2 py-1 rounded-lg min-w-[46px] text-center"
+        className="flex-shrink-0 text-xs font-mono font-bold tabular-nums px-2 py-1 rounded-lg min-w-[46px] text-center"
         style={{color: gColor, background: `${gColor}18`}}
       >
         {segment.average_grade.toFixed(1)}%
@@ -98,7 +98,7 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
       {/* Stats */}
       <div className="hidden sm:flex items-center gap-5 flex-shrink-0">
         <div className="text-right w-[55px]">
-          <p className="text-sm font-semibold tabular-nums text-white/80">
+          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
             {(segment.distance / 1000).toFixed(1)}
             <span className="text-[11px] font-normal text-white/45 ml-0.5">km</span>
           </p>
@@ -106,19 +106,19 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
         </div>
 
         <div className="text-right w-[44px]">
-          <p className="text-sm font-semibold tabular-nums text-white/80">{segment.effortCount}</p>
+          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">{segment.effortCount}</p>
           <p className="text-[11px] text-white/45">runs</p>
         </div>
 
         <div className="text-right w-[60px]">
-          <p className="text-sm font-semibold tabular-nums text-[#F59E0B]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-[#F59E0B]">
             {fmtTime(segment.prTime)}
           </p>
           <p className="text-[11px] text-white/45">PR</p>
         </div>
 
         <div className="text-right w-[90px]">
-          <p className="text-[11px] tabular-nums text-white/40">{fmtDate(segment.lastRunDate)}</p>
+          <p className="text-[11px] font-mono tabular-nums text-white/40">{fmtDate(segment.lastRunDate)}</p>
           <p className="text-[11px] text-white/25">last run</p>
         </div>
       </div>

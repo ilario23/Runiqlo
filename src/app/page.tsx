@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import {motion} from 'framer-motion';
-import type {Variants} from 'framer-motion';
 import {
   AreaChart,
   Area,
@@ -33,14 +32,6 @@ const fmtDate = (iso: string) =>
 const fmtNum = (n: number | undefined, dec = 1) =>
   typeof n === 'number' ? n.toFixed(dec) : '—';
 
-const cardVariant: Variants = {
-  hidden: {opacity: 0, y: 18},
-  show: {opacity: 1, y: 0, transition: {duration: 0.35, ease: 'easeOut'}},
-};
-
-const containerVariant: Variants = {
-  show: {transition: {staggerChildren: 0.07}},
-};
 
 // ─── sub-components ───────────────────────────────────────────────────────────
 
@@ -117,7 +108,7 @@ function ChartTooltip({active, payload, label}: ChartTooltipProps) {
             />
             <span className="text-white/60">{p.name}</span>
           </span>
-          <span className="font-medium text-white">{p.value?.toFixed(1)}</span>
+          <span className="font-mono font-medium text-white">{p.value?.toFixed(1)}</span>
         </div>
       ))}
     </div>
@@ -261,12 +252,12 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
             <p className="text-[10px] text-white/25 mt-0.5">{sublabel}</p>
           </div>
           <div className="mt-2">
-            <p className="text-3xl font-semibold tracking-tight" style={{color}}>
+            <p className="text-4xl font-bold tracking-tight font-mono tabular-nums" style={{color}}>
               {fmtNum(value)}
             </p>
           </div>
           {typeof delta === 'number' && (
-            <p className={`text-[10px] mt-1.5 font-medium ${isUp ? 'text-[#30d158]' : isDown ? 'text-[#ff453a]' : 'text-white/45'}`}>
+            <p className={`text-[10px] mt-1.5 font-mono ${isUp ? 'text-[#30d158]' : isDown ? 'text-[#ff453a]' : 'text-white/45'}`}>
               {isUp ? '↑' : isDown ? '↓' : '→'} {Math.abs(delta).toFixed(1)} vs 7d ago
             </p>
           )}
@@ -384,11 +375,11 @@ function ActivityRow({activity}: {activity: ActivitySummary}) {
         </p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="text-sm text-white/70 font-medium tabular-nums">
+        <p className="text-sm text-white/70 font-mono tabular-nums">
           {activity.distance.toFixed(1)} km
         </p>
         {activity.avgPace > 0 && (
-          <p className="text-[11px] text-white/45 tabular-nums">
+          <p className="text-[11px] text-white/45 font-mono tabular-nums">
             {formatPace(activity.avgPace)}/km
           </p>
         )}
@@ -451,24 +442,30 @@ interface StatTileProps {
   sub?: string;
   color?: string;
   isLoading: boolean;
+  primary?: boolean;
 }
 
-function StatTile({label, value, sub, color, isLoading}: StatTileProps) {
+function StatTile({label, value, sub, color, isLoading, primary}: StatTileProps) {
   return (
-    <div className="bento-card px-5 py-4 flex flex-col justify-between">
+    <div className={`px-6 py-5 flex flex-col justify-between ${primary ? 'border-r border-white/[0.07]' : ''}`}>
       {isLoading ? (
         <>
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-6 w-16 mt-2" />
+          <Skeleton className="h-2.5 w-20" />
+          <Skeleton className={`${primary ? 'h-12 w-28' : 'h-7 w-16'} mt-3`} />
         </>
       ) : (
         <>
-          <p className="text-[11px] text-white/40 font-medium uppercase tracking-wide">{label}</p>
-          <div className="mt-1.5 flex items-baseline gap-1">
-            <p className="text-2xl font-semibold tracking-tight" style={{color: color ?? '#f5f5f7'}}>
+          <p className="text-[10px] text-white/30 font-semibold uppercase tracking-widest">{label}</p>
+          <div className="mt-2 flex items-baseline gap-1.5">
+            <p
+              className={`font-mono tracking-tight tabular-nums ${
+                primary ? 'text-5xl font-bold' : 'text-2xl font-semibold'
+              }`}
+              style={{color: color ?? (primary ? '#f5f5f7' : '#c8c8cc')}}
+            >
               {value}
             </p>
-            {sub && <span className="text-xs text-white/45">{sub}</span>}
+            {sub && <span className={`text-white/35 ${primary ? 'text-sm' : 'text-xs'}`}>{sub}</span>}
           </div>
         </>
       )}
@@ -501,30 +498,39 @@ function StatsStrip({
       : undefined;
 
   return (
-    <div className="grid grid-cols-4 gap-4">
-      <StatTile
-        label="YTD Distance"
-        value={typeof ytdKm === 'number' ? `${ytdKm.toLocaleString()}` : '—'}
-        sub="km"
-        isLoading={statsLoading}
-      />
-      <StatTile
-        label="YTD Time"
-        value={typeof ytdHrs === 'number' ? `${ytdHrs}` : '—'}
-        sub="hrs"
-        isLoading={statsLoading}
-      />
-      <StatTile
-        label="YTD Runs"
-        value={typeof ytdRuns === 'number' ? `${ytdRuns}` : '—'}
-        isLoading={statsLoading}
-      />
-      <StatTile
-        label="Form (TSB)"
-        value={typeof currentIT === 'number' ? currentIT.toFixed(1) : '—'}
-        color={tsbColor}
-        isLoading={fitnessLoading}
-      />
+    <div className="flex items-stretch divide-x divide-white/[0.07] border border-white/[0.08] rounded-2xl overflow-hidden bg-white/[0.025]">
+      <div className="flex-[2] min-w-0">
+        <StatTile
+          label="YTD Distance"
+          value={typeof ytdKm === 'number' ? ytdKm.toLocaleString() : '—'}
+          sub="km"
+          isLoading={statsLoading}
+          primary
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <StatTile
+          label="YTD Time"
+          value={typeof ytdHrs === 'number' ? `${ytdHrs}` : '—'}
+          sub="hrs"
+          isLoading={statsLoading}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <StatTile
+          label="YTD Runs"
+          value={typeof ytdRuns === 'number' ? `${ytdRuns}` : '—'}
+          isLoading={statsLoading}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <StatTile
+          label="Form (TSB)"
+          value={typeof currentIT === 'number' ? currentIT.toFixed(1) : '—'}
+          color={tsbColor}
+          isLoading={fitnessLoading}
+        />
+      </div>
     </div>
   );
 }
@@ -564,27 +570,27 @@ export default function DashboardPage() {
 
       <main className="pt-[72px] pb-6 px-5 min-h-screen">
         <motion.div
-          variants={containerVariant}
-          initial="hidden"
-          animate="show"
+          initial={{opacity: 0}}
+          animate={{opacity: 1}}
+          transition={{duration: 0.4}}
           className="grid grid-cols-12 gap-4 max-w-[1400px] mx-auto"
         >
-          {/* Row 1: Stats strip */}
-          <motion.div variants={cardVariant} className="col-span-12">
+          {/* Stats strip */}
+          <div className="col-span-12">
             <StatsStrip
               stats={stats}
               currentIT={currentIT}
               statsLoading={statsLoading}
               fitnessLoading={fitnessLoading}
             />
-          </motion.div>
+          </div>
 
-          {/* Row 2: Training Load + BF + LI */}
-          <motion.div variants={cardVariant} className="col-span-12 md:col-span-8 h-[260px]">
+          {/* Training Load + BF + LI */}
+          <div className="col-span-12 md:col-span-8 h-[260px]">
             <TrainingLoadCard data={fitnessData} isLoading={fitnessLoading} />
-          </motion.div>
+          </div>
 
-          <motion.div variants={cardVariant} className="col-span-6 md:col-span-2 h-[260px]">
+          <div className="col-span-6 md:col-span-2 h-[260px]">
             <MetricCard
               label="Base Fitness"
               sublabel="42-day EWMA"
@@ -593,9 +599,9 @@ export default function DashboardPage() {
               color="#0a84ff"
               isLoading={fitnessLoading}
             />
-          </motion.div>
+          </div>
 
-          <motion.div variants={cardVariant} className="col-span-6 md:col-span-2 h-[260px]">
+          <div className="col-span-6 md:col-span-2 h-[260px]">
             <MetricCard
               label="Load Impact"
               sublabel="7-day EWMA"
@@ -604,19 +610,19 @@ export default function DashboardPage() {
               color="#ff9f0a"
               isLoading={fitnessLoading}
             />
-          </motion.div>
+          </div>
 
-          {/* Row 2: Zones + Recent Activities */}
-          <motion.div variants={cardVariant} className="col-span-12 md:col-span-6 min-h-[320px]">
+          {/* Zones + Recent Activities */}
+          <div className="col-span-12 md:col-span-6 min-h-[320px]">
             <HRZoneCard data={zones} isLoading={zonesLoading} progress={progress} />
-          </motion.div>
+          </div>
 
-          <motion.div variants={cardVariant} className="col-span-12 md:col-span-6 min-h-[320px]">
+          <div className="col-span-12 md:col-span-6 min-h-[320px]">
             <RecentActivitiesCard
               activities={activities}
               isLoading={activitiesLoading}
             />
-          </motion.div>
+          </div>
 
         </motion.div>
       </main>

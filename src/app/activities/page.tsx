@@ -108,12 +108,12 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
       {/* Stats */}
       <div className="hidden sm:flex items-center gap-6 text-right flex-shrink-0">
         <div>
-          <p className="text-sm font-semibold tabular-nums text-white/80">
+          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
             {activity.distance.toFixed(1)}
             <span className="text-[11px] font-normal text-white/45 ml-0.5">km</span>
           </p>
           {activity.avgPace > 0 && (
-            <p className="text-[11px] text-white/45 tabular-nums">
+            <p className="text-[11px] text-white/45 font-mono tabular-nums">
               {formatPace(activity.avgPace)}/km
             </p>
           )}
@@ -122,7 +122,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         <div className="w-[56px]">
           {activity.elevationGain > 0 && (
             <>
-              <p className="text-sm font-semibold tabular-nums text-white/80">
+              <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
                 {Math.round(activity.elevationGain)}
                 <span className="text-[11px] font-normal text-white/45 ml-0.5">m</span>
               </p>
@@ -134,7 +134,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         <div className="w-[52px]">
           {activity.avgHr > 0 && (
             <>
-              <p className="text-sm font-semibold tabular-nums text-white/80">
+              <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
                 {Math.round(activity.avgHr)}
               </p>
               <p className="text-[11px] text-white/45">bpm</p>
@@ -143,7 +143,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         </div>
 
         <div className="w-[56px]">
-          <p className="text-sm font-semibold tabular-nums text-white/80">
+          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
             {formatDuration(activity.duration)}
           </p>
           <p className="text-[11px] text-white/45">time</p>

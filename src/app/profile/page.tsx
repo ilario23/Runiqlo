@@ -64,20 +64,20 @@ function SportStats({
       ) : totals && totals.count > 0 ? (
         <div className="space-y-2">
           <div>
-            <p className="text-xl font-bold tabular-nums tracking-tight text-white">{fmtKm(totals.distance)}</p>
+            <p className="text-xl font-mono font-bold tabular-nums tracking-tight text-white">{fmtKm(totals.distance)}</p>
             <p className="text-[11px] text-white/45">km</p>
           </div>
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div>
-              <p className="text-sm font-semibold tabular-nums text-white/70">{totals.count}</p>
+              <p className="text-sm font-mono font-semibold tabular-nums text-white/70">{totals.count}</p>
               <p className="text-[10px] text-white/30">runs</p>
             </div>
             <div>
-              <p className="text-sm font-semibold tabular-nums text-white/70">{fmtHrs(totals.moving_time)}</p>
+              <p className="text-sm font-mono font-semibold tabular-nums text-white/70">{fmtHrs(totals.moving_time)}</p>
               <p className="text-[10px] text-white/30">hrs</p>
             </div>
             <div>
-              <p className="text-sm font-semibold tabular-nums text-white/70">{Math.round(totals.elevation_gain / 1000).toLocaleString()}</p>
+              <p className="text-sm font-mono font-semibold tabular-nums text-white/70">{Math.round(totals.elevation_gain / 1000).toLocaleString()}</p>
               <p className="text-[10px] text-white/30">km ↑</p>
             </div>
           </div>

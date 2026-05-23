@@ -70,7 +70,7 @@ export default function CoachPage() {
   // Not authenticated
   if (!athlete) {
     return (
-      <div className="min-h-screen bg-gray-950">
+      <div className="min-h-screen bg-[#070708]">
         <AppHeader />
         <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
           <p className="text-white/50 text-sm">Connect Strava to use the coach</p>
@@ -85,7 +85,7 @@ export default function CoachPage() {
   // Loading goal
   if (goal === undefined) {
     return (
-      <div className="min-h-screen bg-gray-950">
+      <div className="min-h-screen bg-[#070708]">
         <AppHeader />
         <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
           <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
@@ -110,7 +110,7 @@ export default function CoachPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950">
+    <div className="flex flex-col h-screen bg-[#070708]">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden pt-14">
         {/* Chat panel — left column */}
