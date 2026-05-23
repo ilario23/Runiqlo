@@ -15,6 +15,13 @@
       "when": 1779486922014,
       "tag": "0001_fixed_shape",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779544699233,
+      "tag": "0002_smart_hulk",
+      "breakpoints": true
     }
   ]
 }

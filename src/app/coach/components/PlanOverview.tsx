@@ -14,7 +14,10 @@ function getMonday(date: Date = new Date()): string {
   const d = new Date(date);
   const diff = (d.getDay() + 6) % 7;
   d.setDate(d.getDate() - diff);
-  return d.toISOString().slice(0, 10);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function weeksBetween(a: string, b: string): number {

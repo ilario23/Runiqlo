@@ -6,6 +6,7 @@ import {DefaultChatTransport} from 'ai';
 import {motion} from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import type {SessionSummary} from '@/app/api/coach/chat/route';
 
 const TOOL_LABELS: Record<string, string> = {
   getFitnessSummary: 'Checking fitness metrics',
@@ -44,11 +45,11 @@ function AskQuestionCard({
               disabled={disabled}
               onClick={() => onSelect(opt.label)}
               className={[
-                "px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors",
+                'px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors',
                 disabled
-                  ? "bg-white/[0.04] border-white/[0.08] text-white/30 cursor-not-allowed"
-                  : "bg-[#0a84ff]/10 border-[#0a84ff]/40 text-[#0a84ff] hover:bg-[#0a84ff]/20 hover:border-[#0a84ff]/70 cursor-pointer",
-              ].join(" ")}
+                  ? 'bg-white/[0.04] border-white/[0.08] text-white/30 cursor-not-allowed'
+                  : 'bg-[#0a84ff]/10 border-[#0a84ff]/40 text-[#0a84ff] hover:bg-[#0a84ff]/20 hover:border-[#0a84ff]/70 cursor-pointer',
+              ].join(' ')}
             >
               {opt.label}
             </button>
@@ -61,7 +62,6 @@ function AskQuestionCard({
 
 function ToolCallBubble({name, status}: {name: string; status: 'running' | 'done'}) {
   const label = TOOL_LABELS[name] ?? name;
-
   return (
     <div className="flex justify-start my-1">
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-xs text-white/50">
@@ -132,6 +132,16 @@ function MessageBubble({role, content}: {role: 'user' | 'assistant'; content: st
   );
 }
 
+function fmtSessionDate(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 7) return d.toLocaleDateString('en-US', {weekday: 'long'});
+  return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+}
+
 interface ChatPanelProps {
   athleteId: number;
   initialMessage?: string;
@@ -141,22 +151,20 @@ interface ChatPanelProps {
 export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState('');
-  const [historyMessages, setHistoryMessages] = useState<UIMessage[] | undefined>(undefined);
+  const [historyLoaded, setHistoryLoaded] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showSessions, setShowSessions] = useState(false);
+  const [sessions, setSessions] = useState<SessionSummary[] | undefined>(undefined);
 
-  useEffect(() => {
-    fetch(`/api/coach/chat?athleteId=${athleteId}`)
-      .then(r => r.json())
-      .then((msgs: UIMessage[]) => setHistoryMessages(msgs))
-      .catch(() => setHistoryMessages([]));
-  }, [athleteId]);
+  // Track current session ID in a ref so the transport callback always reads the latest value
+  const sessionIdRef = useRef<string | null | undefined>(undefined); // undefined = not yet resolved
+  const [currentSessionId, setCurrentSessionId] = useState<string | null | undefined>(undefined);
 
-  const {messages, sendMessage, status} = useChat({
+  const {messages, sendMessage, setMessages, status} = useChat({
     transport: new DefaultChatTransport({
       api: '/api/coach/chat',
-      body: {athleteId},
+      body: () => ({athleteId, sessionId: sessionIdRef.current ?? null}),
     }),
-    messages: historyMessages,
     onFinish: () => {
       onPlanSaved?.();
     },
@@ -167,17 +175,62 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
+  // Load current session on mount
+  useEffect(() => {
+    fetch(`/api/coach/chat?athleteId=${athleteId}`)
+      .then(r => r.json())
+      .then((data: {sessionId: string | null; messages: UIMessage[]}) => {
+        sessionIdRef.current = data.sessionId;
+        setCurrentSessionId(data.sessionId);
+        setMessages(data.messages);
+        setHistoryLoaded(true);
+      })
+      .catch(() => {
+        setHistoryLoaded(true);
+      });
+  }, [athleteId, setMessages]);
+
+  // Load sessions list when panel is opened
+  useEffect(() => {
+    if (!showSessions) return;
+    fetch(`/api/coach/chat?athleteId=${athleteId}&listSessions=1`)
+      .then(r => r.json())
+      .then(setSessions)
+      .catch(() => setSessions([]));
+  }, [showSessions, athleteId]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({behavior: 'smooth'});
   }, [messages]);
 
   const sentInitial = useRef(false);
   useEffect(() => {
-    if (initialMessage && !sentInitial.current && historyMessages !== undefined && messages.length === (historyMessages?.length ?? 0)) {
+    if (initialMessage && !sentInitial.current && historyLoaded) {
       sentInitial.current = true;
       sendMessage({text: initialMessage});
     }
-  }, [initialMessage, historyMessages, messages.length, sendMessage]);
+  }, [initialMessage, historyLoaded, sendMessage]);
+
+  const handleNewChat = () => {
+    const newId = String(Date.now());
+    sessionIdRef.current = newId;
+    setCurrentSessionId(newId);
+    setMessages([]);
+    setShowSessions(false);
+    setErrorMsg(null);
+  };
+
+  const handleLoadSession = async (session: SessionSummary) => {
+    const sid = session.id;
+    const param = sid === null ? 'null' : sid;
+    const res = await fetch(`/api/coach/chat?athleteId=${athleteId}&sessionId=${param}`);
+    const data: {sessionId: string | null; messages: UIMessage[]} = await res.json();
+    sessionIdRef.current = data.sessionId;
+    setCurrentSessionId(data.sessionId);
+    setMessages(data.messages);
+    setShowSessions(false);
+    setErrorMsg(null);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -197,7 +250,7 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
     }
   };
 
-  if (historyMessages === undefined) {
+  if (!historyLoaded) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
         <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
@@ -216,25 +269,82 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-white/[0.07]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-[#0a84ff]/20 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full bg-[#0a84ff]/20 flex items-center justify-center flex-shrink-0">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.5">
               <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
             </svg>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold text-white">Your Coach</div>
             <div className="text-xs text-white/30">AI-powered running coach</div>
           </div>
-          {isLoading && (
-            <div className="ml-auto flex items-center gap-1.5 text-xs text-white/40">
-              <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          <div className="flex items-center gap-1">
+            {/* History button */}
+            <button
+              onClick={() => setShowSessions(s => !s)}
+              title="Chat history"
+              className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors ${showSessions ? 'bg-white/[0.12] text-white' : 'bg-white/[0.05] hover:bg-white/[0.10] text-white/50 hover:text-white/80'}`}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <polyline points="12 8 12 12 14 14" />
+                <path d="M3.05 11a9 9 0 1 0 .5-4" />
+                <polyline points="3 3 3 7 7 7" />
               </svg>
-              Thinking
-            </div>
+            </button>
+            {/* New chat button */}
+            <button
+              onClick={handleNewChat}
+              title="New chat"
+              className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.10] flex items-center justify-center transition-colors text-white/50 hover:text-white/80"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+          </div>
+          {isLoading && (
+            <svg className="animate-spin ml-1 text-white/40" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
           )}
         </div>
       </div>
+
+      {/* Sessions panel */}
+      {showSessions && (
+        <div className="flex-shrink-0 border-b border-white/[0.07] overflow-y-auto max-h-64">
+          <div className="px-4 py-2.5 text-xs font-semibold text-white/30 uppercase tracking-widest">
+            Chat History
+          </div>
+          {sessions === undefined ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className="px-4 pb-4 text-xs text-white/30">No previous chats</div>
+          ) : (
+            <div className="pb-2">
+              {sessions.map((s, i) => {
+                const isActive = s.id === currentSessionId;
+                return (
+                  <button
+                    key={s.id ?? `legacy-${i}`}
+                    onClick={() => handleLoadSession(s)}
+                    className={`w-full text-left px-4 py-2.5 transition-colors hover:bg-white/[0.04] ${isActive ? 'bg-white/[0.06]' : ''}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs text-white/30">{fmtSessionDate(s.createdAt)}</span>
+                      {isActive && <span className="text-[10px] text-[#0a84ff] font-medium">Current</span>}
+                    </div>
+                    <p className="text-xs text-white/70 truncate mt-0.5">{s.preview}</p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
@@ -247,7 +357,9 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
             </div>
             <div>
               <p className="text-sm text-white/60 mb-1">Talk to your coach</p>
-              <p className="text-xs text-white/30 max-w-[200px]">Ask about your training, request a weekly plan, or share how you're feeling</p>
+              <p className="text-xs text-white/30 max-w-[200px]">
+                Ask about your training, request a weekly plan, or share how you're feeling
+              </p>
             </div>
             <div className="flex flex-col gap-1.5 w-full mt-2">
               {[
@@ -285,7 +397,6 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
                     return text ? <MessageBubble key={partIdx} role="assistant" content={text} /> : null;
                   }
 
-                  // Tool parts: type is 'tool-{toolName}'
                   if (part.type.startsWith('tool-')) {
                     const toolName = part.type.slice('tool-'.length);
                     const toolPart = part as {type: string; state: string; input?: unknown};

@@ -21,13 +21,18 @@ interface WorkoutCardProps {
   onMarkDone?: () => void;
   isToday?: boolean;
   compact?: boolean;
+  onClick?: () => void;
+  selected?: boolean;
 }
 
-export function WorkoutCard({workout, date, onMarkDone, isToday, compact}: WorkoutCardProps) {
+export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClick, selected}: WorkoutCardProps) {
   const cfg = TYPE_CONFIG[workout.type] ?? TYPE_CONFIG.rest;
 
   return (
-    <div className={`rounded-xl border px-3 py-2.5 ${cfg.color} ${workout.completed ? 'opacity-80' : ''} transition-all`}>
+    <div
+      className={`rounded-xl border px-3 py-2.5 ${cfg.color} ${workout.completed ? 'opacity-80' : ''} transition-all ${onClick ? 'cursor-pointer hover:brightness-110 active:scale-[0.98]' : ''} ${selected ? 'ring-2 ring-white/30' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-start gap-2">
         <span className="text-sm leading-none mt-0.5">{cfg.icon}</span>
         <div className="flex-1 min-w-0">

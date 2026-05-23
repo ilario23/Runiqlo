@@ -126,6 +126,7 @@ export const weeklyPlan = pgTable('weekly_plan', {
 export const coachMessages = pgTable('coach_messages', {
   id: bigint('id', {mode: 'number'}).primaryKey(),
   athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  sessionId: text('session_id'), // null = legacy; new chats get a timestamp string
   role: text('role').notNull(), // 'user' | 'assistant' | 'tool'
   content: text('content').notNull(),
   toolCallId: text('tool_call_id'),

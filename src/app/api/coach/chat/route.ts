@@ -3,7 +3,7 @@ import type {ModelMessage, UIMessage, AssistantContent} from 'ai';
 import {NextRequest} from 'next/server';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
-import {eq, asc, desc, lt, and, inArray} from 'drizzle-orm';
+import {eq, asc, desc, lt, and, inArray, isNull, isNotNull, sql} from 'drizzle-orm';
 import {getLLMModel, isAnthropicProvider} from '@/lib/llm';
 import {getCoachTools} from '@/lib/coachTools';
 import {buildCoachSystemPrompt} from '@/lib/coachContext';
@@ -11,12 +11,42 @@ import {buildCoachSystemPrompt} from '@/lib/coachContext';
 const MAX_HISTORY = 40;
 const PRUNE_ABOVE = 80;
 
-async function loadHistory(athleteId: number): Promise<ModelMessage[]> {
+export interface SessionSummary {
+  id: string | null;
+  createdAt: number;
+  preview: string;
+  messageCount: number;
+}
+
+// Resolve the active session ID: most recent session, or null for legacy messages
+async function resolveCurrentSessionId(athleteId: number): Promise<string | null> {
   const db = getDb();
+  // Find the most recently updated session (by max createdAt in that session)
+  const rows = await db
+    .select({sessionId: schema.coachMessages.sessionId, maxCreatedAt: sql<number>`max(${schema.coachMessages.createdAt})`})
+    .from(schema.coachMessages)
+    .where(eq(schema.coachMessages.athleteId, athleteId))
+    .groupBy(schema.coachMessages.sessionId)
+    .orderBy(desc(sql<number>`max(${schema.coachMessages.createdAt})`))
+    .limit(1);
+
+  if (rows.length === 0) return null;
+  return rows[0].sessionId;
+}
+
+async function loadHistory(athleteId: number, sessionId: string | null | undefined): Promise<ModelMessage[]> {
+  const db = getDb();
+
+  const whereClause = sessionId === undefined
+    ? eq(schema.coachMessages.athleteId, athleteId)
+    : sessionId === null
+      ? and(eq(schema.coachMessages.athleteId, athleteId), isNull(schema.coachMessages.sessionId))
+      : and(eq(schema.coachMessages.athleteId, athleteId), eq(schema.coachMessages.sessionId, sessionId));
+
   const rows = await db
     .select()
     .from(schema.coachMessages)
-    .where(eq(schema.coachMessages.athleteId, athleteId))
+    .where(whereClause)
     .orderBy(asc(schema.coachMessages.createdAt))
     .limit(MAX_HISTORY);
 
@@ -38,7 +68,6 @@ async function loadHistory(athleteId: number): Promise<ModelMessage[]> {
       try {
         const parsed = JSON.parse(r.content);
         if (Array.isArray(parsed)) {
-          // Migrate v4 format: tool-call parts used 'args', v6 uses 'input'
           const migrated = parsed.map((part: Record<string, unknown>) => {
             if (part.type === 'tool-call' && 'args' in part && !('input' in part)) {
               const {args, ...rest} = part;
@@ -57,7 +86,7 @@ async function loadHistory(athleteId: number): Promise<ModelMessage[]> {
   });
 }
 
-async function persistMessages(athleteId: number, messages: ModelMessage[]): Promise<void> {
+async function persistMessages(athleteId: number, sessionId: string | null, messages: ModelMessage[]): Promise<void> {
   const db = getDb();
   const now = Date.now();
   const toInsert = [];
@@ -79,6 +108,7 @@ async function persistMessages(athleteId: number, messages: ModelMessage[]): Pro
       toInsert.push({
         id: now + Math.floor(Math.random() * 1000),
         athleteId,
+        sessionId,
         role: 'user',
         content,
         toolCallId: null,
@@ -91,6 +121,7 @@ async function persistMessages(athleteId: number, messages: ModelMessage[]): Pro
           toInsert.push({
             id: now + Math.floor(Math.random() * 1000),
             athleteId,
+            sessionId,
             role: 'assistant',
             content: msg.content,
             toolCallId: null,
@@ -104,6 +135,7 @@ async function persistMessages(athleteId: number, messages: ModelMessage[]): Pro
           toInsert.push({
             id: now + Math.floor(Math.random() * 1000),
             athleteId,
+            sessionId,
             role: 'assistant',
             content: JSON.stringify(msg.content),
             toolCallId: null,
@@ -119,6 +151,7 @@ async function persistMessages(athleteId: number, messages: ModelMessage[]): Pro
             toInsert.push({
               id: now + Math.floor(Math.random() * 1000),
               athleteId,
+              sessionId,
               role: 'assistant',
               content: textParts,
               toolCallId: null,
@@ -137,6 +170,7 @@ async function persistMessages(athleteId: number, messages: ModelMessage[]): Pro
           toInsert.push({
             id: now + Math.floor(Math.random() * 1000),
             athleteId,
+            sessionId,
             role: 'tool',
             content: JSON.stringify(part.output),
             toolCallId: part.toolCallId ?? null,
@@ -161,6 +195,7 @@ async function persistMessages(athleteId: number, messages: ModelMessage[]): Pro
     await db.insert(schema.coachMessages).values(deduped);
   }
 
+  // Prune old messages within this session
   const countRows = await db
     .select({id: schema.coachMessages.id, createdAt: schema.coachMessages.createdAt})
     .from(schema.coachMessages)
@@ -183,23 +218,8 @@ async function persistMessages(athleteId: number, messages: ModelMessage[]): Pro
   }
 }
 
-// GET — return UI-ready message history as UIMessage format
-export async function GET(req: NextRequest) {
-  const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
-  if (!athleteId) return Response.json({error: 'athleteId required'}, {status: 400});
-
-  const db = getDb();
-  const rows = await db
-    .select()
-    .from(schema.coachMessages)
-    .where(and(
-      eq(schema.coachMessages.athleteId, athleteId),
-      inArray(schema.coachMessages.role, ['user', 'assistant']),
-    ))
-    .orderBy(asc(schema.coachMessages.createdAt))
-    .limit(MAX_HISTORY);
-
-  const messages = rows.flatMap(r => {
+function rowsToUIMessages(rows: typeof schema.coachMessages.$inferSelect[]): UIMessage[] {
+  return rows.flatMap(r => {
     let content = r.content;
     if (r.role === 'assistant') {
       try {
@@ -222,28 +242,130 @@ export async function GET(req: NextRequest) {
       createdAt: new Date(r.createdAt),
     }];
   });
+}
 
-  return Response.json(messages);
+// GET — supports ?sessionId=X, ?listSessions=1, or default (current session)
+export async function GET(req: NextRequest) {
+  const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
+  if (!athleteId) return Response.json({error: 'athleteId required'}, {status: 400});
+
+  const db = getDb();
+
+  // List all sessions
+  if (req.nextUrl.searchParams.get('listSessions') === '1') {
+    const sessionGroups = await db
+      .select({
+        sessionId: schema.coachMessages.sessionId,
+        minCreatedAt: sql<number>`min(${schema.coachMessages.createdAt})`,
+        messageCount: sql<number>`count(*)`,
+      })
+      .from(schema.coachMessages)
+      .where(and(
+        eq(schema.coachMessages.athleteId, athleteId),
+        inArray(schema.coachMessages.role, ['user', 'assistant']),
+      ))
+      .groupBy(schema.coachMessages.sessionId)
+      .orderBy(desc(sql<number>`min(${schema.coachMessages.createdAt})`));
+
+    // Fetch first user message for each session as preview
+    const sessions: SessionSummary[] = await Promise.all(
+      sessionGroups.map(async sg => {
+        const whereClause = sg.sessionId === null
+          ? and(
+              eq(schema.coachMessages.athleteId, athleteId),
+              isNull(schema.coachMessages.sessionId),
+              eq(schema.coachMessages.role, 'user'),
+            )
+          : and(
+              eq(schema.coachMessages.athleteId, athleteId),
+              eq(schema.coachMessages.sessionId, sg.sessionId),
+              eq(schema.coachMessages.role, 'user'),
+            );
+        const firstMsg = await db
+          .select()
+          .from(schema.coachMessages)
+          .where(whereClause)
+          .orderBy(asc(schema.coachMessages.createdAt))
+          .limit(1);
+        const preview = firstMsg[0]?.content?.slice(0, 80) ?? 'Chat session';
+        return {
+          id: sg.sessionId,
+          createdAt: Number(sg.minCreatedAt),
+          preview,
+          messageCount: Number(sg.messageCount),
+        };
+      }),
+    );
+
+    return Response.json(sessions);
+  }
+
+  // Specific session or current session
+  const sessionIdParam = req.nextUrl.searchParams.get('sessionId');
+  let resolvedSessionId: string | null;
+
+  if (sessionIdParam !== null) {
+    // 'null' string means explicitly legacy null session
+    resolvedSessionId = sessionIdParam === 'null' ? null : sessionIdParam;
+  } else {
+    // Default: most recent session
+    resolvedSessionId = await resolveCurrentSessionId(athleteId);
+  }
+
+  const whereClause = resolvedSessionId === null
+    ? and(
+        eq(schema.coachMessages.athleteId, athleteId),
+        isNull(schema.coachMessages.sessionId),
+        inArray(schema.coachMessages.role, ['user', 'assistant']),
+      )
+    : and(
+        eq(schema.coachMessages.athleteId, athleteId),
+        eq(schema.coachMessages.sessionId, resolvedSessionId),
+        inArray(schema.coachMessages.role, ['user', 'assistant']),
+      );
+
+  const rows = await db
+    .select()
+    .from(schema.coachMessages)
+    .where(whereClause)
+    .orderBy(asc(schema.coachMessages.createdAt))
+    .limit(MAX_HISTORY);
+
+  return Response.json({
+    sessionId: resolvedSessionId,
+    messages: rowsToUIMessages(rows),
+  });
 }
 
 export async function POST(req: NextRequest) {
-  const {messages, athleteId} = await req.json() as {messages: UIMessage[]; athleteId: number};
+  const {messages, athleteId, sessionId: rawSessionId} = await req.json() as {
+    messages: UIMessage[];
+    athleteId: number;
+    sessionId?: string | null;
+  };
 
   if (!athleteId) {
     return new Response(JSON.stringify({error: 'athleteId required'}), {status: 400});
   }
 
+  // Determine session: use provided ID, or fall back to current session
+  let sessionId: string | null;
+  if (rawSessionId !== undefined) {
+    sessionId = rawSessionId === 'null' ? null : (rawSessionId ?? null);
+  } else {
+    sessionId = await resolveCurrentSessionId(athleteId);
+  }
+
   const lastUIMessage = messages[messages.length - 1];
   const [modelMessages, history, system] = await Promise.all([
     convertToModelMessages([lastUIMessage]),
-    loadHistory(athleteId),
+    loadHistory(athleteId, sessionId),
     buildCoachSystemPrompt(athleteId),
   ]);
   const newModelMsg = modelMessages[0];
 
   const allMessages: ModelMessage[] = [...history, newModelMsg];
 
-  // Anthropic prompt caching on the large system prompt cuts cost ~90% and reduces TTFT
   const systemMessages: ModelMessage[] = isAnthropicProvider()
     ? [{
         role: 'system' as const,
@@ -261,7 +383,7 @@ export async function POST(req: NextRequest) {
     tools: getCoachTools(athleteId),
     stopWhen: stepCountIs(10),
     onFinish: async ({response}) => {
-      await persistMessages(athleteId, [newModelMsg, ...response.messages] as ModelMessage[]);
+      await persistMessages(athleteId, sessionId, [newModelMsg, ...response.messages] as ModelMessage[]);
     },
   });
 
