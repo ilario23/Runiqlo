@@ -7,6 +7,7 @@ import type {
   StravaAthleteZones,
   StravaSummaryGear,
 } from './strava';
+import type {ActivityWeatherData} from './weather';
 
 export interface CachedActivity {
   id: number;
@@ -63,6 +64,13 @@ export interface CachedZoneBreakdown {
 export interface CachedDashboardContinuationState {
   bf: number;
   li: number;
+}
+
+export interface CachedActivityWeather {
+  activityId: number;
+  athleteId: number;
+  data: ActivityWeatherData;
+  fetchedAt: number;
 }
 
 export interface CachedDashboardCache {

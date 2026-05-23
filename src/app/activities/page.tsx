@@ -4,7 +4,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {motion, type Variants} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
-import {useActivitiesPaginated} from '@/hooks/useStrava';
+import {useActivitiesPaginated, useForceRefreshActivities} from '@/hooks/useStrava';
 import {formatPace, formatDuration} from '@/lib/activityModel';
 import type {ActivitySummary, ActivityType} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
@@ -172,6 +172,7 @@ export default function ActivitiesPage() {
   const router = useRouter();
   const {isAuthenticated, isLoading: authLoading} = useStravaAuth();
   const {data: activities, isLoading, isFullyLoaded} = useActivitiesPaginated(BATCH_SIZE);
+  const forceRefresh = useForceRefreshActivities();
 
   const [sportFilter, setSportFilter] = useState<ActivityType | 'All'>('All');
   const [sortKey, setSortKey] = useState<SortKey>('date');
@@ -237,7 +238,7 @@ export default function ActivitiesPage() {
 
   return (
     <>
-      <AppHeader />
+      <AppHeader onRefresh={forceRefresh} />
       <main className="pt-[72px] pb-8 px-5 min-h-screen">
         <div className="max-w-[1100px] mx-auto space-y-4">
 

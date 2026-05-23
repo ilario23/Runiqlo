@@ -4,6 +4,8 @@ import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, desc, gte, sql} from 'drizzle-orm';
 import {transformActivity} from './strava';
+import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from './weather';
+import type {ActivityWeatherData} from './weather';
 
 export function getCoachTools(athleteId: number) {
   const db = getDb();
@@ -12,7 +14,7 @@ export function getCoachTools(athleteId: number) {
     getFitnessSummary: tool({
       description:
         "Get the athlete's current fitness metrics: CTL (base fitness), ATL (load impact), TSB (form), ACWR, and injury risk. Call this before prescribing hard sessions or making load decisions.",
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => {
         const cacheRows = await db
           .select()
@@ -71,7 +73,7 @@ export function getCoachTools(athleteId: number) {
     getRecentActivities: tool({
       description:
         "Get the athlete's recent activities with type, distance, pace, HR. Use to understand training patterns and compliance.",
-      parameters: z.object({
+      inputSchema: z.object({
         limit: z.number().default(14).describe('Number of recent activities (default 14)'),
       }),
       execute: async ({limit}) => {
@@ -106,7 +108,7 @@ export function getCoachTools(athleteId: number) {
     getZoneDistribution: tool({
       description:
         "Get HR zone distribution as % of time. Shows aerobic base vs intensity balance.",
-      parameters: z.object({
+      inputSchema: z.object({
         weeks: z.number().default(4).describe('Weeks to look back'),
       }),
       execute: async ({weeks}) => {
@@ -161,7 +163,7 @@ export function getCoachTools(athleteId: number) {
 
     getBestEfforts: tool({
       description: "Get personal bests at standard distances. Useful for setting realistic pace targets.",
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => {
         const rows = await db
           .select()
@@ -189,7 +191,7 @@ export function getCoachTools(athleteId: number) {
 
     getTrainingPlan: tool({
       description: "Get the current active macro training plan with all phases.",
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => {
         const rows = await db
           .select()
@@ -217,7 +219,7 @@ export function getCoachTools(athleteId: number) {
 
     getWeeklyPlan: tool({
       description: "Get the planned workouts for a specific week. weekStart must be a Monday (YYYY-MM-DD).",
-      parameters: z.object({
+      inputSchema: z.object({
         weekStart: z.string().describe('Monday date in YYYY-MM-DD format'),
       }),
       execute: async ({weekStart}) => {
@@ -234,7 +236,7 @@ export function getCoachTools(athleteId: number) {
 
     getAthleteNotes: tool({
       description: "Get accumulated knowledge about this athlete: injury history, preferences, and training responses.",
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => {
         const rows = await db
           .select()
@@ -250,7 +252,7 @@ export function getCoachTools(athleteId: number) {
     saveTrainingPlan: tool({
       description:
         "Save a new macro training plan. Deactivates any existing plan and creates the new one. Call this after generating a full periodized plan.",
-      parameters: z.object({
+      inputSchema: z.object({
         goalType: z.string(),
         targetDate: z.string().nullable(),
         startDate: z.string(),
@@ -261,7 +263,7 @@ export function getCoachTools(athleteId: number) {
             endDate: z.string(),
             weekCount: z.number(),
             focusDescription: z.string(),
-            targetWeeklyKmRange: z.tuple([z.number(), z.number()]),
+            targetWeeklyKmRange: z.array(z.number()).min(2).max(2).describe('Two-element array [minKm, maxKm]'),
             keyWorkouts: z.array(z.string()),
           }),
         ),
@@ -298,7 +300,7 @@ export function getCoachTools(athleteId: number) {
     saveWeeklyPlan: tool({
       description:
         "Save the detailed workout schedule for a specific week (Mon–Sun). Creates or replaces the existing plan for that week. Always call this after generating a week plan — never just describe it in text.",
-      parameters: z.object({
+      inputSchema: z.object({
         trainingPlanId: z.number(),
         weekStart: z.string().describe('Monday date YYYY-MM-DD'),
         phase: z.string(),
@@ -369,7 +371,7 @@ export function getCoachTools(athleteId: number) {
     updateAthleteNotes: tool({
       description:
         "Update accumulated knowledge about this athlete. Call when you learn something new: injuries, preferences, how they respond to training.",
-      parameters: z.object({
+      inputSchema: z.object({
         injuryHistory: z
           .array(
             z.object({
@@ -428,10 +430,132 @@ export function getCoachTools(athleteId: number) {
       },
     }),
 
+    getActivityWeather: tool({
+      description:
+        "Get the weather conditions during a specific past run. Returns temperature, feels-like, wind, humidity, precipitation and condition. Use to understand how weather affected performance.",
+      inputSchema: z.object({
+        activityId: z.number().describe('Strava activity ID'),
+      }),
+      execute: async ({activityId}) => {
+        // Check DB cache first
+        const cached = await db
+          .select()
+          .from(schema.activityWeather)
+          .where(eq(schema.activityWeather.activityId, activityId))
+          .limit(1);
+
+        if (cached[0]) {
+          const w = cached[0].data as ActivityWeatherData;
+          return {
+            activityId,
+            temperatureC: w.temperatureC,
+            apparentTemperatureC: w.apparentTemperatureC,
+            conditionLabel: w.conditionLabel,
+            conditionEmoji: w.conditionEmoji,
+            windSpeedKmh: w.windSpeedKmh,
+            windDirection: windDirectionLabel(w.windDirectionDeg),
+            humidityPct: w.humidityPct,
+            precipitationMm: w.precipitationMm,
+          };
+        }
+
+        // Not cached — fetch from activity detail
+        const detailRows = await db
+          .select()
+          .from(schema.activityDetails)
+          .where(eq(schema.activityDetails.id, activityId))
+          .limit(1);
+
+        const detail = detailRows[0]?.data as {
+          start_latlng?: number[];
+          start_date?: string;
+          start_date_local?: string;
+        } | undefined;
+
+        if (!detail?.start_latlng?.length || !detail.start_date || !detail.start_date_local) {
+          return {error: 'No GPS data for this activity — cannot fetch weather.'};
+        }
+
+        const activityDate = detail.start_date_local.slice(0, 10);
+        const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+        if (activityDate >= yesterday) {
+          return {error: 'Weather archive not available for very recent activities.'};
+        }
+
+        const [lat, lng] = detail.start_latlng;
+        const utcHour = new Date(detail.start_date).getUTCHours();
+        const weather = await fetchHistoricalWeather(lat, lng, activityDate, utcHour);
+
+        if (!weather) return {error: 'Could not fetch weather data for this activity.'};
+
+        // Persist to cache
+        await db
+          .insert(schema.activityWeather)
+          .values({activityId, athleteId, data: weather, fetchedAt: Date.now()})
+          .onConflictDoNothing();
+
+        return {
+          activityId,
+          temperatureC: weather.temperatureC,
+          apparentTemperatureC: weather.apparentTemperatureC,
+          conditionLabel: weather.conditionLabel,
+          conditionEmoji: weather.conditionEmoji,
+          windSpeedKmh: weather.windSpeedKmh,
+          windDirection: windDirectionLabel(weather.windDirectionDeg),
+          humidityPct: weather.humidityPct,
+          precipitationMm: weather.precipitationMm,
+        };
+      },
+    }),
+
+    getWeatherForecast: tool({
+      description:
+        "Get current conditions and a 7-day weather forecast for a location. Use to recommend optimal training days, warn about bad conditions, or plan race-day preparation. Defaults to the athlete's saved city if no location is provided.",
+      inputSchema: z.object({
+        location: z.string().optional().describe('City name (e.g. "Milan", "London") or leave empty to use the athlete\'s saved city'),
+      }),
+      execute: async ({location}) => {
+        let resolvedLocation = location;
+
+        if (!resolvedLocation) {
+          const settingsRows = await db
+            .select()
+            .from(schema.userSettings)
+            .where(eq(schema.userSettings.athleteId, athleteId))
+            .limit(1);
+          resolvedLocation = settingsRows[0]?.city ?? undefined;
+        }
+
+        if (!resolvedLocation) {
+          return {error: 'No location provided and no city saved in settings. Ask the athlete for their city.'};
+        }
+
+        const forecast = await fetchWeatherForecast(resolvedLocation);
+        if (!forecast) {
+          return {error: `Could not fetch weather for "${resolvedLocation}". Check the spelling or try a different city name.`};
+        }
+
+        return {
+          location: forecast.locationName ?? resolvedLocation,
+          current: forecast.current,
+          daily: forecast.daily.map((d) => ({
+            date: d.date,
+            conditionEmoji: d.conditionEmoji,
+            conditionLabel: d.conditionLabel,
+            maxTempC: d.maxTempC,
+            minTempC: d.minTempC,
+            precipProbabilityPct: d.precipProbabilityPct,
+            precipitationMm: d.precipitationMm,
+            windSpeedKmh: d.windSpeedKmh,
+          })),
+        };
+      },
+    }),
+
     linkCompletedActivity: tool({
       description:
         "Mark a planned workout as completed and link it to a Strava activity. Call when the athlete says they completed a workout.",
-      parameters: z.object({
+      inputSchema: z.object({
         weekStart: z.string().describe('YYYY-MM-DD Monday'),
         date: z.string().describe('YYYY-MM-DD date of the workout'),
         workoutIndex: z.number().describe('0-based index within that day'),
@@ -465,7 +589,7 @@ export function getCoachTools(athleteId: number) {
     askQuestion: tool({
       description:
         "Present the user with a structured multiple-choice question when you need clarification or want to guide them through a decision. Use this instead of asking in free text when 2–4 discrete options capture the full range of sensible answers.",
-      parameters: z.object({
+      inputSchema: z.object({
         question: z.string().describe("The question to ask the user — one concise sentence."),
         options: z
           .array(z.object({

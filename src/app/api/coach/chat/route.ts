@@ -1,5 +1,5 @@
-import {streamText} from 'ai';
-import type {CoreMessage} from 'ai';
+import {streamText, stepCountIs, convertToModelMessages} from 'ai';
+import type {ModelMessage, UIMessage, AssistantContent} from 'ai';
 import {NextRequest} from 'next/server';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
@@ -11,7 +11,7 @@ import {buildCoachSystemPrompt} from '@/lib/coachContext';
 const MAX_HISTORY = 40;
 const PRUNE_ABOVE = 80;
 
-async function loadHistory(athleteId: number): Promise<CoreMessage[]> {
+async function loadHistory(athleteId: number): Promise<ModelMessage[]> {
   const db = getDb();
   const rows = await db
     .select()
@@ -29,17 +29,24 @@ async function loadHistory(athleteId: number): Promise<CoreMessage[]> {
             type: 'tool-result' as const,
             toolCallId: r.toolCallId ?? '',
             toolName: r.toolName ?? '',
-            result: (() => { try { return JSON.parse(r.content); } catch { return r.content; } })(),
+            output: (() => { try { return JSON.parse(r.content); } catch { return r.content; } })(),
           },
         ],
       };
     }
     if (r.role === 'assistant') {
-      // Content may be a JSON-serialised content array (when tool calls were made)
       try {
         const parsed = JSON.parse(r.content);
         if (Array.isArray(parsed)) {
-          return {role: 'assistant' as const, content: parsed};
+          // Migrate v4 format: tool-call parts used 'args', v6 uses 'input'
+          const migrated = parsed.map((part: Record<string, unknown>) => {
+            if (part.type === 'tool-call' && 'args' in part && !('input' in part)) {
+              const {args, ...rest} = part;
+              return {...rest, input: args};
+            }
+            return part;
+          });
+          return {role: 'assistant' as const, content: migrated as unknown as AssistantContent};
         }
       } catch {}
     }
@@ -50,14 +57,25 @@ async function loadHistory(athleteId: number): Promise<CoreMessage[]> {
   });
 }
 
-async function persistMessages(athleteId: number, messages: CoreMessage[]): Promise<void> {
+async function persistMessages(athleteId: number, messages: ModelMessage[]): Promise<void> {
   const db = getDb();
   const now = Date.now();
   const toInsert = [];
 
   for (const msg of messages) {
     if (msg.role === 'user') {
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      let content: string;
+      if (typeof msg.content === 'string') {
+        content = msg.content;
+      } else if (Array.isArray(msg.content)) {
+        content = (msg.content as Array<{type: string; text?: string}>)
+          .filter(p => p.type === 'text')
+          .map(p => p.text ?? '')
+          .join('');
+      } else {
+        content = '';
+      }
+      if (!content) continue;
       toInsert.push({
         id: now + Math.floor(Math.random() * 1000),
         athleteId,
@@ -81,9 +99,8 @@ async function persistMessages(athleteId: number, messages: CoreMessage[]): Prom
           });
         }
       } else if (Array.isArray(msg.content)) {
-        const hasToolCalls = msg.content.some(p => p.type === 'tool-call');
+        const hasToolCalls = msg.content.some(p => (p as {type: string}).type === 'tool-call');
         if (hasToolCalls) {
-          // Serialise the full content array so tool-call/text parts are preserved
           toInsert.push({
             id: now + Math.floor(Math.random() * 1000),
             athleteId,
@@ -94,9 +111,9 @@ async function persistMessages(athleteId: number, messages: CoreMessage[]): Prom
             createdAt: now + 1,
           });
         } else {
-          const textParts = msg.content
-            .filter((p): p is {type: 'text'; text: string} => p.type === 'text')
-            .map(p => p.text)
+          const textParts = (msg.content as Array<{type: string; text?: string}>)
+            .filter(p => p.type === 'text')
+            .map(p => p.text ?? '')
             .join('');
           if (textParts) {
             toInsert.push({
@@ -112,16 +129,18 @@ async function persistMessages(athleteId: number, messages: CoreMessage[]): Prom
         }
       }
     } else if (msg.role === 'tool') {
-      const parts = Array.isArray(msg.content) ? msg.content : [];
+      const parts = Array.isArray(msg.content)
+        ? (msg.content as Array<{type: string; toolCallId?: string; toolName?: string; output?: unknown}>)
+        : [];
       for (const part of parts) {
         if (part.type === 'tool-result') {
           toInsert.push({
             id: now + Math.floor(Math.random() * 1000),
             athleteId,
             role: 'tool',
-            content: JSON.stringify(part.result),
-            toolCallId: part.toolCallId,
-            toolName: part.toolName,
+            content: JSON.stringify(part.output),
+            toolCallId: part.toolCallId ?? null,
+            toolName: part.toolName ?? null,
             createdAt: now + 2,
           });
         }
@@ -142,7 +161,6 @@ async function persistMessages(athleteId: number, messages: CoreMessage[]): Prom
     await db.insert(schema.coachMessages).values(deduped);
   }
 
-  // Prune old messages, keeping the newest PRUNE_ABOVE
   const countRows = await db
     .select({id: schema.coachMessages.id, createdAt: schema.coachMessages.createdAt})
     .from(schema.coachMessages)
@@ -165,7 +183,7 @@ async function persistMessages(athleteId: number, messages: CoreMessage[]): Prom
   }
 }
 
-// GET — return UI-ready message history (user + assistant text only)
+// GET — return UI-ready message history as UIMessage format
 export async function GET(req: NextRequest) {
   const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
   if (!athleteId) return Response.json({error: 'athleteId required'}, {status: 400});
@@ -197,34 +215,40 @@ export async function GET(req: NextRequest) {
       } catch {}
     }
     if (!content) return [];
-    return [{id: String(r.id), role: r.role as 'user' | 'assistant', content, createdAt: new Date(r.createdAt)}];
+    return [{
+      id: String(r.id),
+      role: r.role as 'user' | 'assistant',
+      parts: [{type: 'text' as const, text: content}],
+      createdAt: new Date(r.createdAt),
+    }];
   });
 
   return Response.json(messages);
 }
 
 export async function POST(req: NextRequest) {
-  const {messages, athleteId} = await req.json() as {messages: CoreMessage[]; athleteId: number};
+  const {messages, athleteId} = await req.json() as {messages: UIMessage[]; athleteId: number};
 
   if (!athleteId) {
     return new Response(JSON.stringify({error: 'athleteId required'}), {status: 400});
   }
 
-  const [history, system] = await Promise.all([
+  const lastUIMessage = messages[messages.length - 1];
+  const [modelMessages, history, system] = await Promise.all([
+    convertToModelMessages([lastUIMessage]),
     loadHistory(athleteId),
     buildCoachSystemPrompt(athleteId),
   ]);
+  const newModelMsg = modelMessages[0];
 
-  const newUserMsg = messages[messages.length - 1];
-  const allMessages: CoreMessage[] = [...history, newUserMsg];
+  const allMessages: ModelMessage[] = [...history, newModelMsg];
 
-  // Use Anthropic prompt caching when available — the large system prompt is sent
-  // every turn, so caching it cuts cost ~90% and reduces TTFT significantly.
-  const systemMessages: CoreMessage[] = isAnthropicProvider()
+  // Anthropic prompt caching on the large system prompt cuts cost ~90% and reduces TTFT
+  const systemMessages: ModelMessage[] = isAnthropicProvider()
     ? [{
         role: 'system' as const,
         content: system,
-        experimental_providerMetadata: {
+        providerOptions: {
           anthropic: {cacheControl: {type: 'ephemeral'}},
         },
       }]
@@ -235,11 +259,17 @@ export async function POST(req: NextRequest) {
     ...(isAnthropicProvider() ? {} : {system}),
     messages: [...systemMessages, ...allMessages],
     tools: getCoachTools(athleteId),
-    maxSteps: 10,
+    stopWhen: stepCountIs(10),
     onFinish: async ({response}) => {
-      await persistMessages(athleteId, [newUserMsg, ...response.messages]);
+      await persistMessages(athleteId, [newModelMsg, ...response.messages] as ModelMessage[]);
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse({
+    onError: (error) => {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error('[coach/chat] stream error:', msg);
+      return msg;
+    },
+  });
 }

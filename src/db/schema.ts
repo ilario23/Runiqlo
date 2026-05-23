@@ -141,3 +141,10 @@ export const athleteNotes = pgTable('athlete_notes', {
   freeformNotes: text('freeform_notes'),
   lastUpdatedAt: bigint('last_updated_at', {mode: 'number'}).notNull(),
 });
+
+export const activityWeather = pgTable('activity_weather', {
+  activityId: bigint('activity_id', {mode: 'number'}).primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
+  data: jsonb('data').notNull(), // ActivityWeatherData
+  fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});

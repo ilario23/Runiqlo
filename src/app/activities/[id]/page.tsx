@@ -20,7 +20,9 @@ import {
   useActivityDetail,
   useActivityStreams,
   useActivityZoneBreakdown,
+  useActivityWeather,
 } from '@/hooks/useStrava';
+import {windDirectionLabel} from '@/lib/weather';
 import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, getZoneForHr} from '@/lib/activityModel';
 import {useSettings} from '@/contexts/SettingsContext';
 import AppHeader from '@/components/AppHeader';
@@ -327,6 +329,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   const {data: detail, isLoading: detailLoading} = useActivityDetail(id);
   const {data: streams, isLoading: streamsLoading} = useActivityStreams(id);
   const {data: zoneBreakdown} = useActivityZoneBreakdown(id);
+  const {data: weather, isLoading: weatherLoading} = useActivityWeather(id);
 
   // Hover index into chartData → drives the map dot
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -634,6 +637,56 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                         <p className="text-sm font-semibold text-white/85 mt-0.5 tabular-nums">{value}</p>
                       </div>
                     ))}
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Weather */}
+              <motion.div variants={cardVariant} className="bento-card p-5">
+                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Weather at Start</h2>
+                {weatherLoading || detailLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                ) : !detail?.start_latlng?.length ? (
+                  <p className="text-sm text-white/25">No GPS data</p>
+                ) : !weather ? (
+                  <p className="text-sm text-white/25">Weather unavailable</p>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Condition + temperature */}
+                    <div className="flex items-center gap-3">
+                      <span className="text-3xl leading-none">{weather.conditionEmoji}</span>
+                      <div>
+                        <p className="text-sm text-white/80">{weather.conditionLabel}</p>
+                        <p className="text-xl font-semibold text-white tabular-nums">
+                          {weather.temperatureC}°C
+                          <span className="text-sm font-normal text-white/40 ml-2">
+                            feels {weather.apparentTemperatureC}°C
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    {/* Sub-stats grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bento-card px-3 py-2">
+                        <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Wind</p>
+                        <p className="text-sm font-semibold text-white/80 tabular-nums">
+                          {weather.windSpeedKmh} km/h {windDirectionLabel(weather.windDirectionDeg)}
+                        </p>
+                      </div>
+                      <div className="bento-card px-3 py-2">
+                        <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Humidity</p>
+                        <p className="text-sm font-semibold text-white/80 tabular-nums">{weather.humidityPct}%</p>
+                      </div>
+                      <div className="bento-card px-3 py-2 col-span-2">
+                        <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Precipitation</p>
+                        <p className="text-sm font-semibold text-white/80 tabular-nums">
+                          {weather.precipitationMm > 0 ? `${weather.precipitationMm} mm` : 'None'}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </motion.div>

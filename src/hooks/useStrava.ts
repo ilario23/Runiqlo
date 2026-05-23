@@ -9,6 +9,7 @@ import {
   cachedGetActivitiesPage,
   cachedGetActivityDetail,
   cachedGetActivityStreams,
+  cachedGetActivityWeather,
   cachedGetAthleteStats,
   cachedGetAthleteZones,
   cachedGetAthleteGear,
@@ -19,6 +20,7 @@ import {
   forceRefreshActivities,
   batchGetZoneBreakdowns,
 } from '@/lib/stravaCache';
+import type {ActivityWeatherData} from '@/lib/weather';
 import type {AggregatedSegment, SegmentEffortRecord} from '@/lib/stravaCache';
 import type {ActivitySummary, StreamPoint} from '@/lib/activityModel';
 import type {FitnessDataPoint, AdvancedMetricsDataPoint} from '@/utils/trainingLoad';
@@ -115,6 +117,18 @@ export const useActivityStreams = (activityId: string | undefined) => {
     queryKey: ['strava', 'streams', athlete?.id, activityId],
     queryFn: () => cachedGetActivityStreams(athlete!.id, Number(activityId)),
     enabled: isAuthenticated && !!athlete?.id && !!activityId,
+    staleTime: Infinity,
+    gcTime: ONE_DAY,
+  });
+};
+
+export const useActivityWeather = (activityId: string | undefined) => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  const {data: detail} = useActivityDetail(activityId);
+  return useQuery<ActivityWeatherData | null>({
+    queryKey: ['strava', 'weather', activityId],
+    queryFn: () => cachedGetActivityWeather(Number(activityId), athlete!.id, detail ?? null),
+    enabled: isAuthenticated && !!athlete?.id && !!activityId && detail !== undefined,
     staleTime: Infinity,
     gcTime: ONE_DAY,
   });
@@ -271,6 +285,12 @@ export const useAllSegments = () => {
     staleTime: ONE_HOUR,
     gcTime: ONE_DAY,
     refetchOnWindowFocus: false,
+    // Poll every 2 s while background detail-fetching is in progress.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data || data.activitiesWithDetails >= data.totalActivities) return false;
+      return 2000;
+    },
   });
 };
 

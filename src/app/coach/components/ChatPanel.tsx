@@ -1,8 +1,8 @@
 'use client';
 
 import {useEffect, useRef, useState} from 'react';
-import {useChat} from 'ai/react';
-import type {Message} from 'ai/react';
+import {useChat, type UIMessage} from '@ai-sdk/react';
+import {DefaultChatTransport} from 'ai';
 import {motion} from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -140,65 +140,63 @@ interface ChatPanelProps {
 
 export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [toolStates, setToolStates] = useState<Map<string, {name: string; status: 'running' | 'done'}>>(new Map());
-  const [historyMessages, setHistoryMessages] = useState<Message[] | undefined>(undefined);
+  const [input, setInput] = useState('');
+  const [historyMessages, setHistoryMessages] = useState<UIMessage[] | undefined>(undefined);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Load stored history on mount
   useEffect(() => {
     fetch(`/api/coach/chat?athleteId=${athleteId}`)
       .then(r => r.json())
-      .then((msgs: Message[]) => setHistoryMessages(msgs))
+      .then((msgs: UIMessage[]) => setHistoryMessages(msgs))
       .catch(() => setHistoryMessages([]));
   }, [athleteId]);
 
-  const {messages, input, handleInputChange, handleSubmit, isLoading, append, error} = useChat({
-    api: '/api/coach/chat',
-    body: {athleteId},
-    initialMessages: historyMessages,
-    onToolCall: ({toolCall}) => {
-      setToolStates(prev => new Map(prev).set(toolCall.toolCallId, {
-        name: toolCall.toolName,
-        status: 'running',
-      }));
-    },
+  const {messages, sendMessage, status} = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/coach/chat',
+      body: {athleteId},
+    }),
+    messages: historyMessages,
     onFinish: () => {
-      // Mark all in-flight tool calls as done
-      setToolStates(prev => {
-        const next = new Map(prev);
-        for (const [id, state] of next) {
-          if (state.status === 'running') next.set(id, {...state, status: 'done'});
-        }
-        return next;
-      });
       onPlanSaved?.();
+    },
+    onError: (error) => {
+      setErrorMsg(error.message);
     },
   });
 
-  // Auto-scroll
+  const isLoading = status === 'submitted' || status === 'streaming';
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({behavior: 'smooth'});
-  }, [messages, toolStates]);
+  }, [messages]);
 
-  // Send initial message once history is loaded and chat is empty
   const sentInitial = useRef(false);
   useEffect(() => {
     if (initialMessage && !sentInitial.current && historyMessages !== undefined && messages.length === (historyMessages?.length ?? 0)) {
       sentInitial.current = true;
-      append({role: 'user', content: initialMessage});
+      sendMessage({text: initialMessage});
     }
-  }, [initialMessage, historyMessages, messages.length, append]);
+  }, [initialMessage, historyMessages, messages.length, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (input.trim() && !isLoading) {
-        handleSubmit(e as unknown as React.FormEvent);
+        sendMessage({text: input});
+        setInput('');
       }
     }
   };
 
-  // Still loading history from DB
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (input.trim() && !isLoading) {
+      sendMessage({text: input});
+      setInput('');
+    }
+  };
+
   if (historyMessages === undefined) {
     return (
       <div className="flex flex-col h-full items-center justify-center">
@@ -208,6 +206,10 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
   }
 
   const hasMessages = messages.length > 0;
+  const lastAssistantIdx = messages.reduce(
+    (last, m, i) => (m.role === 'assistant' ? i : last),
+    -1,
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -255,7 +257,7 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
               ].map(suggestion => (
                 <button
                   key={suggestion}
-                  onClick={() => append({role: 'user', content: suggestion})}
+                  onClick={() => sendMessage({text: suggestion})}
                   className="text-xs text-white/50 hover:text-white/80 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl px-3 py-2 transition-colors text-left"
                 >
                   {suggestion}
@@ -265,64 +267,64 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
           </div>
         )}
 
-        {(() => {
-          const lastAssistantIdx = messages.reduce(
-            (last, m, i) => (m.role === 'assistant' ? i : last),
-            -1,
-          );
+        {messages.map((msg, msgIdx) => {
+          if (msg.role === 'user') {
+            const textPart = msg.parts.find((p): p is {type: 'text'; text: string} => p.type === 'text');
+            return textPart?.text ? <MessageBubble key={msg.id} role="user" content={textPart.text} /> : null;
+          }
 
-          return messages.map((msg, msgIdx) => {
-            if (msg.role === 'user') {
-              const text = typeof msg.content === 'string' ? msg.content : '';
-              return text ? <MessageBubble key={msg.id} role="user" content={text} /> : null;
-            }
+          if (msg.role === 'assistant') {
+            const isLatest = msgIdx === lastAssistantIdx;
+            return (
+              <div key={msg.id} className="space-y-2">
+                {msg.parts.map((part, partIdx) => {
+                  if (part.type === 'step-start') return null;
 
-            if (msg.role === 'assistant') {
-              const parts = Array.isArray(msg.content) ? msg.content : [];
-              const textContent = typeof msg.content === 'string'
-                ? msg.content
-                : parts.filter((p): p is {type: 'text'; text: string} => p.type === 'text').map(p => p.text).join('');
+                  if (part.type === 'text') {
+                    const text = (part as {type: 'text'; text: string}).text;
+                    return text ? <MessageBubble key={partIdx} role="assistant" content={text} /> : null;
+                  }
 
-              const toolCalls = Array.isArray(msg.content)
-                ? parts.filter((p): p is {type: 'tool-call'; toolCallId: string; toolName: string; args: unknown} => p.type === 'tool-call')
-                : [];
+                  // Tool parts: type is 'tool-{toolName}'
+                  if (part.type.startsWith('tool-')) {
+                    const toolName = part.type.slice('tool-'.length);
+                    const toolPart = part as {type: string; state: string; input?: unknown};
 
-              const isLatest = msgIdx === lastAssistantIdx;
-
-              return (
-                <div key={msg.id} className="space-y-2">
-                  {toolCalls.map(tc => {
-                    if (tc.toolName === 'askQuestion') {
-                      const args = tc.args as Partial<{question: string; options: Array<{value: string; label: string}>}>;
-                      if (!args?.question || !args?.options?.length) return null;
+                    if (toolName === 'askQuestion') {
+                      if (toolPart.state === 'input-streaming') return null;
+                      const inp = toolPart.input as Partial<{question: string; options: Array<{value: string; label: string}>}>;
+                      if (!inp?.question || !inp?.options?.length) return null;
                       return (
                         <AskQuestionCard
-                          key={tc.toolCallId}
-                          question={args.question}
-                          options={args.options}
+                          key={partIdx}
+                          question={inp.question}
+                          options={inp.options}
                           disabled={isLoading || !isLatest}
-                          onSelect={(label) => append({role: 'user', content: label})}
+                          onSelect={(label) => sendMessage({text: label})}
                         />
                       );
                     }
+
+                    const isDone = toolPart.state === 'output-available' || toolPart.state === 'output-error';
                     return (
                       <ToolCallBubble
-                        key={tc.toolCallId}
-                        name={tc.toolName}
-                        status={toolStates.get(tc.toolCallId)?.status ?? 'done'}
+                        key={partIdx}
+                        name={toolName}
+                        status={isDone ? 'done' : 'running'}
                       />
                     );
-                  })}
-                  {textContent && <MessageBubble role="assistant" content={textContent} />}
-                </div>
-              );
-            }
+                  }
 
-            return null;
-          });
-        })()}
+                  return null;
+                })}
+              </div>
+            );
+          }
 
-        {isLoading && !messages.some(m => m.role === 'assistant' && messages.indexOf(m) === messages.length - 1) && (
+          return null;
+        })}
+
+        {isLoading && !messages.some((m, i) => m.role === 'assistant' && i === messages.length - 1) && (
           <div className="flex justify-start gap-2">
             <div className="w-7 h-7 rounded-full bg-[#0a84ff]/20 flex items-center justify-center flex-shrink-0">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.5">
@@ -339,10 +341,10 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
           </div>
         )}
 
-        {error && (
+        {status === 'error' && (
           <div className="flex justify-start">
             <div className="max-w-[85%] rounded-2xl rounded-tl-md px-4 py-3 text-sm bg-red-500/10 border border-red-500/20 text-red-400">
-              Something went wrong. Please try again.
+              {errorMsg ?? 'Something went wrong. Please try again.'}
             </div>
           </div>
         )}
@@ -354,9 +356,8 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
       <div className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-white/[0.07]">
         <form onSubmit={handleSubmit} className="flex gap-2 items-end">
           <textarea
-            ref={inputRef}
             value={input}
-            onChange={handleInputChange}
+            onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask your coach anything…"
             rows={1}

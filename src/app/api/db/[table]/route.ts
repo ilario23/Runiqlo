@@ -53,7 +53,8 @@ type TableName =
   | 'zone-breakdowns'
   | 'dashboard-cache'
   | 'best-efforts-cache'
-  | 'user-settings';
+  | 'user-settings'
+  | 'activity-weather';
 
 const VALID_TABLES = new Set<TableName>([
   'activities',
@@ -66,6 +67,7 @@ const VALID_TABLES = new Set<TableName>([
   'dashboard-cache',
   'best-efforts-cache',
   'user-settings',
+  'activity-weather',
 ]);
 
 // ---- GET ----
@@ -249,6 +251,13 @@ export async function GET(
         return NextResponse.json(rows[0] ?? null);
       }
 
+      case 'activity-weather': {
+        const t = schema.activityWeather;
+        if (!pk) return NextResponse.json({error: 'pk required'}, {status: 400});
+        const rows = await db.select().from(t).where(eq(t.activityId, Number(pk)));
+        return NextResponse.json(rows[0] ?? null);
+      }
+
       default:
         return NextResponse.json({error: 'Unknown table'}, {status: 400});
     }
@@ -426,6 +435,18 @@ export async function POST(
           .onConflictDoUpdate({
             target: schema.userSettings.athleteId,
             set: {maxHr: sql`excluded.max_hr`, restingHr: sql`excluded.resting_hr`, zones: sql`excluded.zones`, paceZones: sql`excluded.pace_zones`, weight: sql`excluded.weight`, city: sql`excluded.city`, updatedAt: sql`excluded.updated_at`},
+          });
+        return NextResponse.json({ok: true});
+      }
+
+      case 'activity-weather': {
+        const r = body as {activityId: number; athleteId: number; data: unknown; fetchedAt: number};
+        await db
+          .insert(schema.activityWeather)
+          .values({activityId: r.activityId, athleteId: r.athleteId, data: r.data, fetchedAt: r.fetchedAt})
+          .onConflictDoUpdate({
+            target: schema.activityWeather.activityId,
+            set: {data: sql`excluded.data`, fetchedAt: sql`excluded.fetched_at`},
           });
         return NextResponse.json({ok: true});
       }

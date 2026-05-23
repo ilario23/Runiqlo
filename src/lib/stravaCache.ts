@@ -43,8 +43,11 @@ import {
   dbGetDashboardCache,
   dbSyncDashboardCache,
   dbSyncAthleteProfile,
+  dbGetActivityWeather,
+  dbSyncActivityWeather,
 } from './dbSync';
 import type {CachedActivity} from './cacheTypes';
+import type {ActivityWeatherData} from './weather';
 
 const STALE = {
   activities: 60 * 60 * 1000,
@@ -203,6 +206,46 @@ export const cachedGetActivityStreams = async (
   const raw = await fetchActivityStreams(activityId);
   await dbSyncActivityStreams({activityId, athleteId, data: raw, fetchedAt: Date.now()});
   return transformStreams(raw);
+};
+
+// ---- Activity Weather ----
+
+export const cachedGetActivityWeather = async (
+  activityId: number,
+  athleteId: number,
+  detail: StravaDetailedActivity | null,
+): Promise<ActivityWeatherData | null> => {
+  const cached = await dbGetActivityWeather(activityId);
+  if (cached) return cached.data as ActivityWeatherData;
+
+  if (!detail?.start_latlng?.length || !detail.start_date_local || !detail.start_date) return null;
+
+  // Skip future activities (shouldn't happen but guard anyway)
+  const activityDate = detail.start_date_local.slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  if (activityDate >= tomorrow) return null;
+
+  const [lat, lng] = detail.start_latlng as [number, number];
+  const utcHour = new Date(detail.start_date).getUTCHours();
+
+  // Proxy through the Next.js API route (avoids CORS / client-network issues)
+  try {
+    const params = new URLSearchParams({
+      lat: String(lat),
+      lng: String(lng),
+      date: activityDate,
+      hour: String(utcHour),
+    });
+    const res = await fetch(`/api/weather?${params}`);
+    if (!res.ok) return null;
+    const weather: ActivityWeatherData | null = await res.json();
+    if (!weather) return null;
+
+    void dbSyncActivityWeather(activityId, athleteId, weather);
+    return weather;
+  } catch {
+    return null;
+  }
 };
 
 // ---- Athlete Stats ----
@@ -389,6 +432,26 @@ export const cachedCalcFitnessData = async (
   return result.data;
 };
 
+// ---- Background activity-detail fetch (for segment scanning) ----
+
+const segmentDetailSyncInFlight = new Set<number>();
+
+const fetchMissingActivityDetails = (athleteId: number, uncachedIds: number[]): void => {
+  if (uncachedIds.length === 0 || segmentDetailSyncInFlight.has(athleteId)) return;
+  segmentDetailSyncInFlight.add(athleteId);
+  void (async () => {
+    try {
+      const CONCURRENCY = 3;
+      for (let i = 0; i < uncachedIds.length; i += CONCURRENCY) {
+        const batch = uncachedIds.slice(i, i + CONCURRENCY);
+        await Promise.allSettled(batch.map((id) => cachedGetActivityDetail(athleteId, id)));
+      }
+    } finally {
+      segmentDetailSyncInFlight.delete(athleteId);
+    }
+  })();
+};
+
 // ---- All Segments ----
 
 export interface AggregatedSegment {
@@ -421,6 +484,12 @@ export const cachedGetAllSegments = async (
   const ids = allActivities.map((a) => a.id);
   const details = await dbGetActivityDetailsBulk(athleteId, ids);
   const activitiesWithDetails = details.length;
+
+  // Fire-and-forget: fetch any missing activity details in the background.
+  // The useAllSegments hook polls every 2 s until activitiesWithDetails === totalActivities.
+  const cachedIds = new Set(details.map((d) => d.id));
+  const uncachedIds = ids.filter((id) => !cachedIds.has(id));
+  fetchMissingActivityDetails(athleteId, uncachedIds);
 
   const map = new Map<number, AggregatedSegment>();
 

@@ -11,7 +11,9 @@ import type {
   CachedAthleteGear,
   CachedZoneBreakdown,
   CachedDashboardCache,
+  CachedActivityWeather,
 } from './cacheTypes';
+import type {ActivityWeatherData} from './weather';
 import {dbFetch} from './dbClient';
 
 const API = '/api/db';
@@ -189,6 +191,18 @@ export const dbGetZoneBreakdownsBulk = async (
   }
   return results;
 };
+
+// ---- Activity Weather ----
+
+export const dbGetActivityWeather = (activityId: number): Promise<CachedActivityWeather | null> =>
+  getFromDb<CachedActivityWeather>(`activity-weather?pk=${activityId}`);
+
+export const dbSyncActivityWeather = (
+  activityId: number,
+  athleteId: number,
+  data: ActivityWeatherData,
+): Promise<void> =>
+  postToDb('activity-weather', {activityId, athleteId, data, fetchedAt: Date.now()});
 
 // ---- Dashboard Cache ----
 
