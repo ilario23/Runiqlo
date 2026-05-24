@@ -20,7 +20,7 @@ export interface ZoneBreakdown {
   /** Per-zone totals keyed by zone number (1–6) */
   zones: Record<number, ZoneTotals>;
   /** Hash of the zone settings used for computation (for cache invalidation) */
-  settingsHash: string;
+  hrHash: string;
 }
 
 export interface AggregatedZoneTotals {
@@ -97,7 +97,7 @@ export const computeZoneBreakdown = (
 
   return {
     zones: totals,
-    settingsHash: hashZoneSettings(zones),
+    hrHash: hashZoneSettings(zones),
   };
 };
 

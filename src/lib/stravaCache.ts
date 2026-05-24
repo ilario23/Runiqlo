@@ -300,13 +300,13 @@ export const cachedGetZoneBreakdown = async (
 ): Promise<ZoneBreakdown> => {
   const currentHash = hashZoneSettings(zones);
   const cached = await dbGetZoneBreakdown(athleteId, activityId);
-  if (cached && cached.settingsHash === currentHash) {
-    return {zones: cached.zones, settingsHash: cached.settingsHash};
+  if (cached && cached.hrHash === currentHash) {
+    return {zones: cached.zones, hrHash: cached.hrHash};
   }
 
   const stream = await cachedGetActivityStreams(athleteId, activityId);
   const breakdown = computeZoneBreakdown(stream, zones);
-  await dbSyncZoneBreakdown({activityId, athleteId, settingsHash: breakdown.settingsHash, zones: breakdown.zones, computedAt: Date.now()});
+  await dbSyncZoneBreakdown({activityId, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, computedAt: Date.now()});
   return breakdown;
 };
 
@@ -352,8 +352,8 @@ const batchGetZoneBreakdownsInternal = async (
 
   for (const id of activityIds) {
     const cached = cachedMap.get(id);
-    if (cached && cached.settingsHash === currentHash) {
-      results.set(id, {zones: cached.zones, settingsHash: cached.settingsHash});
+    if (cached && cached.hrHash === currentHash) {
+      results.set(id, {zones: cached.zones, hrHash: cached.hrHash});
     } else {
       missingIds.push(id);
     }
@@ -376,7 +376,7 @@ const batchGetZoneBreakdownsInternal = async (
           ? transformStreams(cachedStream.data)
           : await cachedGetActivityStreams(athleteId, id);
         const breakdown = computeZoneBreakdown(stream, zones);
-        dbSyncZoneBreakdown({activityId: id, athleteId, settingsHash: breakdown.settingsHash, zones: breakdown.zones, computedAt: Date.now()});
+        dbSyncZoneBreakdown({activityId: id, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, computedAt: Date.now()});
         return {id, breakdown};
       }),
     );
@@ -407,28 +407,28 @@ export const cachedCalcFitnessData = async (
   const cached = await dbGetDashboardCache(cacheKey);
 
   if (cached) {
-    if (cached.settingsHash === currentHash && cached.lastActivityId === latestId && cached.lastActivityCount === actCount) {
+    if (cached.hrHash === currentHash && cached.lastActivityId === latestId && cached.lastActivityCount === actCount) {
       const todayStr = new Date().toISOString().slice(0, 10);
       if (cached.lastDate === todayStr) return cached.data;
 
       const result = appendFitnessData([], {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
       const {bf, li} = result.continuation;
-      await dbSyncDashboardCache({key: cacheKey, athleteId, settingsHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+      await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
       return result.data;
     }
 
-    if (cached.settingsHash === currentHash) {
+    if (cached.hrHash === currentHash) {
       const newActivities = activities.filter((a) => a.date > cached.lastDate);
       const result = appendFitnessData(newActivities, {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
       const {bf, li} = result.continuation;
-      await dbSyncDashboardCache({key: cacheKey, athleteId, settingsHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+      await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
       return result.data;
     }
   }
 
   const result = calcFitnessData(activities, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
   const {bf, li} = result.continuation;
-  await dbSyncDashboardCache({key: cacheKey, athleteId, settingsHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+  await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
   return result.data;
 };
 

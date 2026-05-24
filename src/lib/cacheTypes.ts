@@ -56,7 +56,7 @@ export interface CachedAthleteGear {
 export interface CachedZoneBreakdown {
   activityId: number;
   athleteId: number;
-  settingsHash: string;
+  hrHash: string;
   zones: Record<number, {time: number; distance: number}>;
   computedAt: number;
 }
@@ -76,7 +76,7 @@ export interface CachedActivityWeather {
 export interface CachedDashboardCache {
   key: string;
   athleteId: number;
-  settingsHash: string;
+  hrHash: string;
   lastActivityId: number;
   lastActivityCount: number;
   lastDate: string;

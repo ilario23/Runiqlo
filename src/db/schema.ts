@@ -47,7 +47,7 @@ export const athleteGear = pgTable('athlete_gear', {
 export const zoneBreakdowns = pgTable('zone_breakdowns', {
   activityId: bigint('activity_id', {mode: 'number'}).primaryKey(),
   athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
-  settingsHash: text('settings_hash').notNull(),
+  hrHash: text('settings_hash').notNull(),
   zones: jsonb('zones').notNull(),
   computedAt: bigint('computed_at', {mode: 'number'}).notNull(),
 });
@@ -55,7 +55,7 @@ export const zoneBreakdowns = pgTable('zone_breakdowns', {
 export const dashboardCache = pgTable('dashboard_cache', {
   key: text('key').primaryKey(),
   athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
-  settingsHash: text('settings_hash').notNull(),
+  hrHash: text('settings_hash').notNull(),
   lastActivityId: bigint('last_activity_id', {mode: 'number'}).notNull(),
   lastActivityCount: integer('last_activity_count').notNull(),
   lastDate: text('last_date').notNull(),

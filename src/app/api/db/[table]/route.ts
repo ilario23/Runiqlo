@@ -392,25 +392,25 @@ export async function POST(
       }
 
       case 'zone-breakdowns': {
-        const r = body as {activityId: number; athleteId: number; settingsHash: string; zones: unknown; computedAt: number};
+        const r = body as {activityId: number; athleteId: number; hrHash: string; zones: unknown; computedAt: number};
         await db
           .insert(schema.zoneBreakdowns)
-          .values({activityId: r.activityId, athleteId: r.athleteId, settingsHash: r.settingsHash, zones: r.zones, computedAt: r.computedAt})
+          .values({activityId: r.activityId, athleteId: r.athleteId, hrHash: r.hrHash, zones: r.zones, computedAt: r.computedAt})
           .onConflictDoUpdate({
             target: schema.zoneBreakdowns.activityId,
-            set: {settingsHash: sql`excluded.settings_hash`, zones: sql`excluded.zones`, computedAt: sql`excluded.computed_at`},
+            set: {hrHash: sql`excluded.settings_hash`, zones: sql`excluded.zones`, computedAt: sql`excluded.computed_at`},
           });
         return NextResponse.json({ok: true});
       }
 
       case 'dashboard-cache': {
-        const r = body as {key: string; athleteId: number; settingsHash: string; lastActivityId: number; lastActivityCount: number; lastDate: string; continuationState: unknown; data: unknown; computedAt: number};
+        const r = body as {key: string; athleteId: number; hrHash: string; lastActivityId: number; lastActivityCount: number; lastDate: string; continuationState: unknown; data: unknown; computedAt: number};
         await db
           .insert(schema.dashboardCache)
-          .values({key: r.key, athleteId: r.athleteId, settingsHash: r.settingsHash, lastActivityId: r.lastActivityId, lastActivityCount: r.lastActivityCount, lastDate: r.lastDate, continuationState: r.continuationState, data: r.data, computedAt: r.computedAt})
+          .values({key: r.key, athleteId: r.athleteId, hrHash: r.hrHash, lastActivityId: r.lastActivityId, lastActivityCount: r.lastActivityCount, lastDate: r.lastDate, continuationState: r.continuationState, data: r.data, computedAt: r.computedAt})
           .onConflictDoUpdate({
             target: schema.dashboardCache.key,
-            set: {settingsHash: sql`excluded.settings_hash`, lastActivityId: sql`excluded.last_activity_id`, lastActivityCount: sql`excluded.last_activity_count`, lastDate: sql`excluded.last_date`, continuationState: sql`excluded.continuation_state`, data: sql`excluded.data`, computedAt: sql`excluded.computed_at`},
+            set: {hrHash: sql`excluded.settings_hash`, lastActivityId: sql`excluded.last_activity_id`, lastActivityCount: sql`excluded.last_activity_count`, lastDate: sql`excluded.last_date`, continuationState: sql`excluded.continuation_state`, data: sql`excluded.data`, computedAt: sql`excluded.computed_at`},
           });
         return NextResponse.json({ok: true});
       }
