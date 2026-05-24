@@ -89,7 +89,9 @@ export const coachGoal = pgTable('coach_goal', {
   goalType: text('goal_type').notNull(), // 'marathon'|'half_marathon'|'10k'|'5k'|'general_fitness'
   targetDate: text('target_date'), // YYYY-MM-DD; null for general fitness
   targetEventName: text('target_event_name'),
-  weeklyHoursAvailable: real('weekly_hours_available').notNull().default(6),
+  targetTimeMinutes: integer('target_time_minutes'), // goal race finish time in minutes
+  recentPeakWeeklyKm: real('recent_peak_weekly_km'), // highest weekly km in past 3 months
+  weeklyHoursAvailable: real('weekly_hours_available'), // kept for compat; coach asks per week
   experienceLevel: text('experience_level').notNull().default('intermediate'),
   injuryHistory: text('injury_history'),
   additionalNotes: text('additional_notes'),

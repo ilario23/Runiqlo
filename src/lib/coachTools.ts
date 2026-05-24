@@ -258,7 +258,7 @@ export function getCoachTools(athleteId: number) {
         startDate: z.string(),
         phases: z.array(
           z.object({
-            phase: z.string(),
+            phase: z.enum(['base', 'build', 'peak', 'taper']),
             startDate: z.string(),
             endDate: z.string(),
             weekCount: z.number(),
@@ -303,7 +303,7 @@ export function getCoachTools(athleteId: number) {
       inputSchema: z.object({
         trainingPlanId: z.number(),
         weekStart: z.string().describe('Monday date YYYY-MM-DD'),
-        phase: z.string(),
+        phase: z.enum(['base', 'build', 'peak', 'taper']),
         weekNumber: z.number(),
         targetWeeklyKm: z.number().nullable().optional(),
         coachNotes: z.string().nullable().optional().describe("Coach's explanation and reasoning for this week"),

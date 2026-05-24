@@ -85,7 +85,18 @@ Form: ${tsb > 5 ? 'Fresh' : tsb > -10 ? 'Neutral' : tsb > -20 ? 'Fatigued' : 'Ve
       const wks = weeksUntil(goal.targetDate);
       goalSection += `\nDate: ${goal.targetDate} (${wks > 0 ? wks + ' weeks away' : 'PAST'})`;
     }
-    goalSection += `\nAvailable: ${goal.weeklyHoursAvailable}h/week | Level: ${goal.experienceLevel}`;
+    if ((goal as any).targetTimeMinutes) {
+      const ttm = (goal as any).targetTimeMinutes as number;
+      const h = Math.floor(ttm / 60);
+      const m = ttm % 60;
+      goalSection += `\nTarget time: ${h}:${String(m).padStart(2, '0')} (${ttm} min)`;
+    } else {
+      goalSection += `\nTarget time: not set — estimate from best efforts or ask the athlete`;
+    }
+    if ((goal as any).recentPeakWeeklyKm) {
+      goalSection += `\nRecent peak weekly km: ${(goal as any).recentPeakWeeklyKm} km`;
+    }
+    goalSection += `\nLevel: ${goal.experienceLevel}`;
     if (goal.injuryHistory) goalSection += `\nInjury history: ${goal.injuryHistory}`;
     if (goal.additionalNotes) goalSection += `\nNotes: ${goal.additionalNotes}`;
   }
@@ -107,10 +118,13 @@ Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
   let weekSection = 'No plan for this week — generate one with saveWeeklyPlan.';
   const week = weekRows[0];
   if (week) {
-    const days = week.days as Array<{dayOfWeek: number; workouts: Array<{type: string; distanceKm?: number; durationMinutes?: number; completed?: boolean}>}>;
+    const days = week.days as Array<{date: string; dayOfWeek: number; workouts: Array<{type: string; distanceKm?: number; durationMinutes?: number; completed?: boolean}>}>;
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const lines = days.map(d => {
-      if (!d.workouts.length) return `${dayNames[d.dayOfWeek]}: Rest`;
+      const isPast = d.date < today;
+      const isToday = d.date === today;
+      const prefix = isPast ? '[done] ' : isToday ? '[TODAY] ' : '';
+      if (!d.workouts.length) return `${prefix}${dayNames[d.dayOfWeek]}: Rest`;
       const ws = d.workouts.map(w => {
         let s = w.type.replace(/_/g, ' ');
         if (w.distanceKm) s += ` ${w.distanceKm}km`;
@@ -118,10 +132,11 @@ Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
         if (w.completed) s += ' ✓';
         return s;
       });
-      return `${dayNames[d.dayOfWeek]}: ${ws.join(' + ')}`;
+      return `${prefix}${dayNames[d.dayOfWeek]}: ${ws.join(' + ')}`;
     });
     weekSection = `Week ${week.weekNumber} (${week.phase}):\n${lines.join('\n')}`;
     if (week.coachNotes) weekSection += `\nCoach note: ${week.coachNotes}`;
+    weekSection += `\nIMPORTANT: When modifying this week, treat [done] days as fixed — do not change them.`;
   }
 
   // ── Athlete notes ─────────────────────────────────────────────────────────
@@ -173,6 +188,8 @@ ${notesSection}
 - Call updateAthleteNotes when you learn anything new about the athlete
 - Call linkCompletedActivity when the athlete mentions completing a workout with a Strava ID
 - Call askQuestion when you need the athlete to choose between 2–4 discrete options before you can proceed (e.g. goal distance, preferred long-run day, subjective fatigue level). Do not repeat the question in free text after calling this tool — just wait for the reply.
+- Before generating a weekly plan, ask how many days are available that specific week — availability varies. Use askQuestion with options like "3 days", "4 days", "5 days", "6 days".
+- When modifying a week mid-week: check the [done] days in the week section above — those are already completed and MUST NOT be changed. Only propose changes to remaining days.
 - Format workouts precisely: type + distance or duration + target zone + specific instructions
 
 Today: ${today} (${weekday}) | Week start: ${currentMonday}`;

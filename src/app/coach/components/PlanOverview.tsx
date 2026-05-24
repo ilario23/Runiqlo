@@ -74,10 +74,10 @@ export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
     <div>
       {/* Phase summary pills */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        {phases.map(p => {
+        {phases.map((p, i) => {
           const cfg = PHASE_COLORS[p.phase] ?? PHASE_COLORS.base;
           return (
-            <div key={p.phase} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${cfg.border}/30 bg-white/[0.04]`}>
+            <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${cfg.border}/30 bg-white/[0.04]`}>
               <div className={`w-2 h-2 rounded-full ${cfg.bg}`} />
               <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
               <span className="text-xs text-white/30">{p.weekCount}wk</span>
@@ -91,14 +91,14 @@ export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
       <div className="mb-6">
         <div className="text-xs text-white/30 mb-2">Phase timeline</div>
         <div className="flex rounded-xl overflow-hidden h-10 gap-0.5">
-          {segments.map(seg => {
+          {segments.map((seg, i) => {
             const cfg = PHASE_COLORS[seg.phase] ?? PHASE_COLORS.base;
             const widthPct = (seg.weekCount / totalWeeks) * 100;
             const isCurrent = currentWeekOffset >= seg.weekOffset && currentWeekOffset < seg.weekOffset + seg.weekCount;
 
             return (
               <div
-                key={seg.phase}
+                key={i}
                 className={`relative flex items-center justify-center ${cfg.bg} ${isCurrent ? `ring-2 ring-inset ${cfg.border}` : ''} cursor-pointer hover:opacity-90 transition-opacity`}
                 style={{width: `${widthPct}%`}}
                 title={`${cfg.label}: ${seg.startDate} → ${seg.endDate}`}
@@ -129,7 +129,7 @@ export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
 
           return (
             <div
-              key={p.phase}
+              key={i}
               className={`rounded-2xl border p-4 ${isCurrentPhase ? `border-${cfg.border.split('-')[1]}-500/40 bg-white/[0.06]` : 'border-white/[0.06] bg-white/[0.02]'}`}
             >
               <div className="flex items-center justify-between mb-2">

@@ -26,7 +26,9 @@ export interface Goal {
   goalType: GoalType;
   targetDate: string | null;
   targetEventName: string | null;
-  weeklyHoursAvailable: number;
+  targetTimeMinutes: number | null;
+  recentPeakWeeklyKm: number | null;
+  weeklyHoursAvailable: number | null;
   experienceLevel: ExperienceLevel;
   injuryHistory: string | null;
   additionalNotes: string | null;

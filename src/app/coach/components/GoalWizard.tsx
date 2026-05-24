@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import type {Goal, GoalType, ExperienceLevel} from '@/lib/coachTypes';
 
@@ -18,6 +18,38 @@ const EXPERIENCE_OPTIONS: Array<{level: ExperienceLevel; label: string; desc: st
   {level: 'advanced', label: 'Advanced', desc: '3+ years, 5+ runs/week, have raced before'},
 ];
 
+// Target time placeholders by goal type
+const TARGET_TIME_PLACEHOLDER: Record<GoalType, string> = {
+  marathon: 'e.g. 3:45',
+  half_marathon: 'e.g. 1:50',
+  '10k': 'e.g. 52:00',
+  '5k': 'e.g. 24:00',
+  general_fitness: '',
+};
+
+function parseTimeToMinutes(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const parts = trimmed.split(':');
+  if (parts.length === 2) {
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (!isNaN(h) && !isNaN(m)) return h * 60 + m;
+  }
+  if (parts.length === 1) {
+    const n = parseInt(parts[0], 10);
+    if (!isNaN(n)) return n;
+  }
+  return null;
+}
+
+function minutesToTimeString(minutes: number | null): string {
+  if (minutes === null) return '';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h}:${String(m).padStart(2, '0')}`;
+}
+
 interface GoalWizardProps {
   athleteId: number;
   initialGoal?: Goal | null;
@@ -32,7 +64,22 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
   const [goalType, setGoalType] = useState<GoalType>(initialGoal?.goalType ?? 'marathon');
   const [targetDate, setTargetDate] = useState(initialGoal?.targetDate ?? '');
   const [eventName, setEventName] = useState(initialGoal?.targetEventName ?? '');
-  const [weeklyHours, setWeeklyHours] = useState(initialGoal?.weeklyHoursAvailable ?? 6);
+  const [targetTimeStr, setTargetTimeStr] = useState(minutesToTimeString(initialGoal?.targetTimeMinutes ?? null));
+  const [recentPeakWeeklyKm, setRecentPeakWeeklyKm] = useState<string>(
+    initialGoal?.recentPeakWeeklyKm != null ? String(initialGoal.recentPeakWeeklyKm) : '',
+  );
+  const [peakKmLoading, setPeakKmLoading] = useState(initialGoal?.recentPeakWeeklyKm == null);
+
+  useEffect(() => {
+    if (initialGoal?.recentPeakWeeklyKm != null) return;
+    fetch(`/api/coach/peak-weekly-km?athleteId=${athleteId}`)
+      .then(r => r.json())
+      .then((data: {peakWeeklyKm: number | null}) => {
+        if (data.peakWeeklyKm != null) setRecentPeakWeeklyKm(String(data.peakWeeklyKm));
+      })
+      .catch(() => {})
+      .finally(() => setPeakKmLoading(false));
+  }, [athleteId, initialGoal?.recentPeakWeeklyKm]);
   const [experience, setExperience] = useState<ExperienceLevel>(initialGoal?.experienceLevel ?? 'intermediate');
   const [injuryHistory, setInjuryHistory] = useState(initialGoal?.injuryHistory ?? '');
   const [additionalNotes, setAdditionalNotes] = useState(initialGoal?.additionalNotes ?? '');
@@ -60,7 +107,8 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
           goalType,
           targetDate: targetDate || null,
           targetEventName: eventName || null,
-          weeklyHoursAvailable: weeklyHours,
+          targetTimeMinutes: parseTimeToMinutes(targetTimeStr),
+          recentPeakWeeklyKm: recentPeakWeeklyKm ? Number(recentPeakWeeklyKm) : null,
           experienceLevel: experience,
           injuryHistory: injuryHistory || null,
           additionalNotes: additionalNotes || null,
@@ -126,8 +174,8 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
 
             {step === 2 && (
               <motion.div key="step2" initial={{opacity: 0, x: 20}} animate={{opacity: 1, x: 0}} exit={{opacity: 0, x: -20}}>
-                <h2 className="text-xl font-bold text-white mb-1">When's the race?</h2>
-                <p className="text-sm text-white/40 mb-6">A deadline creates urgency and shapes your training phases</p>
+                <h2 className="text-xl font-bold text-white mb-1">Race details</h2>
+                <p className="text-sm text-white/40 mb-6">A target time and deadline shape every workout</p>
                 <div className="space-y-4">
                   <div>
                     <label className="text-xs text-white/50 font-medium mb-1.5 block">Event name (optional)</label>
@@ -149,30 +197,56 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#0a84ff]/60 [color-scheme:dark]"
                     />
                   </div>
+                  <div>
+                    <label className="text-xs text-white/50 font-medium mb-1.5 block">
+                      Goal finish time <span className="text-white/25">(h:mm — optional but strongly recommended)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder={TARGET_TIME_PLACEHOLDER[goalType]}
+                      value={targetTimeStr}
+                      onChange={e => setTargetTimeStr(e.target.value)}
+                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/60 font-mono"
+                    />
+                    <p className="text-xs text-white/25 mt-1.5">This sets every pace target in your plan. Without it the coach will estimate from your Strava history.</p>
+                  </div>
                 </div>
               </motion.div>
             )}
 
             {step === 3 && (
               <motion.div key="step3" initial={{opacity: 0, x: 20}} animate={{opacity: 1, x: 0}} exit={{opacity: 0, x: -20}}>
-                <h2 className="text-xl font-bold text-white mb-1">Training capacity</h2>
-                <p className="text-sm text-white/40 mb-6">Be realistic — consistency beats heroics</p>
+                <h2 className="text-xl font-bold text-white mb-1">Training background</h2>
+                <p className="text-sm text-white/40 mb-6">Helps the coach start at the right volume safely</p>
                 <div className="space-y-6">
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs text-white/50 font-medium">Weekly hours available</label>
-                      <span className="text-lg font-bold text-[#0a84ff]">{weeklyHours}h</span>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs text-white/50 font-medium">
+                        Highest weekly km in the past 3 months
+                      </label>
+                      {peakKmLoading ? (
+                        <span className="text-xs text-white/25 flex items-center gap-1">
+                          <svg className="animate-spin" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+                          Calculating…
+                        </span>
+                      ) : recentPeakWeeklyKm ? (
+                        <span className="text-xs text-[#fc4c02]/80 font-medium">from Strava</span>
+                      ) : null}
                     </div>
-                    <input
-                      type="range"
-                      min={3} max={15} step={0.5}
-                      value={weeklyHours}
-                      onChange={e => setWeeklyHours(Number(e.target.value))}
-                      className="w-full accent-[#0a84ff]"
-                    />
-                    <div className="flex justify-between text-xs text-white/25 mt-1">
-                      <span>3h (minimal)</span><span>15h (elite)</span>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min={0}
+                        max={300}
+                        step={5}
+                        placeholder={peakKmLoading ? 'Calculating from activities…' : 'e.g. 55'}
+                        value={recentPeakWeeklyKm}
+                        onChange={e => setRecentPeakWeeklyKm(e.target.value)}
+                        className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/60 pr-10"
+                      />
+                      <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/30">km</span>
                     </div>
+                    <p className="text-xs text-white/25 mt-1.5">Sets the safe starting point for your base phase. The coach asks for your available days each week.</p>
                   </div>
                   <div>
                     <label className="text-xs text-white/50 font-medium mb-2 block">Experience level</label>
@@ -235,14 +309,15 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
 
             {step === 5 && (
               <motion.div key="step5" initial={{opacity: 0, x: 20}} animate={{opacity: 1, x: 0}} exit={{opacity: 0, x: -20}}>
-                <h2 className="text-xl font-bold text-white mb-1">Ready to go! 🚀</h2>
+                <h2 className="text-xl font-bold text-white mb-1">Ready to go!</h2>
                 <p className="text-sm text-white/40 mb-6">Here's your plan setup:</p>
                 <div className="space-y-3 mb-6">
                   {[
                     {label: 'Goal', value: GOAL_OPTIONS.find(o => o.type === goalType)?.label},
                     eventName && {label: 'Event', value: eventName},
                     targetDate && {label: 'Target date', value: targetDate},
-                    {label: 'Weekly hours', value: `${weeklyHours}h`},
+                    parseTimeToMinutes(targetTimeStr) !== null && {label: 'Target time', value: targetTimeStr},
+                    recentPeakWeeklyKm && {label: 'Peak weekly km', value: `${recentPeakWeeklyKm} km`},
                     {label: 'Level', value: experience.charAt(0).toUpperCase() + experience.slice(1)},
                   ].filter(Boolean).map((item: any) => (
                     <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/[0.06]">
@@ -251,7 +326,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-white/30 text-center">Your coach will create a personalised periodized training plan after setup.</p>
+                <p className="text-xs text-white/30 text-center">Your coach will create a personalised periodized training plan. Available days will be confirmed each week.</p>
               </motion.div>
             )}
           </AnimatePresence>
