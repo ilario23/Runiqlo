@@ -40,7 +40,7 @@ function CommandPalette({query, onSelect}: {query: string; onSelect: (name: stri
           onClick={() => onSelect(cmd.name)}
           className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/[0.06] text-left transition-colors"
         >
-          <span className="text-sm font-mono text-[#0a84ff]">/{cmd.name}</span>
+          <span className="text-sm font-mono text-accent-blue">/{cmd.name}</span>
           <span className="text-xs text-white/30">{cmd.argsHint}</span>
           <span className="text-xs text-white/50 ml-auto truncate">{cmd.description}</span>
         </button>
@@ -102,7 +102,7 @@ function AskQuestionCard({
                 "px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors",
                 disabled
                   ? "bg-white/[0.04] border-white/[0.08] text-white/30 cursor-not-allowed"
-                  : "bg-[#0a84ff]/10 border-[#0a84ff]/40 text-[#0a84ff] hover:bg-[#0a84ff]/20 hover:border-[#0a84ff]/70 cursor-pointer",
+                  : "bg-accent-blue/10 border-accent-blue/40 text-accent-blue hover:bg-accent-blue/20 hover:border-accent-blue/70 cursor-pointer",
               ].join(" ")}
             >
               {opt.label}
@@ -124,7 +124,7 @@ function ToolCallBubble({name, status}: {name: string; status: 'running' | 'done
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
         ) : (
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#30d158" strokeWidth="2.5">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-green" strokeWidth="2.5">
             <polyline points="20 6 9 17 4 12" />
           </svg>
         )}
@@ -161,8 +161,8 @@ function MessageBubble({role, content}: {role: 'user' | 'assistant'; content: st
   return (
     <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
       {role === 'assistant' && (
-        <div className="w-7 h-7 rounded-full bg-[#0a84ff]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.5">
+        <div className="w-7 h-7 rounded-full bg-accent-blue/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
             <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
           </svg>
         </div>
@@ -170,7 +170,7 @@ function MessageBubble({role, content}: {role: 'user' | 'assistant'; content: st
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           role === 'user'
-            ? 'bg-[#0a84ff] text-white rounded-tr-md'
+            ? 'bg-accent-blue text-white rounded-tr-md'
             : 'bg-white/[0.06] border border-white/[0.08] text-white/90 rounded-tl-md'
         }`}
       >
@@ -330,8 +330,8 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
       {/* Header */}
       <div className="flex-shrink-0 px-4 py-3 border-b border-white/[0.07]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-[#0a84ff]/20 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.5">
+          <div className="w-8 h-8 rounded-full bg-accent-blue/20 flex items-center justify-center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
               <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
             </svg>
           </div>
@@ -354,8 +354,8 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-[#0a84ff]/15 flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.5">
+            <div className="w-12 h-12 rounded-2xl bg-accent-blue/15 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
@@ -379,7 +379,7 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
                 <button
                   key={cmd}
                   onClick={() => { setInput(cmd + ' '); setShowCommands(false); inputRef.current?.focus(); }}
-                  className="text-xs font-mono text-[#0a84ff]/60 hover:text-[#0a84ff] bg-[#0a84ff]/[0.06] hover:bg-[#0a84ff]/[0.12] border border-[#0a84ff]/20 rounded-lg px-2 py-1 transition-colors"
+                  className="text-xs font-mono text-accent-blue/60 hover:text-accent-blue bg-accent-blue/[0.06] hover:bg-accent-blue/[0.12] border border-accent-blue/20 rounded-lg px-2 py-1 transition-colors"
                 >
                   {cmd}
                 </button>
@@ -434,8 +434,8 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
 
         {isLoading && !messages.some((m, i) => m.role === 'assistant' && i === messages.length - 1) && (
           <div className="flex justify-start gap-2">
-            <div className="w-7 h-7 rounded-full bg-[#0a84ff]/20 flex items-center justify-center flex-shrink-0">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="1.5">
+            <div className="w-7 h-7 rounded-full bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
                 <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
               </svg>
             </div>
@@ -497,13 +497,13 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
               placeholder="Ask your coach… or type / for commands, @ for references"
               rows={1}
               disabled={resolving}
-              className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/50 resize-none disabled:opacity-50 max-h-32 overflow-y-auto"
+              className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/50 resize-none disabled:opacity-50 max-h-32 overflow-y-auto"
               style={{fieldSizing: 'content' as React.CSSProperties['fieldSizing']}}
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="w-10 h-10 rounded-xl bg-[#0a84ff] flex items-center justify-center hover:bg-[#0a84ff]/90 transition-colors disabled:opacity-40 flex-shrink-0"
+              className="w-10 h-10 rounded-xl bg-accent-blue flex items-center justify-center hover:bg-accent-blue/90 transition-colors disabled:opacity-40 flex-shrink-0"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <line x1="22" y1="2" x2="11" y2="13" />

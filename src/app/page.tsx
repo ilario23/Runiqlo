@@ -18,7 +18,8 @@ import {
   useZoneBreakdowns,
   useForceRefreshActivities,
 } from '@/hooks/useStrava';
-import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES} from '@/lib/activityModel';
+import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, SPORT_COLORS, COLORS} from '@/lib/activityModel';
+import {Skeleton} from '@/components/ui/skeleton';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
 import type {StravaAthleteStats} from '@/lib/strava';
@@ -34,14 +35,6 @@ const fmtNum = (n: number | undefined, dec = 1) =>
 
 
 // ─── sub-components ───────────────────────────────────────────────────────────
-
-function Skeleton({className = ''}: {className?: string}) {
-  return (
-    <div
-      className={`animate-pulse rounded-xl bg-white/[0.06] ${className}`}
-    />
-  );
-}
 
 function SkeletonCard({className = ''}: {className?: string}) {
   return (
@@ -64,8 +57,8 @@ function ConnectPrompt() {
         transition={{duration: 0.4}}
         className="bento-card p-10 max-w-sm w-full text-center space-y-5"
       >
-        <div className="w-14 h-14 rounded-2xl bg-[#fc4c02]/15 flex items-center justify-center mx-auto">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="#fc4c02">
+        <div className="w-14 h-14 rounded-2xl bg-brand/15 flex items-center justify-center mx-auto">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill={COLORS.brand}>
             <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
           </svg>
         </div>
@@ -77,7 +70,7 @@ function ConnectPrompt() {
         </div>
         <Link
           href="/settings"
-          className="block w-full bg-[#fc4c02] hover:bg-[#fc4c02]/90 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+          className="block w-full bg-brand hover:bg-brand/90 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
         >
           Go to Settings
         </Link>
@@ -127,15 +120,15 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
         </div>
         <div className="flex items-center gap-3 text-[10px] font-medium">
           <span className="flex items-center gap-1">
-            <span className="w-3 h-0.5 rounded bg-[#0a84ff] inline-block" />
+            <span className="w-3 h-0.5 rounded bg-accent-blue inline-block" />
             <span className="text-white/50">BF</span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-0.5 rounded bg-[#ff9f0a] inline-block" />
+            <span className="w-3 h-0.5 rounded bg-accent-orange inline-block" />
             <span className="text-white/50">LI</span>
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-3 h-0.5 rounded bg-[#bf5af2] inline-block" />
+            <span className="w-3 h-0.5 rounded bg-accent-purple inline-block" />
             <span className="text-white/50">IT</span>
           </span>
         </div>
@@ -151,12 +144,12 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
             <AreaChart data={last90} margin={{top: 4, right: 4, left: 0, bottom: 0}}>
               <defs>
                 <linearGradient id="gradBF" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0a84ff" stopOpacity={0.45} />
-                  <stop offset="95%" stopColor="#0a84ff" stopOpacity={0.03} />
+                  <stop offset="5%" stopColor={COLORS.blue} stopOpacity={0.45} />
+                  <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.03} />
                 </linearGradient>
                 <linearGradient id="gradLI" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ff9f0a" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#ff9f0a" stopOpacity={0.02} />
+                  <stop offset="5%" stopColor={COLORS.orange} stopOpacity={0.35} />
+                  <stop offset="95%" stopColor={COLORS.orange} stopOpacity={0.02} />
                 </linearGradient>
                 <filter id="glow-blue">
                   <feGaussianBlur stdDeviation="3" result="blur" />
@@ -183,32 +176,32 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
                 type="monotone"
                 dataKey="li"
                 name="LI"
-                stroke="#ff9f0a"
+                stroke={COLORS.orange}
                 strokeWidth={2}
                 fill="url(#gradLI)"
                 dot={false}
-                activeDot={{r: 4, fill: '#ff9f0a'}}
+                activeDot={{r: 4, fill: COLORS.orange}}
               />
               <Area
                 type="monotone"
                 dataKey="bf"
                 name="BF"
-                stroke="#0a84ff"
+                stroke={COLORS.blue}
                 strokeWidth={3}
                 fill="url(#gradBF)"
                 dot={false}
-                activeDot={{r: 4, fill: '#0a84ff'}}
+                activeDot={{r: 4, fill: COLORS.blue}}
                 filter="url(#glow-blue)"
               />
               <Area
                 type="monotone"
                 dataKey="it"
                 name="IT"
-                stroke="#bf5af2"
+                stroke={COLORS.purple}
                 strokeWidth={1.5}
                 fill="none"
                 dot={false}
-                activeDot={{r: 3, fill: '#bf5af2'}}
+                activeDot={{r: 3, fill: COLORS.purple}}
                 strokeDasharray="4 3"
               />
             </AreaChart>
@@ -257,7 +250,7 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
             </p>
           </div>
           {typeof delta === 'number' && (
-            <p className={`text-[10px] mt-1.5 font-mono ${isUp ? 'text-[#30d158]' : isDown ? 'text-[#ff453a]' : 'text-white/45'}`}>
+            <p className={`text-[10px] mt-1.5 font-mono ${isUp ? 'text-accent-green' : isDown ? 'text-accent-red' : 'text-white/45'}`}>
               {isUp ? '↑' : isDown ? '↓' : '→'} {Math.abs(delta).toFixed(1)} vs 7d ago
             </p>
           )}
@@ -346,14 +339,6 @@ function HRZoneCard({
 }
 
 // ── Recent Activities ──
-
-const SPORT_COLORS: Record<string, string> = {
-  Run: '#30d158',
-  Ride: '#0a84ff',
-  Hike: '#ff9f0a',
-  Swim: '#bf5af2',
-  Walk: '#ffd60a',
-};
 
 function ActivityRow({activity}: {activity: ActivitySummary}) {
   const color = SPORT_COLORS[activity.type] ?? '#ffffff60';
@@ -491,10 +476,10 @@ function StatsStrip({
   const tsbColor =
     typeof currentIT === 'number'
       ? currentIT > 5
-        ? '#30d158'
+        ? COLORS.green
         : currentIT < -10
-        ? '#ff453a'
-        : '#ffd60a'
+        ? COLORS.red
+        : COLORS.yellow
       : undefined;
 
   return (
@@ -555,7 +540,7 @@ export default function DashboardPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
       </div>
     );
   }
@@ -596,7 +581,7 @@ export default function DashboardPage() {
               sublabel="42-day EWMA"
               value={currentBF}
               prev7Value={prev7BF}
-              color="#0a84ff"
+              color={COLORS.blue}
               isLoading={fitnessLoading}
             />
           </div>
@@ -607,7 +592,7 @@ export default function DashboardPage() {
               sublabel="7-day EWMA"
               value={currentLI}
               prev7Value={prev7LI}
-              color="#ff9f0a"
+              color={COLORS.orange}
               isLoading={fitnessLoading}
             />
           </div>

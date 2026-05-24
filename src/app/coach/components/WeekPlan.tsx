@@ -3,6 +3,7 @@
 import {useState, useEffect, useCallback} from 'react';
 import {WorkoutCard} from './WorkoutCard';
 import type {WeeklyPlan, PlannedDay, PlannedWorkout} from '@/lib/coachTypes';
+import {COLORS} from '@/lib/activityModel';
 
 function getMonday(date: Date = new Date()): string {
   const d = new Date(date);
@@ -135,8 +136,8 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
 
       {/* Coach notes */}
       {plan?.coachNotes && (
-        <div className="mb-3 rounded-xl bg-[#0a84ff]/10 border border-[#0a84ff]/20 px-3 py-2 text-xs text-white/70 leading-relaxed">
-          <span className="text-[#0a84ff] font-medium">Coach: </span>{plan.coachNotes}
+        <div className="mb-3 rounded-xl bg-accent-blue/10 border border-accent-blue/20 px-3 py-2 text-xs text-white/70 leading-relaxed">
+          <span className="text-accent-blue font-medium">Coach: </span>{plan.coachNotes}
         </div>
       )}
 
@@ -165,7 +166,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                 >
                   <div className={`text-xs font-medium mb-2 ${isToday ? 'text-white' : 'text-white/40'}`}>
                     {DAY_NAMES[i]}
-                    {isToday && <span className="ml-1 text-[#0a84ff]">·</span>}
+                    {isToday && <span className="ml-1 text-accent-blue">·</span>}
                   </div>
                   {workouts.length === 0 ? (
                     <div className="text-xs text-white/20 text-center pt-2">Rest</div>
@@ -248,16 +249,16 @@ function WorkoutDetailPanel({
   const label = TYPE_LABELS[workout.type] ?? workout.type;
 
   const TYPE_CONFIG: Record<string, {color: string; icon: string; accent: string}> = {
-    easy_run:     {color: 'border-[#30d158]/30 bg-[#30d158]/5',  icon: '🏃', accent: '#30d158'},
-    long_run:     {color: 'border-[#30d158]/30 bg-[#30d158]/5',  icon: '🏃', accent: '#30d158'},
-    tempo_run:    {color: 'border-[#ffd60a]/30 bg-[#ffd60a]/5',  icon: '⚡', accent: '#ffd60a'},
-    interval_run: {color: 'border-[#ff453a]/30 bg-[#ff453a]/5',  icon: '🔥', accent: '#ff453a'},
-    recovery_run: {color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',  icon: '🌊', accent: '#64d2ff'},
-    gym:          {color: 'border-[#ff9f0a]/30 bg-[#ff9f0a]/5',  icon: '🏋️', accent: '#ff9f0a'},
-    cycling:      {color: 'border-[#0a84ff]/30 bg-[#0a84ff]/5',  icon: '🚴', accent: '#0a84ff'},
-    yoga:         {color: 'border-[#bf5af2]/30 bg-[#bf5af2]/5',  icon: '🧘', accent: '#bf5af2'},
-    cross_training:{color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5', icon: '💪', accent: '#64d2ff'},
-    rest:         {color: 'border-white/10 bg-white/[0.02]',      icon: '😴', accent: '#ffffff60'},
+    easy_run:     {color: 'border-accent-green/30 bg-accent-green/5',   icon: '🏃', accent: COLORS.green},
+    long_run:     {color: 'border-accent-green/30 bg-accent-green/5',   icon: '🏃', accent: COLORS.green},
+    tempo_run:    {color: 'border-accent-yellow/30 bg-accent-yellow/5', icon: '⚡', accent: COLORS.yellow},
+    interval_run: {color: 'border-accent-red/30 bg-accent-red/5',       icon: '🔥', accent: COLORS.red},
+    recovery_run: {color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',         icon: '🌊', accent: '#64d2ff'},
+    gym:          {color: 'border-accent-orange/30 bg-accent-orange/5', icon: '🏋️', accent: COLORS.orange},
+    cycling:      {color: 'border-accent-blue/30 bg-accent-blue/5',     icon: '🚴', accent: COLORS.blue},
+    yoga:         {color: 'border-accent-purple/30 bg-accent-purple/5', icon: '🧘', accent: COLORS.purple},
+    cross_training:{color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',        icon: '💪', accent: '#64d2ff'},
+    rest:         {color: 'border-white/10 bg-white/[0.02]',            icon: '😴', accent: '#ffffff60'},
   };
 
   const cfg = TYPE_CONFIG[workout.type] ?? TYPE_CONFIG.rest;
@@ -272,7 +273,7 @@ function WorkoutDetailPanel({
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-white">{label}</span>
               {workout.completed && (
-                <span className="text-xs text-[#30d158] font-medium bg-[#30d158]/10 px-2 py-0.5 rounded-full">✓ Done</span>
+                <span className="text-xs text-accent-green font-medium bg-accent-green/10 px-2 py-0.5 rounded-full">✓ Done</span>
               )}
             </div>
             <div className="text-xs text-white/40 mt-0.5">
@@ -314,7 +315,7 @@ function WorkoutDetailPanel({
           href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 text-xs text-[#fc4c02] hover:underline"
+          className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand hover:underline"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
             <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />

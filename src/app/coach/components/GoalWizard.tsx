@@ -133,7 +133,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
         {/* Progress bar */}
         <div className="h-1 bg-white/[0.06]">
           <motion.div
-            className="h-full bg-[#0a84ff]"
+            className="h-full bg-accent-blue"
             animate={{width: `${progressPct}%`}}
             transition={{type: 'spring', stiffness: 200, damping: 25}}
           />
@@ -152,7 +152,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       onClick={() => setGoalType(opt.type)}
                       className={`w-full flex items-center gap-3 p-4 rounded-2xl border transition-all text-left ${
                         goalType === opt.type
-                          ? 'border-[#0a84ff] bg-[#0a84ff]/10 text-white'
+                          ? 'border-accent-blue bg-accent-blue/10 text-white'
                           : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/20 hover:text-white/80'
                       }`}
                     >
@@ -162,7 +162,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                         <div className="text-xs opacity-60">{opt.desc}</div>
                       </div>
                       {goalType === opt.type && (
-                        <div className="ml-auto w-5 h-5 rounded-full bg-[#0a84ff] flex items-center justify-center">
+                        <div className="ml-auto w-5 h-5 rounded-full bg-accent-blue flex items-center justify-center">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                         </div>
                       )}
@@ -184,7 +184,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       placeholder="e.g. Berlin Marathon 2026"
                       value={eventName}
                       onChange={e => setEventName(e.target.value)}
-                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/60"
+                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/60"
                     />
                   </div>
                   <div>
@@ -194,7 +194,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       value={targetDate}
                       onChange={e => setTargetDate(e.target.value)}
                       min={new Date().toISOString().slice(0, 10)}
-                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-[#0a84ff]/60 [color-scheme:dark]"
+                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-accent-blue/60 [color-scheme:dark]"
                     />
                   </div>
                   <div>
@@ -206,7 +206,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       placeholder={TARGET_TIME_PLACEHOLDER[goalType]}
                       value={targetTimeStr}
                       onChange={e => setTargetTimeStr(e.target.value)}
-                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/60 font-mono"
+                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/60 font-mono"
                     />
                     <p className="text-xs text-white/25 mt-1.5">This sets every pace target in your plan. Without it the coach will estimate from your Strava history.</p>
                   </div>
@@ -230,7 +230,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                           Calculating…
                         </span>
                       ) : recentPeakWeeklyKm ? (
-                        <span className="text-xs text-[#fc4c02]/80 font-medium">from Strava</span>
+                        <span className="text-xs text-brand/80 font-medium">from Strava</span>
                       ) : null}
                     </div>
                     <div className="relative">
@@ -242,7 +242,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                         placeholder={peakKmLoading ? 'Calculating from activities…' : 'e.g. 55'}
                         value={recentPeakWeeklyKm}
                         onChange={e => setRecentPeakWeeklyKm(e.target.value)}
-                        className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/60 pr-10"
+                        className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/60 pr-10"
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/30">km</span>
                     </div>
@@ -257,7 +257,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                           onClick={() => setExperience(opt.level)}
                           className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
                             experience === opt.level
-                              ? 'border-[#0a84ff] bg-[#0a84ff]/10 text-white'
+                              ? 'border-accent-blue bg-accent-blue/10 text-white'
                               : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/20'
                           }`}
                         >
@@ -266,7 +266,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                             <div className="text-xs opacity-60">{opt.desc}</div>
                           </div>
                           {experience === opt.level && (
-                            <div className="w-4 h-4 rounded-full bg-[#0a84ff] flex items-center justify-center flex-shrink-0">
+                            <div className="w-4 h-4 rounded-full bg-accent-blue flex items-center justify-center flex-shrink-0">
                               <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
                             </div>
                           )}
@@ -290,7 +290,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       placeholder="e.g. IT band issues 2024, mild plantar fasciitis in left foot (resolved)"
                       value={injuryHistory}
                       onChange={e => setInjuryHistory(e.target.value)}
-                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/60 resize-none"
+                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/60 resize-none"
                     />
                   </div>
                   <div>
@@ -300,7 +300,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       placeholder="e.g. prefer morning runs, travel often, no gym access"
                       value={additionalNotes}
                       onChange={e => setAdditionalNotes(e.target.value)}
-                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#0a84ff]/60 resize-none"
+                      className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/60 resize-none"
                     />
                   </div>
                 </div>
@@ -343,7 +343,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
             {step < 5 ? (
               <button
                 onClick={next}
-                className="px-6 py-2.5 rounded-xl bg-[#0a84ff] text-white text-sm font-semibold hover:bg-[#0a84ff]/90 transition-colors"
+                className="px-6 py-2.5 rounded-xl bg-accent-blue text-white text-sm font-semibold hover:bg-accent-blue/90 transition-colors"
               >
                 Continue
               </button>
@@ -351,7 +351,7 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="px-6 py-2.5 rounded-xl bg-[#0a84ff] text-white text-sm font-semibold hover:bg-[#0a84ff]/90 transition-colors disabled:opacity-50"
+                className="px-6 py-2.5 rounded-xl bg-accent-blue text-white text-sm font-semibold hover:bg-accent-blue/90 transition-colors disabled:opacity-50"
               >
                 {saving ? 'Setting up…' : 'Start Planning'}
               </button>

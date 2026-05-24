@@ -4,7 +4,7 @@ import {useEffect, Suspense, useState} from 'react';
 import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
-import {ZONE_COLORS, ZONE_NAMES, defaultSettings} from '@/lib/activityModel';
+import {ZONE_COLORS, ZONE_NAMES, defaultSettings, COLORS} from '@/lib/activityModel';
 import type {UserSettings} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
 
@@ -66,7 +66,7 @@ function HrZonesEditor() {
             </button>
             <button
               onClick={save}
-              className="text-xs bg-[#0a84ff] text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0a84ff]/85 transition-colors"
+              className="text-xs bg-accent-blue text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-accent-blue/85 transition-colors"
             >
               Save
             </button>
@@ -99,7 +99,7 @@ function HrZonesEditor() {
                   type="number"
                   value={draft[field]}
                   onChange={e => setDraft(d => ({...d, [field]: Number(e.target.value)}))}
-                  className="w-16 bg-transparent border-b border-white/20 focus:border-[#0a84ff] text-xl font-bold text-white tabular-nums focus:outline-none transition-colors pb-0.5"
+                  className="w-16 bg-transparent border-b border-white/20 focus:border-accent-blue text-xl font-bold text-white tabular-nums focus:outline-none transition-colors pb-0.5"
                   min={min} max={max}
                 />
                 <span className="text-xs text-white/30">bpm</span>
@@ -145,14 +145,14 @@ function HrZonesEditor() {
                     type="number"
                     value={lo}
                     onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
-                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/60 transition-colors"
+                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/60 transition-colors"
                   />
                   <span className="text-[10px] text-white/25">–</span>
                   <input
                     type="number"
                     value={hi}
                     onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
-                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/60 transition-colors"
+                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/60 transition-colors"
                   />
                   <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
                 </div>
@@ -188,7 +188,7 @@ function SettingsContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
       </div>
     );
   }
@@ -212,7 +212,7 @@ function SettingsContent() {
                 <div className="space-y-4">
                   {/* Athlete row */}
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#fc4c02]/15 flex items-center justify-center text-[#fc4c02] font-bold text-sm flex-shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-brand/15 flex items-center justify-center text-brand font-bold text-sm flex-shrink-0">
                       {athlete.firstname[0]}{athlete.lastname[0]}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -221,7 +221,7 @@ function SettingsContent() {
                       </p>
                       <p className="text-xs text-white/35 mt-0.5">@{athlete.username}</p>
                     </div>
-                    <span className="text-[10px] bg-[#30d158]/12 text-[#30d158] px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
+                    <span className="text-[10px] bg-accent-green/10 text-accent-green px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
                       Connected
                     </span>
                   </div>
@@ -235,7 +235,7 @@ function SettingsContent() {
                     </p>
                     <button
                       onClick={logout}
-                      className="text-xs font-medium text-white/35 hover:text-[#ff453a] transition-colors flex-shrink-0"
+                      className="text-xs font-medium text-white/35 hover:text-accent-red transition-colors flex-shrink-0"
                     >
                       Disconnect
                     </button>
@@ -251,7 +251,7 @@ function SettingsContent() {
                   </div>
                   <button
                     onClick={login}
-                    className="w-full flex items-center justify-center gap-2.5 bg-[#fc4c02] hover:bg-[#e84402] text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                    className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
@@ -288,7 +288,7 @@ export default function SettingsPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-screen">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
         </div>
       }
     >

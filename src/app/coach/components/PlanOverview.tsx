@@ -4,10 +4,10 @@ import {useState, useEffect} from 'react';
 import type {TrainingPlan, TrainingPhase} from '@/lib/coachTypes';
 
 const PHASE_COLORS: Record<string, {bg: string; border: string; text: string; label: string}> = {
-  base:  {bg: 'bg-[#0a84ff]/40',  border: 'border-[#0a84ff]',  text: 'text-[#0a84ff]',  label: 'Base'},
-  build: {bg: 'bg-[#ffd60a]/40',  border: 'border-[#ffd60a]',  text: 'text-[#ffd60a]',  label: 'Build'},
-  peak:  {bg: 'bg-[#ff453a]/40',  border: 'border-[#ff453a]',  text: 'text-[#ff453a]',  label: 'Peak'},
-  taper: {bg: 'bg-[#30d158]/40',  border: 'border-[#30d158]',  text: 'text-[#30d158]',  label: 'Taper'},
+  base:  {bg: 'bg-accent-blue/40',   border: 'border-accent-blue',   text: 'text-accent-blue',   label: 'Base'},
+  build: {bg: 'bg-accent-yellow/40', border: 'border-accent-yellow', text: 'text-accent-yellow', label: 'Build'},
+  peak:  {bg: 'bg-accent-red/40',    border: 'border-accent-red',    text: 'text-accent-red',    label: 'Peak'},
+  taper: {bg: 'bg-accent-green/40',  border: 'border-accent-green',  text: 'text-accent-green',  label: 'Taper'},
 };
 
 function getMonday(date: Date = new Date()): string {

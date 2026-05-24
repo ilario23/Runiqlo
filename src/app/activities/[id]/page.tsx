@@ -23,7 +23,8 @@ import {
   useActivityWeather,
 } from '@/hooks/useStrava';
 import {windDirectionLabel} from '@/lib/weather';
-import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, getZoneForHr} from '@/lib/activityModel';
+import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, getZoneForHr, SPORT_COLORS, COLORS} from '@/lib/activityModel';
+import {Skeleton} from '@/components/ui/skeleton';
 import {useSettings} from '@/contexts/SettingsContext';
 import AppHeader from '@/components/AppHeader';
 import type {ZoneSegment} from '@/components/RouteMapLeaflet';
@@ -32,14 +33,6 @@ import type {ZoneSegment} from '@/components/RouteMapLeaflet';
 const RouteMapLeaflet = dynamic(() => import('@/components/RouteMapLeaflet'), {ssr: false});
 
 // ─── constants ────────────────────────────────────────────────────────────────
-
-const SPORT_COLORS: Record<string, string> = {
-  Run: '#30d158',
-  Ride: '#0a84ff',
-  Hike: '#ff9f0a',
-  Swim: '#bf5af2',
-  Walk: '#ffd60a',
-};
 
 const cardVariant: Variants = {
   hidden: {opacity: 0, y: 16},
@@ -50,10 +43,6 @@ const containerVariant: Variants = {
 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-
-function Skeleton({className = ''}: {className?: string}) {
-  return <div className={`animate-pulse rounded-xl bg-white/[0.06] ${className}`} />;
-}
 
 function fmtTime(secs: number) {
   const h = Math.floor(secs / 3600);
@@ -129,7 +118,7 @@ function HRTooltip({
   return (
     <div className="bento-card px-2.5 py-1.5 text-[11px]">
       <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
-      <p style={{color: '#ff453a'}} className="font-medium">{Math.round(Number(payload[0]?.value))} bpm</p>
+      <p style={{color: COLORS.red}} className="font-medium">{Math.round(Number(payload[0]?.value))} bpm</p>
     </div>
   );
 }
@@ -215,8 +204,8 @@ function HRPanel({data, onHover, syncId}: Omit<ChartPanelProps, 'color'>) {
           >
             <defs>
               <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ff453a" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#ff453a" stopOpacity={0} />
+                <stop offset="5%" stopColor={COLORS.red} stopOpacity={0.25} />
+                <stop offset="95%" stopColor={COLORS.red} stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
@@ -225,7 +214,7 @@ function HRPanel({data, onHover, syncId}: Omit<ChartPanelProps, 'color'>) {
               content={<HRTooltip onHover={onHover} />}
               cursor={{stroke: 'rgba(255,255,255,0.08)'}}
             />
-            <Area type="monotone" dataKey="hr" stroke="#ff453a" strokeWidth={1.5} fill="url(#gradHR)" dot={false} activeDot={{r: 3, fill: '#ff453a', strokeWidth: 0}} />
+            <Area type="monotone" dataKey="hr" stroke={COLORS.red} strokeWidth={1.5} fill="url(#gradHR)" dot={false} activeDot={{r: 3, fill: COLORS.red, strokeWidth: 0}} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -340,7 +329,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
     [allActivities, id],
   );
 
-  const sportColor = SPORT_COLORS[summary?.type ?? detail?.sport_type ?? 'Run'] ?? '#30d158';
+  const sportColor = SPORT_COLORS[summary?.type ?? detail?.sport_type ?? 'Run'] ?? COLORS.green;
   const {settings} = useSettings();
 
   // Zone-coloured map segments — group consecutive GPS points by HR zone.
@@ -406,7 +395,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
       </div>
     );
   }
@@ -416,7 +405,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
       <>
         <AppHeader />
         <div className="pt-[72px] flex items-center justify-center min-h-screen">
-          <Link href="/settings" className="text-[#0a84ff] text-sm">Connect Strava →</Link>
+          <Link href="/settings" className="text-accent-blue text-sm">Connect Strava →</Link>
         </div>
       </>
     );
@@ -544,7 +533,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   </h2>
                   <div className="space-y-0.5">
                     {detail!.segment_efforts.map((se) => {
-                      const prColors: Record<number, string> = {1: '#F59E0B', 2: '#9CA3AF', 3: '#CD7C32'};
+                      const prColors: Record<number, string> = {1: COLORS.gold, 2: '#9CA3AF', 3: '#CD7C32'};
                       const prColor = se.pr_rank ? prColors[se.pr_rank] : undefined;
                       return (
                         <div key={se.id} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-white/[0.03] transition-colors">
@@ -587,7 +576,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       </thead>
                       <tbody>
                         {detail!.best_efforts.map((be) => {
-                          const prColors: Record<number, string> = {1: '#F59E0B', 2: '#9CA3AF', 3: '#CD7C32'};
+                          const prColors: Record<number, string> = {1: COLORS.gold, 2: '#9CA3AF', 3: '#CD7C32'};
                           const prColor = be.pr_rank ? prColors[be.pr_rank] : undefined;
                           return (
                             <tr key={be.id} className="border-b border-white/[0.04] last:border-0">

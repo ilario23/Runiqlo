@@ -3,16 +3,16 @@
 import type {PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
 
 const TYPE_CONFIG: Record<WorkoutType, {label: string; color: string; icon: string}> = {
-  easy_run:     {label: 'Easy Run',     color: 'text-[#30d158] border-[#30d158]/30 bg-[#30d158]/8',  icon: '🏃'},
-  long_run:     {label: 'Long Run',     color: 'text-[#30d158] border-[#30d158]/30 bg-[#30d158]/8',  icon: '🏃'},
-  tempo_run:    {label: 'Tempo Run',    color: 'text-[#ffd60a] border-[#ffd60a]/30 bg-[#ffd60a]/8',  icon: '⚡'},
-  interval_run: {label: 'Intervals',    color: 'text-[#ff453a] border-[#ff453a]/30 bg-[#ff453a]/8',  icon: '🔥'},
-  recovery_run: {label: 'Recovery Run', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',  icon: '🌊'},
-  gym:          {label: 'Gym',          color: 'text-[#ff9f0a] border-[#ff9f0a]/30 bg-[#ff9f0a]/8',  icon: '🏋️'},
-  cycling:      {label: 'Cycling',      color: 'text-[#0a84ff] border-[#0a84ff]/30 bg-[#0a84ff]/8',  icon: '🚴'},
-  yoga:         {label: 'Yoga',         color: 'text-[#bf5af2] border-[#bf5af2]/30 bg-[#bf5af2]/8',  icon: '🧘'},
-  cross_training:{label: 'Cross Train', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',  icon: '💪'},
-  rest:         {label: 'Rest',         color: 'text-white/30 border-white/10 bg-white/4',            icon: '😴'},
+  easy_run:     {label: 'Easy Run',     color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: '🏃'},
+  long_run:     {label: 'Long Run',     color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: '🏃'},
+  tempo_run:    {label: 'Tempo Run',    color: 'text-accent-yellow border-accent-yellow/30 bg-accent-yellow/8', icon: '⚡'},
+  interval_run: {label: 'Intervals',    color: 'text-accent-red border-accent-red/30 bg-accent-red/8',          icon: '🔥'},
+  recovery_run: {label: 'Recovery Run', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: '🌊'},
+  gym:          {label: 'Gym',          color: 'text-accent-orange border-accent-orange/30 bg-accent-orange/8', icon: '🏋️'},
+  cycling:      {label: 'Cycling',      color: 'text-accent-blue border-accent-blue/30 bg-accent-blue/8',       icon: '🚴'},
+  yoga:         {label: 'Yoga',         color: 'text-accent-purple border-accent-purple/30 bg-accent-purple/8', icon: '🧘'},
+  cross_training:{label: 'Cross Train', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: '💪'},
+  rest:         {label: 'Rest',         color: 'text-white/30 border-white/10 bg-white/4',                     icon: '😴'},
 };
 
 interface WorkoutCardProps {
@@ -45,7 +45,7 @@ export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClic
               <span className="text-xs opacity-70">{workout.durationMinutes}min</span>
             )}
             {workout.completed && (
-              <span className="ml-auto text-[#30d158] text-xs font-medium">✓ Done</span>
+              <span className="ml-auto text-accent-green text-xs font-medium">✓ Done</span>
             )}
           </div>
           {!compact && (
@@ -61,7 +61,7 @@ export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClic
           href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-1.5 flex items-center gap-1 text-xs text-[#fc4c02] hover:underline"
+          className="mt-1.5 flex items-center gap-1 text-xs text-brand hover:underline"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
             <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />

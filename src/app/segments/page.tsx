@@ -8,6 +8,8 @@ import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useAllSegments} from '@/hooks/useStrava';
 import type {AggregatedSegment} from '@/lib/stravaCache';
 import AppHeader from '@/components/AppHeader';
+import {COLORS} from '@/lib/activityModel';
+import {Skeleton} from '@/components/ui/skeleton';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -46,14 +48,10 @@ function fmtDate(iso: string) {
 }
 
 function gradeColor(grade: number): string {
-  if (grade >= 15) return '#ff453a';
-  if (grade >= 8) return '#ff9f0a';
-  if (grade >= 4) return '#ffd60a';
-  return '#30d158';
-}
-
-function Skeleton({className = ''}: {className?: string}) {
-  return <div className={`animate-pulse rounded-xl bg-white/[0.06] ${className}`} />;
+  if (grade >= 15) return COLORS.red;
+  if (grade >= 8) return COLORS.orange;
+  if (grade >= 4) return COLORS.yellow;
+  return COLORS.green;
 }
 
 // ─── Segment row ──────────────────────────────────────────────────────────────
@@ -82,7 +80,7 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
             {segment.name}
           </p>
           {segment.starred && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] flex-shrink-0">★</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-gold/15 text-gold flex-shrink-0">★</span>
           )}
           {segment.climb_category > 0 && (
             <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-white/[0.08] text-white/50 flex-shrink-0">
@@ -111,7 +109,7 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
         </div>
 
         <div className="text-right w-[60px]">
-          <p className="text-sm font-mono font-semibold tabular-nums text-[#F59E0B]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-gold">
             {fmtTime(segment.prTime)}
           </p>
           <p className="text-[11px] text-white/45">PR</p>
@@ -180,7 +178,7 @@ export default function SegmentsPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
       </div>
     );
   }
@@ -190,7 +188,7 @@ export default function SegmentsPage() {
       <>
         <AppHeader />
         <div className="pt-[72px] flex items-center justify-center min-h-screen">
-          <Link href="/settings" className="text-[#0a84ff] text-sm">Connect Strava →</Link>
+          <Link href="/settings" className="text-accent-blue text-sm">Connect Strava →</Link>
         </div>
       </>
     );
@@ -217,7 +215,7 @@ export default function SegmentsPage() {
                 <div className="mt-2 flex items-center gap-2">
                   <div className="h-1 w-40 rounded-full bg-white/[0.08] overflow-hidden">
                     <div
-                      className="h-full rounded-full bg-[#0a84ff] transition-all duration-500"
+                      className="h-full rounded-full bg-accent-blue transition-all duration-500"
                       style={{width: `${Math.round((data.activitiesWithDetails / data.totalActivities) * 100)}%`}}
                     />
                   </div>
@@ -232,7 +230,7 @@ export default function SegmentsPage() {
                 onClick={() => setStarredOnly((v) => !v)}
                 className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
                   starredOnly
-                    ? 'border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B]'
+                    ? 'border-gold/40 bg-gold/10 text-gold'
                     : 'border-white/10 bg-white/[0.04] text-white/40 hover:text-white/60'
                 }`}
               >

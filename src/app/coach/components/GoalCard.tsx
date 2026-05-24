@@ -8,10 +8,10 @@ const GOAL_LABELS: Record<string, string> = {
 };
 
 const PHASE_COLORS: Record<string, string> = {
-  base: 'text-[#0a84ff] bg-[#0a84ff]/15',
-  build: 'text-[#ffd60a] bg-[#ffd60a]/15',
-  peak: 'text-[#ff453a] bg-[#ff453a]/15',
-  taper: 'text-[#30d158] bg-[#30d158]/15',
+  base: 'text-accent-blue bg-accent-blue/15',
+  build: 'text-accent-yellow bg-accent-yellow/15',
+  peak: 'text-accent-red bg-accent-red/15',
+  taper: 'text-accent-green bg-accent-green/15',
 };
 
 interface GoalCardProps {
@@ -29,8 +29,8 @@ export function GoalCard({goal, currentPhase, onEdit}: GoalCardProps) {
     <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-[#0a84ff]/20 flex items-center justify-center flex-shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0a84ff" strokeWidth="2">
+          <div className="w-8 h-8 rounded-lg bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent-blue">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>
@@ -51,7 +51,7 @@ export function GoalCard({goal, currentPhase, onEdit}: GoalCardProps) {
             </div>
             <div className="flex items-center gap-3 mt-0.5">
               {weeksAway != null && (
-                <span className={`text-xs ${weeksAway > 0 ? 'text-white/50' : 'text-[#ff453a]'}`}>
+                <span className={`text-xs ${weeksAway > 0 ? 'text-white/50' : 'text-accent-red'}`}>
                   {weeksAway > 0 ? `${weeksAway} weeks away` : 'Event passed'}
                 </span>
               )}

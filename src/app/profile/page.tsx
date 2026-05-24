@@ -8,7 +8,8 @@ import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
 import {useAthleteStats, useAthleteGear, useAthleteNotes} from '@/hooks/useStrava';
 import type {InjuryEntry} from '@/hooks/useStrava';
-import {formatDuration, ZONE_COLORS, ZONE_NAMES} from '@/lib/activityModel';
+import {formatDuration, ZONE_COLORS, ZONE_NAMES, COLORS} from '@/lib/activityModel';
+import {Skeleton} from '@/components/ui/skeleton';
 import type {StravaActivityTotal} from '@/lib/strava';
 import type {UserSettings} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
@@ -24,10 +25,6 @@ const containerVariant: Variants = {
 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-
-function Skeleton({className = ''}: {className?: string}) {
-  return <div className={`animate-pulse rounded-xl bg-white/[0.06] ${className}`} />;
-}
 
 function fmtKm(meters: number) {
   return (meters / 1000).toLocaleString('en-US', {maximumFractionDigits: 0});
@@ -113,7 +110,7 @@ function GearItem({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-white/80 truncate">{name}</p>
           {isPrimary && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#0a84ff]/20 text-[#0a84ff] font-medium flex-shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent-blue/20 text-accent-blue font-medium flex-shrink-0">
               Primary
             </span>
           )}
@@ -147,9 +144,9 @@ const ShoeIcon = () => (
 );
 
 const SEVERITY_COLORS: Record<string, string> = {
-  mild: '#ffd60a',
-  moderate: '#ff9f0a',
-  severe: '#ff453a',
+  mild: COLORS.yellow,
+  moderate: COLORS.orange,
+  severe: COLORS.red,
 };
 
 const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'] as const;
@@ -202,7 +199,7 @@ function AthleteNotesCard() {
             <button
               onClick={save}
               disabled={isSaving}
-              className="text-[11px] bg-[#0a84ff] text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-[#0a84ff]/85 transition-colors disabled:opacity-50"
+              className="text-[11px] bg-accent-blue text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-accent-blue/85 transition-colors disabled:opacity-50"
             >
               {isSaving ? 'Saving…' : 'Save'}
             </button>
@@ -234,7 +231,7 @@ function AthleteNotesCard() {
               <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide">Injury History</p>
               <button
                 onClick={addInjury}
-                className="text-[10px] text-[#0a84ff] hover:text-[#0a84ff]/80 transition-colors flex items-center gap-0.5"
+                className="text-[10px] text-accent-blue hover:text-accent-blue/80 transition-colors flex items-center gap-0.5"
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -253,12 +250,12 @@ function AthleteNotesCard() {
                       placeholder="Body part…"
                       value={inj.bodyPart}
                       onChange={e => updateInjury(i, 'bodyPart', e.target.value)}
-                      className="flex-1 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder:text-white/20 focus:outline-none focus:border-[#0a84ff]/50 transition-colors"
+                      className="flex-1 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder:text-white/20 focus:outline-none focus:border-accent-blue/50 transition-colors"
                     />
                     <select
                       value={inj.severity}
                       onChange={e => updateInjury(i, 'severity', e.target.value as InjuryEntry['severity'])}
-                      className="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-[#0a84ff]/50 transition-colors appearance-none"
+                      className="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-accent-blue/50 transition-colors appearance-none"
                     >
                       {SEVERITY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -267,11 +264,11 @@ function AthleteNotesCard() {
                         type="checkbox"
                         checked={inj.resolved}
                         onChange={e => updateInjury(i, 'resolved', e.target.checked)}
-                        className="accent-[#30d158]"
+                        className="accent-accent-green"
                       />
                       Resolved
                     </label>
-                    <button onClick={() => removeInjury(i)} className="text-white/20 hover:text-[#ff453a] transition-colors flex-shrink-0">
+                    <button onClick={() => removeInjury(i)} className="text-white/20 hover:text-accent-red transition-colors flex-shrink-0">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
@@ -290,11 +287,11 @@ function AthleteNotesCard() {
               onChange={e => setFreeformDraft(e.target.value)}
               placeholder="Anything the coach should know — training preferences, lifestyle constraints, goals…"
               rows={5}
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-[12px] text-white placeholder:text-white/20 focus:outline-none focus:border-[#0a84ff]/40 transition-colors resize-none leading-relaxed"
+              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-[12px] text-white placeholder:text-white/20 focus:outline-none focus:border-accent-blue/40 transition-colors resize-none leading-relaxed"
             />
           </div>
 
-          {error && <p className="text-[11px] text-[#ff453a]">{error}</p>}
+          {error && <p className="text-[11px] text-accent-red">{error}</p>}
         </div>
       ) : (
         <div className="space-y-4">
@@ -369,7 +366,7 @@ export default function ProfilePage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
       </div>
     );
   }
@@ -379,7 +376,7 @@ export default function ProfilePage() {
       <>
         <AppHeader />
         <div className="pt-[72px] flex items-center justify-center min-h-screen">
-          <Link href="/settings" className="text-[#0a84ff] text-sm">Connect Strava →</Link>
+          <Link href="/settings" className="text-accent-blue text-sm">Connect Strava →</Link>
         </div>
       </>
     );
@@ -415,7 +412,7 @@ export default function ProfilePage() {
                     />
                   </div>
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-[#0a84ff]/20 flex items-center justify-center text-[#0a84ff] font-bold text-xl flex-shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-accent-blue/20 flex items-center justify-center text-accent-blue font-bold text-xl flex-shrink-0">
                     {athlete.firstname[0]}{athlete.lastname[0]}
                   </div>
                 )}
@@ -435,7 +432,7 @@ export default function ProfilePage() {
                   )}
                 </div>
                 <div className="flex-shrink-0">
-                  <span className="text-xs bg-[#30d158]/15 text-[#30d158] px-3 py-1 rounded-full font-medium">
+                  <span className="text-xs bg-accent-green/15 text-accent-green px-3 py-1 rounded-full font-medium">
                     Connected
                   </span>
                 </div>
@@ -446,12 +443,12 @@ export default function ProfilePage() {
             <motion.div variants={cardVariant} className="bento-card p-6">
               <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-5">Year to Date</h3>
               <div className="flex gap-6 divide-x divide-white/[0.06]">
-                <SportStats label="Run" color="#30d158" totals={stats?.ytd_run_totals} isLoading={statsLoading} />
+                <SportStats label="Run" color={COLORS.green} totals={stats?.ytd_run_totals} isLoading={statsLoading} />
                 <div className="pl-6">
-                  <SportStats label="Ride" color="#0a84ff" totals={stats?.ytd_ride_totals} isLoading={statsLoading} />
+                  <SportStats label="Ride" color={COLORS.blue} totals={stats?.ytd_ride_totals} isLoading={statsLoading} />
                 </div>
                 <div className="pl-6">
-                  <SportStats label="Swim" color="#bf5af2" totals={stats?.ytd_swim_totals} isLoading={statsLoading} />
+                  <SportStats label="Swim" color={COLORS.purple} totals={stats?.ytd_swim_totals} isLoading={statsLoading} />
                 </div>
               </div>
             </motion.div>
@@ -460,12 +457,12 @@ export default function ProfilePage() {
             <motion.div variants={cardVariant} className="bento-card p-6">
               <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-5">All Time</h3>
               <div className="flex gap-6 divide-x divide-white/[0.06]">
-                <SportStats label="Run" color="#30d158" totals={stats?.all_run_totals} isLoading={statsLoading} />
+                <SportStats label="Run" color={COLORS.green} totals={stats?.all_run_totals} isLoading={statsLoading} />
                 <div className="pl-6">
-                  <SportStats label="Ride" color="#0a84ff" totals={stats?.all_ride_totals} isLoading={statsLoading} />
+                  <SportStats label="Ride" color={COLORS.blue} totals={stats?.all_ride_totals} isLoading={statsLoading} />
                 </div>
                 <div className="pl-6">
-                  <SportStats label="Swim" color="#bf5af2" totals={stats?.all_swim_totals} isLoading={statsLoading} />
+                  <SportStats label="Swim" color={COLORS.purple} totals={stats?.all_swim_totals} isLoading={statsLoading} />
                 </div>
               </div>
             </motion.div>
@@ -543,7 +540,7 @@ export default function ProfilePage() {
                       </button>
                       <button
                         onClick={saveZones}
-                        className="text-[11px] bg-[#0a84ff] text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-[#0a84ff]/85 transition-colors"
+                        className="text-[11px] bg-accent-blue text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-accent-blue/85 transition-colors"
                       >
                         Save
                       </button>
@@ -576,7 +573,7 @@ export default function ProfilePage() {
                             type="number"
                             value={zoneDraft[field]}
                             onChange={e => setZoneDraft(d => ({...d, [field]: Number(e.target.value)}))}
-                            className="w-14 bg-transparent border-b border-white/20 focus:border-[#0a84ff] text-base font-bold text-white tabular-nums focus:outline-none transition-colors"
+                            className="w-14 bg-transparent border-b border-white/20 focus:border-accent-blue text-base font-bold text-white tabular-nums focus:outline-none transition-colors"
                             min={min} max={max}
                           />
                           <span className="text-[11px] text-white/30">bpm</span>
@@ -606,14 +603,14 @@ export default function ProfilePage() {
                                   type="number"
                                   value={lo}
                                   onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
-                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/50 transition-colors"
+                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/50 transition-colors"
                                 />
                                 <span className="text-[10px] text-white/25">–</span>
                                 <input
                                   type="number"
                                   value={hi}
                                   onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
-                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-[#0a84ff]/50 transition-colors"
+                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/50 transition-colors"
                                 />
                                 <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
                               </div>
@@ -654,9 +651,9 @@ export default function ProfilePage() {
               <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-4">Recent (4 weeks)</h3>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  {label: 'Run', color: '#30d158', totals: stats?.recent_run_totals},
-                  {label: 'Ride', color: '#0a84ff', totals: stats?.recent_ride_totals},
-                  {label: 'Swim', color: '#bf5af2', totals: stats?.recent_swim_totals},
+                  {label: 'Run', color: COLORS.green, totals: stats?.recent_run_totals},
+                  {label: 'Ride', color: COLORS.blue, totals: stats?.recent_ride_totals},
+                  {label: 'Swim', color: COLORS.purple, totals: stats?.recent_swim_totals},
                 ].map(({label, color, totals}) => (
                   <div key={label} className="bento-card px-4 py-3">
                     <div className="flex items-center gap-1.5 mb-2">

@@ -76,13 +76,32 @@ export function getZoneForHr(hr: number, zones: UserSettings['zones']): number {
   return 6;
 }
 
+export const COLORS = {
+  brand: '#fc4c02',
+  blue: '#0a84ff',
+  green: '#30d158',
+  yellow: '#ffd60a',
+  orange: '#ff9f0a',
+  red: '#ff453a',
+  purple: '#bf5af2',
+  gold: '#f59e0b',
+} as const;
+
+export const SPORT_COLORS: Record<string, string> = {
+  Run: COLORS.green,
+  Ride: COLORS.blue,
+  Hike: COLORS.orange,
+  Swim: COLORS.purple,
+  Walk: COLORS.yellow,
+};
+
 export const ZONE_COLORS: Record<number, string> = {
-  1: '#30d158', // green
-  2: '#0a84ff', // blue
-  3: '#ffd60a', // yellow
-  4: '#ff9f0a', // orange
-  5: '#ff453a', // red
-  6: '#bf5af2', // purple
+  1: COLORS.green,
+  2: COLORS.blue,
+  3: COLORS.yellow,
+  4: COLORS.orange,
+  5: COLORS.red,
+  6: COLORS.purple,
 };
 
 export const ZONE_NAMES: Record<number, string> = {

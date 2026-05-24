@@ -18,6 +18,8 @@ import {decodePolyline} from '@/lib/polyline';
 import AppHeader from '@/components/AppHeader';
 import type {ZoneSegment} from '@/components/RouteMapLeaflet';
 import type {SegmentEffortRecord} from '@/lib/stravaCache';
+import {COLORS} from '@/lib/activityModel';
+import {Skeleton} from '@/components/ui/skeleton';
 
 const RouteMapLeaflet = dynamic(() => import('@/components/RouteMapLeaflet'), {ssr: false});
 
@@ -36,10 +38,6 @@ const containerVariant: Variants = {
 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-
-function Skeleton({className = ''}: {className?: string}) {
-  return <div className={`animate-pulse rounded-xl bg-white/[0.06] ${className}`} />;
-}
 
 function fmtTime(secs: number) {
   const h = Math.floor(secs / 3600);
@@ -63,14 +61,14 @@ function fmtPace(elapsedSecs: number, distanceMeters: number): string {
 }
 
 function gradeColor(grade: number): string {
-  if (grade >= 15) return '#ff453a';
-  if (grade >= 8) return '#ff9f0a';
-  if (grade >= 4) return '#ffd60a';
-  return '#30d158';
+  if (grade >= 15) return COLORS.red;
+  if (grade >= 8) return COLORS.orange;
+  if (grade >= 4) return COLORS.yellow;
+  return COLORS.green;
 }
 
 function prBadge(rank: number | null) {
-  if (rank === 1) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[#F59E0B]/15 text-[#F59E0B] font-semibold flex-shrink-0">PR</span>;
+  if (rank === 1) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-gold/15 text-gold font-semibold flex-shrink-0">PR</span>;
   if (rank === 2) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.08] text-white/50 flex-shrink-0">2nd</span>;
   if (rank === 3) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/40 flex-shrink-0">3rd</span>;
   return null;
@@ -140,7 +138,7 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
         <Line
           type="monotone"
           dataKey="time"
-          stroke="#30d158"
+          stroke={COLORS.green}
           strokeWidth={2}
           dot={(props) => {
             const {cx, cy, payload} = props;
@@ -150,13 +148,13 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
                 cx={cx}
                 cy={cy}
                 r={payload.pr ? 5 : 3}
-                fill={payload.pr ? '#F59E0B' : '#30d158'}
-                stroke={payload.pr ? '#F59E0B' : '#30d158'}
+                fill={payload.pr ? COLORS.gold : COLORS.green}
+                stroke={payload.pr ? COLORS.gold : COLORS.green}
                 strokeWidth={1}
               />
             );
           }}
-          activeDot={{r: 5, fill: '#30d158'}}
+          activeDot={{r: 5, fill: COLORS.green}}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -184,7 +182,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
     if (!polyline) return [];
     const points = decodePolyline(polyline);
     if (points.length < 2) return [];
-    return [{points, color: '#30d158'}];
+    return [{points, color: COLORS.green}];
   }, [detail]);
 
   const effortsNewestFirst = useMemo(() => [...efforts].reverse(), [efforts]);
@@ -205,7 +203,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
       </div>
     );
   }
@@ -215,7 +213,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
       <>
         <AppHeader />
         <div className="pt-[72px] flex items-center justify-center min-h-screen">
-          <Link href="/settings" className="text-[#0a84ff] text-sm">Connect Strava →</Link>
+          <Link href="/settings" className="text-accent-blue text-sm">Connect Strava →</Link>
         </div>
       </>
     );
@@ -238,7 +236,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
   const segCity = aggregated?.city ?? detail?.city;
   const segState = aggregated?.state ?? detail?.state;
   const segClimb = aggregated?.climb_category ?? detail?.climb_category ?? 0;
-  const gColor = segGrade != null ? gradeColor(segGrade) : '#30d158';
+  const gColor = segGrade != null ? gradeColor(segGrade) : COLORS.green;
 
   return (
     <>
@@ -293,7 +291,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
                 {detailLoading ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : mapSegments.length >= 1 ? (
-                  <RouteMapLeaflet segments={mapSegments} hoverPos={null} color="#fc4c02" />
+                  <RouteMapLeaflet segments={mapSegments} hoverPos={null} color={COLORS.brand} />
                 ) : (
                   <div className="w-full h-[300px] flex items-center justify-center">
                     <p className="text-sm text-white/25">No map data</p>
@@ -329,7 +327,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
                         {effortsNewestFirst.map((effort) => (
                           <tr
                             key={effort.effortId}
-                            className={`border-b border-white/[0.04] last:border-0 ${effort.pr_rank === 1 ? 'bg-[#F59E0B]/[0.04]' : ''}`}
+                            className={`border-b border-white/[0.04] last:border-0 ${effort.pr_rank === 1 ? 'bg-gold/[0.04]' : ''}`}
                           >
                             <td className="py-2.5 text-white/60 text-xs">
                               <Link
@@ -387,7 +385,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {stats && (
-                      <StatTile label="PR Time" value={fmtTime(stats.prTime)} accent="#F59E0B" />
+                      <StatTile label="PR Time" value={fmtTime(stats.prTime)} accent={COLORS.gold} />
                     )}
                     <StatTile label="Total Efforts" value={efforts.length || aggregated?.effortCount || '—'} />
                     {stats && <StatTile label="Avg Time" value={fmtTime(stats.avgTime)} />}

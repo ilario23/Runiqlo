@@ -5,20 +5,13 @@ import {useRouter} from 'next/navigation';
 import {motion, type Variants} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useActivitiesPaginated, useForceRefreshActivities} from '@/hooks/useStrava';
-import {formatPace, formatDuration} from '@/lib/activityModel';
+import {formatPace, formatDuration, SPORT_COLORS, COLORS} from '@/lib/activityModel';
 import type {ActivitySummary, ActivityType} from '@/lib/activityModel';
+import {Skeleton} from '@/components/ui/skeleton';
 import AppHeader from '@/components/AppHeader';
 import Link from 'next/link';
 
 // ─── constants ────────────────────────────────────────────────────────────────
-
-const SPORT_COLORS: Record<string, string> = {
-  Run: '#30d158',
-  Ride: '#0a84ff',
-  Hike: '#ff9f0a',
-  Swim: '#bf5af2',
-  Walk: '#ffd60a',
-};
 
 const SPORT_TABS: {label: string; value: ActivityType | 'All'}[] = [
   {label: 'All', value: 'All'},
@@ -57,10 +50,6 @@ function fmtDate(iso: string) {
   });
 }
 
-function Skeleton({className = ''}: {className?: string}) {
-  return <div className={`animate-pulse rounded-xl bg-white/[0.06] ${className}`} />;
-}
-
 function ConnectPrompt() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
@@ -69,7 +58,7 @@ function ConnectPrompt() {
         <p className="text-sm text-white/40">Link your account to view your activities</p>
         <Link
           href="/settings"
-          className="block w-full bg-[#fc4c02] hover:bg-[#fc4c02]/90 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
+          className="block w-full bg-brand hover:bg-brand/90 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
         >
           Go to Settings
         </Link>
@@ -222,7 +211,7 @@ export default function ActivitiesPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0a84ff] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
       </div>
     );
   }
@@ -256,7 +245,7 @@ export default function ActivitiesPage() {
               {activities && !isFullyLoaded && (
                 <div className="flex items-center gap-2">
                   <div className="h-1 w-24 rounded-full bg-white/[0.08] overflow-hidden">
-                    <div className="h-full w-1/3 rounded-full bg-[#0a84ff] animate-pulse" />
+                    <div className="h-full w-1/3 rounded-full bg-accent-blue animate-pulse" />
                   </div>
                   <span className="text-[11px] text-white/45">syncing…</span>
                 </div>
