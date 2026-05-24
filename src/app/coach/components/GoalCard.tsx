@@ -17,10 +17,9 @@ const PHASE_COLORS: Record<string, string> = {
 interface GoalCardProps {
   goal: Goal;
   currentPhase?: string;
-  onEdit: () => void;
 }
 
-export function GoalCard({goal, currentPhase, onEdit}: GoalCardProps) {
+export function GoalCard({goal, currentPhase}: GoalCardProps) {
   const weeksAway = goal.targetDate
     ? Math.ceil((new Date(goal.targetDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 7))
     : null;
@@ -59,12 +58,6 @@ export function GoalCard({goal, currentPhase, onEdit}: GoalCardProps) {
             </div>
           </div>
         </div>
-        <button
-          onClick={onEdit}
-          className="text-xs text-white/40 hover:text-white/70 transition-colors flex-shrink-0 px-2 py-1 rounded-lg hover:bg-white/[0.06]"
-        >
-          Edit
-        </button>
       </div>
     </div>
   );

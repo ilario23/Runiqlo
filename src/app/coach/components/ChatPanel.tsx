@@ -19,6 +19,8 @@ const TOOL_LABELS: Record<string, string> = {
   getAthleteNotes: 'Reviewing athlete notes',
   saveTrainingPlan: 'Saving training plan',
   saveWeeklyPlan: 'Saving weekly plan',
+  setGoal: 'Saving your goal',
+  getPeakWeeklyKm: 'Calculating peak weekly km',
   updateAthleteNotes: 'Updating athlete notes',
   linkCompletedActivity: 'Linking Strava activity',
   askQuestion: 'Asking a question',
@@ -232,7 +234,15 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
 
   const sentInitial = useRef(false);
   useEffect(() => {
-    if (initialMessage && !sentInitial.current && historyMessages !== undefined && messages.length === (historyMessages?.length ?? 0)) {
+    // Auto-send the onboarding/initial prompt only when the chat is truly empty.
+    // Guards against re-sending on page reload mid-conversation.
+    if (
+      initialMessage &&
+      !sentInitial.current &&
+      historyMessages !== undefined &&
+      historyMessages.length === 0 &&
+      messages.length === 0
+    ) {
       sentInitial.current = true;
       sendMessage({text: initialMessage});
     }

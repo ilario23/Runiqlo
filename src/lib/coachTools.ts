@@ -5,6 +5,7 @@ import * as schema from '@/db/schema';
 import {eq, and, desc, gte, sql} from 'drizzle-orm';
 import {transformActivity} from './strava';
 import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from './weather';
+import {invalidateCoachPromptCache} from './coachContext';
 import type {ActivityWeatherData} from './weather';
 
 export function getCoachTools(athleteId: number) {
@@ -368,6 +369,107 @@ export function getCoachTools(athleteId: number) {
       },
     }),
 
+    setGoal: tool({
+      description:
+        "Save or update the athlete's training goal in structured form. Call this once you have gathered the goal info via askQuestion and follow-up chat. Deactivates any active training plan (since the new goal invalidates the old plan). Provide the fields you've gathered; leave others null.",
+      inputSchema: z.object({
+        goalType: z.enum(['marathon', 'half_marathon', '10k', '5k', 'general_fitness']),
+        targetDate: z.string().nullable().optional().describe('YYYY-MM-DD format or null'),
+        targetEventName: z.string().nullable().optional().describe('e.g. "Berlin Marathon 2026"'),
+        targetTimeMinutes: z.number().nullable().optional().describe('Total minutes for goal finish time (e.g. 225 for 3:45)'),
+        recentPeakWeeklyKm: z.number().nullable().optional().describe('Highest weekly km in past 3 months — call getPeakWeeklyKm to compute'),
+        experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']),
+        injuryHistory: z.string().nullable().optional(),
+        additionalNotes: z.string().nullable().optional(),
+      }),
+      execute: async input => {
+        const now = Date.now();
+
+        // Deactivate active plan when goal changes
+        await db
+          .update(schema.trainingPlan)
+          .set({isActive: false, updatedAt: now})
+          .where(and(eq(schema.trainingPlan.athleteId, athleteId), eq(schema.trainingPlan.isActive, true)));
+
+        const existing = await db
+          .select()
+          .from(schema.coachGoal)
+          .where(eq(schema.coachGoal.athleteId, athleteId))
+          .limit(1);
+
+        const fields = {
+          goalType: input.goalType,
+          targetDate: input.targetDate ?? null,
+          targetEventName: input.targetEventName ?? null,
+          targetTimeMinutes: input.targetTimeMinutes ?? null,
+          recentPeakWeeklyKm: input.recentPeakWeeklyKm ?? null,
+          experienceLevel: input.experienceLevel,
+          injuryHistory: input.injuryHistory ?? null,
+          additionalNotes: input.additionalNotes ?? null,
+        };
+
+        if (existing[0]) {
+          await db
+            .update(schema.coachGoal)
+            .set({...fields, updatedAt: now})
+            .where(eq(schema.coachGoal.athleteId, athleteId));
+        } else {
+          await db.insert(schema.coachGoal).values({
+            athleteId,
+            ...fields,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+
+        invalidateCoachPromptCache(athleteId);
+        return {
+          success: true,
+          message: `Goal saved: ${input.goalType}${input.targetEventName ? ` — ${input.targetEventName}` : ''}${input.targetDate ? ` on ${input.targetDate}` : ''}`,
+        };
+      },
+    }),
+
+    getPeakWeeklyKm: tool({
+      description:
+        "Compute the athlete's highest weekly running km over the past 90 days. Use during onboarding to populate recentPeakWeeklyKm for setGoal.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffDate = cutoff.toISOString().slice(0, 10);
+
+        const rows = await db
+          .select({date: schema.activities.date, data: schema.activities.data})
+          .from(schema.activities)
+          .where(and(eq(schema.activities.athleteId, athleteId), gte(schema.activities.date, cutoffDate)));
+
+        if (!rows.length) return {peakWeeklyKm: null, message: 'No activities in the last 90 days.'};
+
+        const weeklyKm: Record<string, number> = {};
+        for (const row of rows) {
+          const d = row.data as {sport_type?: string; type?: string; distance?: number};
+          const sportType = d.sport_type ?? d.type ?? '';
+          if (!sportType.toLowerCase().includes('run')) continue;
+          const distKm = (d.distance ?? 0) / 1000;
+          if (distKm <= 0) continue;
+
+          const date = new Date(row.date + 'T12:00:00');
+          const day = (date.getDay() + 6) % 7;
+          const monday = new Date(date);
+          monday.setDate(date.getDate() - day);
+          const weekKey = monday.toISOString().slice(0, 10);
+
+          weeklyKm[weekKey] = (weeklyKm[weekKey] ?? 0) + distKm;
+        }
+
+        const values = Object.values(weeklyKm);
+        if (!values.length) return {peakWeeklyKm: null, message: 'No running activities found.'};
+
+        return {peakWeeklyKm: Math.round(Math.max(...values))};
+      },
+    }),
+
     updateAthleteNotes: tool({
       description:
         "Update accumulated knowledge about this athlete. Call when you learn something new: injuries, preferences, how they respond to training.",
@@ -426,6 +528,7 @@ export function getCoachTools(athleteId: number) {
           });
         }
 
+        invalidateCoachPromptCache(athleteId);
         return {success: true};
       },
     }),

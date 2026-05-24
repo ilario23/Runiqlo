@@ -6,6 +6,10 @@ import type {TrainingPhase} from './coachTypes';
 const promptCache = new Map<number, {prompt: string; expiresAt: number}>();
 const CACHE_TTL_MS = 60_000;
 
+export function invalidateCoachPromptCache(athleteId: number): void {
+  promptCache.delete(athleteId);
+}
+
 function getMonday(date: Date = new Date()): string {
   const d = new Date(date);
   const diff = (d.getDay() + 6) % 7;
@@ -206,6 +210,27 @@ When generating any weekly plan (saveWeeklyPlan):
 - Always schedule the long_run workout on the athlete's preferred_long_run_day (Saturday = dayOfWeek 5, Sunday = dayOfWeek 6, Weekday = coach's choice Mon–Fri).
 - If gym_access is "no" or "false", replace all gym workouts with cross_training or rest — never prescribe gym sessions.
 - If preferred_long_run_day is not yet set, default to Saturday and note it in coachNotes.
+${goal ? '' : `
+## ONBOARDING MODE (no goal saved yet — start here)
+This athlete has no goal yet. Run them through onboarding now via chat. One question per turn — never bundle multiple questions in one message. Use askQuestion (multi-choice, max 4 options) for structured choices; plain chat for dates, times and free text.
+
+Sequence:
+1. Greet warmly in one short sentence ("Welcome — let's set up your training together.") — then immediately ask the first question.
+2. askQuestion: "What's your training focus?" → ["Race goal", "General fitness"]
+3. If "Race goal": askQuestion "Which distance?" → ["Marathon", "Half Marathon", "10K", "5K"]
+4. askQuestion: "Your experience level?" → ["Beginner", "Intermediate", "Advanced"]
+5. askQuestion: "Preferred long run day?" → ["Saturday", "Sunday", "Weekday / Flexible"]
+6. askQuestion: "Gym access for strength?" → ["Yes", "No"]
+7. If race goal: in plain chat, ask for the target race date (accept any natural format and convert to YYYY-MM-DD).
+8. If race goal: in plain chat, ask for the target finish time (accept "3:45", "sub 4h", etc — convert to minutes).
+9. In plain chat, briefly ask about injury history (one line, optional — accept "none").
+10. Call getPeakWeeklyKm to compute their recent peak weekly volume from Strava.
+11. Call setGoal with all structured fields gathered.
+12. Call updateAthleteNotes with {"preferences": {"preferred_long_run_day": "...", "gym_access": "true|false"}} and any injury entries.
+13. Briefly confirm what you've saved in 2–3 lines, then ask if they're ready for you to generate the periodized training plan now.
+
+Do NOT call saveTrainingPlan during onboarding — wait for explicit confirmation in step 13.
+`}
 
 Today: ${today} (${weekday}) | Week start: ${currentMonday}`;
 
