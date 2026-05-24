@@ -194,8 +194,9 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           {selected && (
             <WorkoutDetailPanel
               selected={selected}
+              athleteId={athleteId}
               onClose={() => setSelected(null)}
-              isToday={selected.date === today}
+              canLink={selected.date <= (today || new Date().toISOString().slice(0, 10))}
               onMarkDone={(stravaActivityId: number) => {
                 fetch('/api/coach/week', {
                   method: 'PUT',
@@ -223,18 +224,44 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
   );
 }
 
+interface MatchCandidate {
+  id: number;
+  name: string;
+  type: string;
+  date: string;
+  distanceKm: number;
+  durationMin: number;
+  avgPace: string;
+  startTime: string | null;
+  matchScore: number;
+  isBestMatch: boolean;
+  alreadyLinked: boolean;
+}
+
+const ACTIVITY_TYPE_ICON: Record<string, string> = {
+  Run: '🏃',
+  Ride: '🚴',
+  Hike: '🥾',
+  Swim: '🏊',
+};
+
 function WorkoutDetailPanel({
   selected,
+  athleteId,
   onClose,
-  isToday,
+  canLink,
   onMarkDone,
 }: {
   selected: SelectedWorkout;
+  athleteId: number;
   onClose: () => void;
-  isToday: boolean;
+  canLink: boolean;
   onMarkDone: (stravaActivityId: number) => void;
 }) {
-  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+  const [candidates, setCandidates] = useState<MatchCandidate[] | null>(null);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
   const [activityIdInput, setActivityIdInput] = useState('');
   const {workout, dayIndex} = selected;
   const label = TYPE_LABELS[workout.type] ?? workout.type;
@@ -316,53 +343,131 @@ function WorkoutDetailPanel({
       )}
 
       {/* Mark done */}
-      {!workout.completed && isToday && !showLinkInput && (
+      {!workout.completed && canLink && !showPicker && (
         <button
-          onClick={() => setShowLinkInput(true)}
+          onClick={() => {
+            setShowPicker(true);
+            setLoadingCandidates(true);
+            const params = new URLSearchParams({
+              athleteId: String(athleteId),
+              date: selected.date,
+              plannedType: workout.type,
+            });
+            if (workout.distanceKm) params.set('plannedDistance', String(workout.distanceKm));
+            if (workout.durationMinutes) params.set('plannedDuration', String(workout.durationMinutes));
+            fetch(`/api/coach/match-candidates?${params.toString()}`)
+              .then(r => r.json())
+              .then((data: {candidates: MatchCandidate[]}) => setCandidates(data.candidates ?? []))
+              .catch(() => setCandidates([]))
+              .finally(() => setLoadingCandidates(false));
+          }}
           className="mt-3 text-xs text-white/50 hover:text-white/80 underline transition-colors"
         >
           Mark complete
         </button>
       )}
-      {!workout.completed && isToday && showLinkInput && (
-        <div className="mt-3 space-y-2">
-          <p className="text-xs text-white/40">Enter your Strava activity ID to link it:</p>
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              placeholder="e.g. 14823650471"
-              value={activityIdInput}
-              onChange={e => setActivityIdInput(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && activityIdInput) {
-                  onMarkDone(Number(activityIdInput));
-                  setShowLinkInput(false);
-                  setActivityIdInput('');
-                }
-              }}
-              className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-accent-blue/60 font-mono"
-              autoFocus
-            />
-            <button
-              onClick={() => {
-                if (activityIdInput) {
-                  onMarkDone(Number(activityIdInput));
-                  setShowLinkInput(false);
-                  setActivityIdInput('');
-                }
-              }}
-              disabled={!activityIdInput}
-              className="px-3 py-1.5 rounded-lg bg-accent-green/20 border border-accent-green/30 text-accent-green text-xs font-semibold hover:bg-accent-green/30 transition-colors disabled:opacity-40"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => { setShowLinkInput(false); setActivityIdInput(''); }}
-              className="text-xs text-white/30 hover:text-white/60 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
+      {!workout.completed && canLink && showPicker && (
+        <div className="mt-3 space-y-2.5">
+          {loadingCandidates ? (
+            <div className="flex items-center gap-2 text-xs text-white/40">
+              <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+              Finding your activities…
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">
+                  {candidates && candidates.length > 0 ? 'Pick the matching activity' : 'No nearby activities'}
+                </p>
+                <button
+                  onClick={() => { setShowPicker(false); setCandidates(null); setManualMode(false); setActivityIdInput(''); }}
+                  className="text-[10px] text-white/30 hover:text-white/60 transition-colors uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+              </div>
+
+              {candidates && candidates.length > 0 && !manualMode && (
+                <div className="space-y-1.5">
+                  {candidates.slice(0, 5).map(c => {
+                    const icon = ACTIVITY_TYPE_ICON[c.type] ?? '🏃';
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => { if (!c.alreadyLinked) onMarkDone(c.id); }}
+                        disabled={c.alreadyLinked}
+                        className={`w-full text-left rounded-xl border px-3 py-2 transition-all ${
+                          c.alreadyLinked
+                            ? 'border-white/[0.06] bg-white/[0.02] opacity-50 cursor-not-allowed'
+                            : c.isBestMatch
+                              ? 'border-accent-green/40 bg-accent-green/10 hover:bg-accent-green/15'
+                              : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15'
+                        }`}
+                      >
+                        <div className="flex items-start gap-2.5">
+                          <span className="text-base leading-none mt-0.5">{icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-sm font-medium text-white truncate">{c.name}</span>
+                              {c.isBestMatch && (
+                                <span className="text-[9px] uppercase tracking-wider text-accent-green font-bold bg-accent-green/15 px-1.5 py-0.5 rounded">Best match</span>
+                              )}
+                              {c.alreadyLinked && (
+                                <span className="text-[9px] uppercase tracking-wider text-white/40 font-medium bg-white/[0.06] px-1.5 py-0.5 rounded">Already linked</span>
+                              )}
+                            </div>
+                            <div className="text-xs text-white/50 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                              {c.distanceKm > 0 && <span>{c.distanceKm} km</span>}
+                              {c.durationMin > 0 && <span>· {c.durationMin >= 60 ? `${Math.floor(c.durationMin/60)}h ${c.durationMin%60}m` : `${c.durationMin}min`}</span>}
+                              {c.avgPace && <span>· {c.avgPace}</span>}
+                              {c.startTime && <span className="text-white/30">· {c.startTime}</span>}
+                              {c.date !== selected.date && <span className="text-white/30">· {c.date}</span>}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {!manualMode && (
+                <button
+                  onClick={() => setManualMode(true)}
+                  className="text-xs text-white/40 hover:text-white/70 underline transition-colors"
+                >
+                  {candidates && candidates.length > 0 ? "Don't see it? Enter ID manually" : 'Enter ID manually'}
+                </button>
+              )}
+
+              {manualMode && (
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="number"
+                    placeholder="e.g. 14823650471"
+                    value={activityIdInput}
+                    onChange={e => setActivityIdInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && activityIdInput) {
+                        onMarkDone(Number(activityIdInput));
+                      }
+                    }}
+                    className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-accent-blue/60 font-mono"
+                    autoFocus
+                  />
+                  <button
+                    onClick={() => { if (activityIdInput) onMarkDone(Number(activityIdInput)); }}
+                    disabled={!activityIdInput}
+                    className="px-3 py-1.5 rounded-lg bg-accent-green/20 border border-accent-green/30 text-accent-green text-xs font-semibold hover:bg-accent-green/30 transition-colors disabled:opacity-40"
+                  >
+                    Link
+                  </button>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
