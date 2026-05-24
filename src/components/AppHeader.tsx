@@ -112,11 +112,11 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
               href={href}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
                 active
-                  ? 'text-white bg-brand/15 border border-brand/25'
+                  ? 'text-white bg-white/[0.08] border border-white/[0.10]'
                   : 'text-white/45 hover:text-white/70 hover:bg-white/[0.06] border border-transparent'
               }`}
             >
-              <span className={active ? 'text-brand' : 'text-white/35'}>{icon}</span>
+              <span className={active ? 'text-white/75' : 'text-white/35'}>{icon}</span>
               <span className="hidden sm:inline">{label}</span>
             </Link>
           );
@@ -150,8 +150,8 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
         </button>
 
         {initials && (
-          <div className="w-7 h-7 rounded-full bg-brand/15 border border-brand/30 flex items-center justify-center hidden md:flex flex-shrink-0">
-            <span className="text-[10px] font-bold text-brand leading-none tracking-wide">
+          <div className="w-7 h-7 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center hidden md:flex flex-shrink-0">
+            <span className="text-[10px] font-bold text-white/75 leading-none tracking-wide">
               {initials}
             </span>
           </div>
@@ -161,7 +161,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
           href="/settings"
           className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
             pathname === '/settings'
-              ? 'bg-brand/15 border border-brand/25 text-brand'
+              ? 'bg-white/[0.08] border border-white/[0.10] text-white/75'
               : 'bg-white/[0.06] hover:bg-white/[0.10] text-white/60 border border-transparent'
           }`}
           aria-label="Settings"

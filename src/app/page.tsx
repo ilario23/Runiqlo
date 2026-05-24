@@ -116,7 +116,7 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium text-white">Training Load</h2>
-          <p className="text-xs text-white/45 mt-0.5">Base Fitness · Load Impact · Intensity Trend</p>
+          <p className="text-xs text-white/50 mt-0.5">Base Fitness · Load Impact · Intensity Trend</p>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-medium">
           <span className="flex items-center gap-1">
@@ -231,7 +231,7 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
   const isDown = typeof delta === 'number' && delta < 0;
 
   return (
-    <div className="bento-card p-5 flex flex-col justify-between h-full min-h-[100px]">
+    <div className="bento-card-matte p-5 flex flex-col justify-between h-full min-h-[100px]">
       {isLoading ? (
         <>
           <Skeleton className="h-3 w-20" />
@@ -241,8 +241,8 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
       ) : (
         <>
           <div>
-            <p className="text-xs text-white/55 font-medium">{label}</p>
-            <p className="text-[10px] text-white/25 mt-0.5">{sublabel}</p>
+            <p className="text-xs text-white/70 font-medium">{label}</p>
+            <p className="text-[10px] text-white/35 mt-0.5">{sublabel}</p>
           </div>
           <div className="mt-2">
             <p className="text-4xl font-bold tracking-tight font-mono tabular-nums" style={{color}}>
@@ -250,7 +250,7 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
             </p>
           </div>
           {typeof delta === 'number' && (
-            <p className={`text-[10px] mt-1.5 font-mono ${isUp ? 'text-accent-green' : isDown ? 'text-accent-red' : 'text-white/45'}`}>
+            <p className={`text-[10px] mt-1.5 font-mono ${isUp ? 'text-accent-green' : isDown ? 'text-accent-red' : 'text-white/40'}`}>
               {isUp ? '↑' : isDown ? '↓' : '→'} {Math.abs(delta).toFixed(1)} vs 7d ago
             </p>
           )}
@@ -278,7 +278,7 @@ function HRZoneCard({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium text-white">Zone Distribution</h2>
-          <p className="text-xs text-white/45 mt-0.5">Last 4 weeks · Heart rate</p>
+          <p className="text-xs text-white/50 mt-0.5">Last 4 weeks · Heart rate</p>
         </div>
         {isLoading && progress.total > 0 && (
           <span className="text-[10px] text-white/45">
@@ -309,10 +309,10 @@ function HRZoneCard({
             return (
               <div key={z}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-white/50 font-medium">
+                  <span className="text-[11px] text-white/60 font-medium">
                     Z{z} · {ZONE_NAMES[z]}
                   </span>
-                  <span className="text-[11px] text-white/40">
+                  <span className="text-[11px] text-white/45">
                     {pct}% · {formatDuration(zone?.time ?? 0)}
                   </span>
                 </div>
@@ -360,7 +360,7 @@ function ActivityRow({activity}: {activity: ActivitySummary}) {
         </p>
       </div>
       <div className="text-right flex-shrink-0">
-        <p className="text-sm text-white/70 font-mono tabular-nums">
+        <p className="text-sm text-white/80 font-mono tabular-nums">
           {activity.distance.toFixed(1)} km
         </p>
         {activity.avgPace > 0 && (
@@ -440,7 +440,7 @@ function StatTile({label, value, sub, color, isLoading, primary}: StatTileProps)
         </>
       ) : (
         <>
-          <p className="text-[10px] text-white/30 font-semibold uppercase tracking-widest">{label}</p>
+          <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest">{label}</p>
           <div className="mt-2 flex items-baseline gap-1.5">
             <p
               className={`font-mono tracking-tight tabular-nums ${
@@ -483,7 +483,7 @@ function StatsStrip({
       : undefined;
 
   return (
-    <div className="flex items-stretch divide-x divide-white/[0.07] border border-white/[0.08] rounded-2xl overflow-hidden bg-white/[0.025]">
+    <div className="flex items-stretch divide-x divide-white/[0.08] border border-white/[0.10] rounded-2xl overflow-hidden bg-white/[0.03]" style={{boxShadow: 'var(--shadow-base)'}}>
       <div className="flex-[2] min-w-0">
         <StatTile
           label="YTD Distance"
