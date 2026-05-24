@@ -106,9 +106,12 @@ Form: ${tsb > 5 ? 'Fresh' : tsb > -10 ? 'Neutral' : tsb > -20 ? 'Fatigued' : 'Ve
   const plan = planRows[0];
   if (plan) {
     const phases = plan.phases as TrainingPhase[];
-    const cur = phases[plan.currentPhaseIndex];
+    // Derive current phase from today's date — stored index can be stale
+    const actualPhaseIndex = phases.findIndex(p => today >= p.startDate && today <= p.endDate);
+    const currentPhaseIndex = actualPhaseIndex !== -1 ? actualPhaseIndex : plan.currentPhaseIndex;
+    const cur = phases[currentPhaseIndex];
     const totalWeeks = phases.reduce((s, p) => s + p.weekCount, 0);
-    planSection = `Phase: ${cur?.phase ?? '?'} (week ${plan.currentPhaseIndex + 1}/${totalWeeks}) — "${cur?.focusDescription ?? ''}"
+    planSection = `Phase: ${cur?.phase ?? '?'} (${currentPhaseIndex + 1}/${phases.length} phases, ${totalWeeks} total weeks) — "${cur?.focusDescription ?? ''}"
 Volume target: ${cur?.targetWeeklyKmRange?.[0]}–${cur?.targetWeeklyKmRange?.[1]} km/wk
 Key workouts: ${cur?.keyWorkouts?.join(', ') ?? 'none'}
 Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
@@ -191,6 +194,18 @@ ${notesSection}
 - Before generating a weekly plan, ask how many days are available that specific week — availability varies. Use askQuestion with options like "3 days", "4 days", "5 days", "6 days".
 - When modifying a week mid-week: check the [done] days in the week section above — those are already completed and MUST NOT be changed. Only propose changes to remaining days.
 - Format workouts precisely: type + distance or duration + target zone + specific instructions
+
+## Preference Collection (REQUIRED before creating any training plan)
+Before calling saveTrainingPlan, check the Athlete Knowledge section above for these preferences. For each one that is MISSING:
+1. preferred_long_run_day — call askQuestion: "Which day works best for your weekly long run?" with options [Saturday, Sunday, Weekday/Flexible]. Then call updateAthleteNotes with {"preferences": {"preferred_long_run_day": "<answer>"}} BEFORE proceeding.
+2. gym_access — call askQuestion: "Do you have regular gym access for strength training?" with options [Yes, No]. Then call updateAthleteNotes with {"preferences": {"gym_access": "<yes/no>"}} BEFORE proceeding.
+Do NOT skip these steps even if the athlete has explicitly asked you to start building the plan. Gather both preferences first, then proceed.
+
+## Long Run & Gym Scheduling Rule
+When generating any weekly plan (saveWeeklyPlan):
+- Always schedule the long_run workout on the athlete's preferred_long_run_day (Saturday = dayOfWeek 5, Sunday = dayOfWeek 6, Weekday = coach's choice Mon–Fri).
+- If gym_access is "no" or "false", replace all gym workouts with cross_training or rest — never prescribe gym sessions.
+- If preferred_long_run_day is not yet set, default to Saturday and note it in coachNotes.
 
 Today: ${today} (${weekday}) | Week start: ${currentMonday}`;
 

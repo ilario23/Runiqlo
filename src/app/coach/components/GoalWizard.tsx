@@ -18,7 +18,12 @@ const EXPERIENCE_OPTIONS: Array<{level: ExperienceLevel; label: string; desc: st
   {level: 'advanced', label: 'Advanced', desc: '3+ years, 5+ runs/week, have raced before'},
 ];
 
-// Target time placeholders by goal type
+const LONG_RUN_DAY_OPTIONS: Array<{value: 'saturday' | 'sunday' | 'weekday'; label: string; desc: string}> = [
+  {value: 'saturday', label: 'Saturday', desc: 'Classic choice — full day to recover Sunday'},
+  {value: 'sunday', label: 'Sunday', desc: 'End the week strong — easy Monday after'},
+  {value: 'weekday', label: 'Weekday / Flexible', desc: 'Coach picks the best day each week'},
+];
+
 const TARGET_TIME_PLACEHOLDER: Record<GoalType, string> = {
   marathon: 'e.g. 3:45',
   half_marathon: 'e.g. 1:50',
@@ -69,21 +74,40 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
     initialGoal?.recentPeakWeeklyKm != null ? String(initialGoal.recentPeakWeeklyKm) : '',
   );
   const [peakKmLoading, setPeakKmLoading] = useState(initialGoal?.recentPeakWeeklyKm == null);
-
-  useEffect(() => {
-    if (initialGoal?.recentPeakWeeklyKm != null) return;
-    fetch(`/api/coach/peak-weekly-km?athleteId=${athleteId}`)
-      .then(r => r.json())
-      .then((data: {peakWeeklyKm: number | null}) => {
-        if (data.peakWeeklyKm != null) setRecentPeakWeeklyKm(String(data.peakWeeklyKm));
-      })
-      .catch(() => {})
-      .finally(() => setPeakKmLoading(false));
-  }, [athleteId, initialGoal?.recentPeakWeeklyKm]);
   const [experience, setExperience] = useState<ExperienceLevel>(initialGoal?.experienceLevel ?? 'intermediate');
   const [injuryHistory, setInjuryHistory] = useState(initialGoal?.injuryHistory ?? '');
   const [additionalNotes, setAdditionalNotes] = useState(initialGoal?.additionalNotes ?? '');
+  const [preferredLongRunDay, setPreferredLongRunDay] = useState<'saturday' | 'sunday' | 'weekday'>('saturday');
+  const [gymAccess, setGymAccess] = useState<boolean>(true);
   const [saving, setSaving] = useState(false);
+
+  // Pre-fetch peak km and existing preferences
+  useEffect(() => {
+    if (initialGoal?.recentPeakWeeklyKm == null) {
+      fetch(`/api/coach/peak-weekly-km?athleteId=${athleteId}`)
+        .then(r => r.json())
+        .then((data: {peakWeeklyKm: number | null}) => {
+          if (data.peakWeeklyKm != null) setRecentPeakWeeklyKm(String(data.peakWeeklyKm));
+        })
+        .catch(() => {})
+        .finally(() => setPeakKmLoading(false));
+    }
+
+    // Load existing preferences when editing
+    fetch(`/api/coach/notes?athleteId=${athleteId}`)
+      .then(r => r.json())
+      .then((notes: {preferences?: Record<string, string>} | null) => {
+        if (!notes?.preferences) return;
+        const prefs = notes.preferences;
+        if (prefs.preferred_long_run_day === 'saturday' || prefs.preferred_long_run_day === 'sunday' || prefs.preferred_long_run_day === 'weekday') {
+          setPreferredLongRunDay(prefs.preferred_long_run_day);
+        }
+        if (prefs.gym_access !== undefined) {
+          setGymAccess(prefs.gym_access === 'true' || prefs.gym_access === 'yes');
+        }
+      })
+      .catch(() => {});
+  }, [athleteId, initialGoal?.recentPeakWeeklyKm]);
 
   const totalSteps = goalType === 'general_fitness' ? 4 : 5;
 
@@ -99,22 +123,35 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/coach/goal', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          athleteId,
-          goalType,
-          targetDate: targetDate || null,
-          targetEventName: eventName || null,
-          targetTimeMinutes: parseTimeToMinutes(targetTimeStr),
-          recentPeakWeeklyKm: recentPeakWeeklyKm ? Number(recentPeakWeeklyKm) : null,
-          experienceLevel: experience,
-          injuryHistory: injuryHistory || null,
-          additionalNotes: additionalNotes || null,
+      const [goalRes] = await Promise.all([
+        fetch('/api/coach/goal', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            athleteId,
+            goalType,
+            targetDate: targetDate || null,
+            targetEventName: eventName || null,
+            targetTimeMinutes: parseTimeToMinutes(targetTimeStr),
+            recentPeakWeeklyKm: recentPeakWeeklyKm ? Number(recentPeakWeeklyKm) : null,
+            experienceLevel: experience,
+            injuryHistory: injuryHistory || null,
+            additionalNotes: additionalNotes || null,
+          }),
         }),
-      });
-      const goal: Goal = await res.json();
+        fetch('/api/coach/notes', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            athleteId,
+            preferences: {
+              preferred_long_run_day: preferredLongRunDay,
+              gym_access: String(gymAccess),
+            },
+          }),
+        }),
+      ]);
+      const goal: Goal = await goalRes.json();
       onComplete(goal);
     } finally {
       setSaving(false);
@@ -246,7 +283,6 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                       />
                       <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-white/30">km</span>
                     </div>
-                    <p className="text-xs text-white/25 mt-1.5">Sets the safe starting point for your base phase. The coach asks for your available days each week.</p>
                   </div>
                   <div>
                     <label className="text-xs text-white/50 font-medium mb-2 block">Experience level</label>
@@ -280,24 +316,80 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
 
             {step === 4 && (
               <motion.div key="step4" initial={{opacity: 0, x: 20}} animate={{opacity: 1, x: 0}} exit={{opacity: 0, x: -20}}>
-                <h2 className="text-xl font-bold text-white mb-1">Health & context</h2>
-                <p className="text-sm text-white/40 mb-6">Your coach needs to know what to work around</p>
-                <div className="space-y-4">
+                <h2 className="text-xl font-bold text-white mb-1">Schedule & health</h2>
+                <p className="text-sm text-white/40 mb-6">Your coach uses these to build every single week</p>
+                <div className="space-y-5">
+                  {/* Long run day */}
+                  <div>
+                    <label className="text-xs text-white/50 font-medium mb-2 block">Preferred long run day</label>
+                    <div className="space-y-2">
+                      {LONG_RUN_DAY_OPTIONS.map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setPreferredLongRunDay(opt.value)}
+                          className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
+                            preferredLongRunDay === opt.value
+                              ? 'border-accent-blue bg-accent-blue/10 text-white'
+                              : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/20'
+                          }`}
+                        >
+                          <div className="flex-1">
+                            <div className="font-semibold text-sm">{opt.label}</div>
+                            <div className="text-xs opacity-60">{opt.desc}</div>
+                          </div>
+                          {preferredLongRunDay === opt.value && (
+                            <div className="w-4 h-4 rounded-full bg-accent-blue flex items-center justify-center flex-shrink-0">
+                              <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Gym access */}
+                  <div>
+                    <label className="text-xs text-white/50 font-medium mb-2 block">Gym access for strength training</label>
+                    <div className="flex gap-2">
+                      {([true, false] as const).map(val => (
+                        <button
+                          key={String(val)}
+                          onClick={() => setGymAccess(val)}
+                          className={`flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ${
+                            gymAccess === val
+                              ? 'border-accent-blue bg-accent-blue/10 text-white'
+                              : 'border-white/[0.08] bg-white/[0.02] text-white/50 hover:border-white/20'
+                          }`}
+                        >
+                          {val ? 'Yes' : 'No'}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-white/25 mt-1.5">
+                      {gymAccess
+                        ? 'Strength sessions will be scheduled on non-running days.'
+                        : 'Cross-training alternatives will replace gym workouts.'}
+                    </p>
+                  </div>
+
+                  {/* Injury history */}
                   <div>
                     <label className="text-xs text-white/50 font-medium mb-1.5 block">Injury history (optional)</label>
                     <textarea
-                      rows={3}
+                      rows={2}
                       placeholder="e.g. IT band issues 2024, mild plantar fasciitis in left foot (resolved)"
                       value={injuryHistory}
                       onChange={e => setInjuryHistory(e.target.value)}
                       className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/60 resize-none"
                     />
                   </div>
+
+                  {/* Additional notes */}
                   <div>
                     <label className="text-xs text-white/50 font-medium mb-1.5 block">Anything else? (optional)</label>
                     <textarea
                       rows={2}
-                      placeholder="e.g. prefer morning runs, travel often, no gym access"
+                      placeholder="e.g. prefer morning runs, travel often"
                       value={additionalNotes}
                       onChange={e => setAdditionalNotes(e.target.value)}
                       className="w-full bg-white/[0.06] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/60 resize-none"
@@ -319,6 +411,8 @@ export function GoalWizard({athleteId, initialGoal, onComplete, onCancel}: GoalW
                     parseTimeToMinutes(targetTimeStr) !== null && {label: 'Target time', value: targetTimeStr},
                     recentPeakWeeklyKm && {label: 'Peak weekly km', value: `${recentPeakWeeklyKm} km`},
                     {label: 'Level', value: experience.charAt(0).toUpperCase() + experience.slice(1)},
+                    {label: 'Long run day', value: LONG_RUN_DAY_OPTIONS.find(o => o.value === preferredLongRunDay)?.label},
+                    {label: 'Gym access', value: gymAccess ? 'Yes' : 'No'},
                   ].filter(Boolean).map((item: any) => (
                     <div key={item.label} className="flex items-center justify-between py-2 border-b border-white/[0.06]">
                       <span className="text-sm text-white/50">{item.label}</span>

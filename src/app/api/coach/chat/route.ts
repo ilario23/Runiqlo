@@ -195,11 +195,15 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
     await db.insert(schema.coachMessages).values(deduped);
   }
 
-  // Prune old messages within this session
+  // Prune old messages scoped to this session only
+  const sessionWhereClause = sessionId === null
+    ? and(eq(schema.coachMessages.athleteId, athleteId), isNull(schema.coachMessages.sessionId))
+    : and(eq(schema.coachMessages.athleteId, athleteId), eq(schema.coachMessages.sessionId, sessionId));
+
   const countRows = await db
     .select({id: schema.coachMessages.id, createdAt: schema.coachMessages.createdAt})
     .from(schema.coachMessages)
-    .where(eq(schema.coachMessages.athleteId, athleteId))
+    .where(sessionWhereClause)
     .orderBy(desc(schema.coachMessages.createdAt))
     .limit(PRUNE_ABOVE + 1);
 
@@ -210,7 +214,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
         .delete(schema.coachMessages)
         .where(
           and(
-            eq(schema.coachMessages.athleteId, athleteId),
+            sessionWhereClause,
             lt(schema.coachMessages.createdAt, cutoff),
           ),
         );

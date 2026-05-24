@@ -181,15 +181,6 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                           compact
                           selected={selected?.date === date && selected?.workoutIndex === wi}
                           onClick={() => handleWorkoutClick(i, wi, w)}
-                          onMarkDone={() => {
-                            const id = prompt('Enter your Strava activity ID:');
-                            if (!id) return;
-                            fetch('/api/coach/week', {
-                              method: 'PUT',
-                              headers: {'Content-Type': 'application/json'},
-                              body: JSON.stringify({athleteId, weekStart, date, workoutIndex: wi, stravaActivityId: Number(id)}),
-                            }).then(() => fetchPlan(weekStart));
-                          }}
                         />
                       ))}
                     </div>
@@ -205,9 +196,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
               selected={selected}
               onClose={() => setSelected(null)}
               isToday={selected.date === today}
-              onMarkDone={() => {
-                const id = prompt('Enter your Strava activity ID:');
-                if (!id) return;
+              onMarkDone={(stravaActivityId: number) => {
                 fetch('/api/coach/week', {
                   method: 'PUT',
                   headers: {'Content-Type': 'application/json'},
@@ -216,7 +205,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                     weekStart,
                     date: selected.date,
                     workoutIndex: selected.workoutIndex,
-                    stravaActivityId: Number(id),
+                    stravaActivityId,
                   }),
                 }).then(() => fetchPlan(weekStart));
               }}
@@ -243,8 +232,10 @@ function WorkoutDetailPanel({
   selected: SelectedWorkout;
   onClose: () => void;
   isToday: boolean;
-  onMarkDone: () => void;
+  onMarkDone: (stravaActivityId: number) => void;
 }) {
+  const [showLinkInput, setShowLinkInput] = useState(false);
+  const [activityIdInput, setActivityIdInput] = useState('');
   const {workout, dayIndex} = selected;
   const label = TYPE_LABELS[workout.type] ?? workout.type;
 
@@ -325,13 +316,54 @@ function WorkoutDetailPanel({
       )}
 
       {/* Mark done */}
-      {!workout.completed && isToday && (
+      {!workout.completed && isToday && !showLinkInput && (
         <button
-          onClick={onMarkDone}
+          onClick={() => setShowLinkInput(true)}
           className="mt-3 text-xs text-white/50 hover:text-white/80 underline transition-colors"
         >
           Mark complete
         </button>
+      )}
+      {!workout.completed && isToday && showLinkInput && (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-white/40">Enter your Strava activity ID to link it:</p>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              placeholder="e.g. 14823650471"
+              value={activityIdInput}
+              onChange={e => setActivityIdInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && activityIdInput) {
+                  onMarkDone(Number(activityIdInput));
+                  setShowLinkInput(false);
+                  setActivityIdInput('');
+                }
+              }}
+              className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-accent-blue/60 font-mono"
+              autoFocus
+            />
+            <button
+              onClick={() => {
+                if (activityIdInput) {
+                  onMarkDone(Number(activityIdInput));
+                  setShowLinkInput(false);
+                  setActivityIdInput('');
+                }
+              }}
+              disabled={!activityIdInput}
+              className="px-3 py-1.5 rounded-lg bg-accent-green/20 border border-accent-green/30 text-accent-green text-xs font-semibold hover:bg-accent-green/30 transition-colors disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => { setShowLinkInput(false); setActivityIdInput(''); }}
+              className="text-xs text-white/30 hover:text-white/60 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

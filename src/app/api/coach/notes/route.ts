@@ -34,8 +34,12 @@ export async function POST(req: NextRequest) {
       .update(schema.athleteNotes)
       .set({
         injuryHistory: injuryHistory ?? existing[0].injuryHistory,
-        preferences: preferences ?? existing[0].preferences,
-        responsePatterns: responsePatterns ?? existing[0].responsePatterns,
+        preferences: preferences
+          ? {...(existing[0].preferences as Record<string, string>), ...preferences}
+          : existing[0].preferences,
+        responsePatterns: responsePatterns
+          ? {...(existing[0].responsePatterns as Record<string, string>), ...responsePatterns}
+          : existing[0].responsePatterns,
         freeformNotes: freeformNotes !== undefined ? freeformNotes : existing[0].freeformNotes,
         lastUpdatedAt: now,
       })
