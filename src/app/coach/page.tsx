@@ -7,6 +7,7 @@ import {GoalCard} from './components/GoalCard';
 import {ChatPanel} from './components/ChatPanel';
 import {WeekPlan} from './components/WeekPlan';
 import {PlanOverview} from './components/PlanOverview';
+import {CoachSplitLayout} from './components/CoachSplitLayout';
 import type {Goal, TrainingPlan} from '@/lib/coachTypes';
 
 type PlanTab = 'week' | 'plan';
@@ -92,65 +93,66 @@ export default function CoachPage() {
     <div className="flex flex-col h-screen bg-[#070708]">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden pt-14">
-        {/* Chat panel — left column */}
-        <div className="w-96 flex-shrink-0 border-r border-white/[0.07] flex flex-col">
-          <ChatPanel
-            athleteId={athleteId}
-            initialMessage={initialMessage}
-            onPlanSaved={handleCoachTurnFinished}
-          />
-        </div>
+        <CoachSplitLayout
+          leftPanel={
+            <ChatPanel
+              athleteId={athleteId}
+              initialMessage={initialMessage}
+              onPlanSaved={handleCoachTurnFinished}
+            />
+          }
+          rightPanel={
+            <div className="h-full overflow-y-auto">
+              <div className="p-5 space-y-4 max-w-4xl mx-auto">
+                {goal ? (
+                  <>
+                    <GoalCard goal={goal} currentPhase={currentPhase} />
 
-        {/* Right column */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-5 space-y-4 max-w-4xl mx-auto">
-            {goal ? (
-              <>
-                <GoalCard goal={goal} currentPhase={currentPhase} />
+                    <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1 w-fit">
+                      {(['week', 'plan'] as PlanTab[]).map(tab => (
+                        <button
+                          key={tab}
+                          onClick={() => setActiveTab(tab)}
+                          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                            activeTab === tab
+                              ? 'bg-white/[0.10] text-white'
+                              : 'text-white/40 hover:text-white/70'
+                          }`}
+                        >
+                          {tab === 'week' ? 'This Week' : 'Training Plan'}
+                        </button>
+                      ))}
+                    </div>
 
-                <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1 w-fit">
-                  {(['week', 'plan'] as PlanTab[]).map(tab => (
-                    <button
-                      key={tab}
-                      onClick={() => setActiveTab(tab)}
-                      className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                        activeTab === tab
-                          ? 'bg-white/[0.10] text-white'
-                          : 'text-white/40 hover:text-white/70'
-                      }`}
-                    >
-                      {tab === 'week' ? 'This Week' : 'Training Plan'}
-                    </button>
-                  ))}
-                </div>
-
-                {activeTab === 'week' ? (
-                  <WeekPlan
-                    key={`week-${planKey}`}
-                    athleteId={athleteId}
-                    initialWeekStart={weekStart}
-                  />
+                    {activeTab === 'week' ? (
+                      <WeekPlan
+                        key={`week-${planKey}`}
+                        athleteId={athleteId}
+                        initialWeekStart={weekStart}
+                      />
+                    ) : (
+                      <PlanOverview
+                        key={`plan-${planKey}`}
+                        athleteId={athleteId}
+                        onWeekClick={ws => {
+                          setWeekStart(ws);
+                          setActiveTab('week');
+                        }}
+                        onPlanRestored={() => {
+                          fetchGoal();
+                          fetchPlan();
+                          setPlanKey(k => k + 1);
+                        }}
+                      />
+                    )}
+                  </>
                 ) : (
-                  <PlanOverview
-                    key={`plan-${planKey}`}
-                    athleteId={athleteId}
-                    onWeekClick={ws => {
-                      setWeekStart(ws);
-                      setActiveTab('week');
-                    }}
-                    onPlanRestored={() => {
-                      fetchGoal();
-                      fetchPlan();
-                      setPlanKey(k => k + 1);
-                    }}
-                  />
+                  <OnboardingWelcome />
                 )}
-              </>
-            ) : (
-              <OnboardingWelcome />
-            )}
-          </div>
-        </div>
+              </div>
+            </div>
+          }
+        />
       </div>
     </div>
   );
