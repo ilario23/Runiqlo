@@ -428,19 +428,20 @@ function HRZoneCard({
       ) : (
         <div className="flex-1 flex flex-col gap-4">
           {/* Bar list */}
-          <div className="space-y-2.5">
-            <AnimatePresence mode="popLayout" initial={false}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={grouping}
+              initial={{opacity: 0}}
+              animate={{opacity: 1}}
+              exit={{opacity: 0}}
+              transition={{duration: 0.15}}
+              className="space-y-2.5"
+            >
               {displayZones.map((zone, i) => {
                 const value = metric === 'time' ? zone.time : zone.distance;
                 const pct = total > 0 ? Math.round((value / total) * 100) : 0;
                 return (
-                  <motion.div
-                    key={zone.key}
-                    initial={{opacity: 0, height: 0, marginBottom: 0}}
-                    animate={{opacity: 1, height: 'auto', marginBottom: 0}}
-                    exit={{opacity: 0, height: 0}}
-                    transition={{duration: 0.25, ease: 'easeInOut'}}
-                  >
+                  <div key={zone.key}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[11px] text-white/60 font-medium">{zone.label}</span>
                       <span className="text-[11px] text-white/45">
@@ -459,21 +460,29 @@ function HRZoneCard({
                         transition={{duration: 0.45, delay: i * 0.04, ease: 'easeOut'}}
                       />
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
-            </AnimatePresence>
 
-            <p className="text-[10px] text-white/25 pt-0.5">
-              Total:{' '}
-              {metric === 'time'
-                ? formatDuration(totalTime)
-                : `${totalDistance.toFixed(1)} km`}
-            </p>
-          </div>
+              <p className="text-[10px] text-white/25 pt-0.5">
+                Total:{' '}
+                {metric === 'time'
+                  ? formatDuration(totalTime)
+                  : `${totalDistance.toFixed(1)} km`}
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
           {/* Donut Chart */}
-          <div className="flex-1 min-h-0">
+          <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={grouping}
+            className="flex-1 min-h-0"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            exit={{opacity: 0}}
+            transition={{duration: 0.15}}
+          >
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -485,7 +494,10 @@ function HRZoneCard({
                   dataKey="value"
                   strokeWidth={0}
                   paddingAngle={1}
-                  isAnimationActive={false}
+                  isAnimationActive={true}
+                  animationBegin={0}
+                  animationDuration={450}
+                  animationEasing="ease-out"
                 >
                   {pieData.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
@@ -512,7 +524,8 @@ function HRZoneCard({
                 />
               </PieChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
+          </AnimatePresence>
         </div>
       )}
     </div>
@@ -627,7 +640,7 @@ function StatTile({label, value, sub, color, isLoading, primary, info}: StatTile
             {info && (
               <div className="relative group">
                 <Info size={10} className="text-white/25 hover:text-white/55 cursor-default transition-colors" />
-                <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-52 p-3 rounded-xl bg-[#13131f] border border-white/10 text-[10px] text-white/65 leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 shadow-lg">
+                <div className="absolute left-1/2 -translate-x-1/2 top-5 w-52 p-3 rounded-xl bg-[#13131f] border border-white/10 text-[10px] text-white/65 leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 shadow-lg">
                   {info}
                 </div>
               </div>
@@ -675,7 +688,7 @@ function StatsStrip({
       : undefined;
 
   return (
-    <div className="flex items-stretch divide-x divide-white/[0.08] border border-white/[0.10] rounded-2xl overflow-hidden bg-white/[0.03]" style={{boxShadow: 'var(--shadow-base)'}}>
+    <div className="flex items-stretch divide-x divide-white/[0.08] border border-white/[0.10] rounded-2xl overflow-visible bg-white/[0.03]" style={{boxShadow: 'var(--shadow-base)'}}>
       <div className="flex-[2] min-w-0">
         <StatTile
           label="YTD Distance"
