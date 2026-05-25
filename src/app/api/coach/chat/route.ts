@@ -1,12 +1,13 @@
 import {streamText, stepCountIs, convertToModelMessages} from 'ai';
-import type {ModelMessage, UIMessage, AssistantContent} from 'ai';
+import type {ModelMessage, UIMessage} from 'ai';
 import {NextRequest} from 'next/server';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
-import {eq, asc, desc, lt, and, inArray, isNull, isNotNull, sql} from 'drizzle-orm';
+import {eq, asc, desc, lt, and, inArray, isNull, sql} from 'drizzle-orm';
 import {getLLMModel, isAnthropicProvider} from '@/lib/llm';
 import {getCoachTools} from '@/lib/coachTools';
 import {buildCoachSystemPrompt} from '@/lib/coachContext';
+import {sanitizeHistory, rowsToUIMessages, loadAssistantContent} from '@/lib/chatUtils';
 
 const MAX_HISTORY = 40;
 const PRUNE_ABOVE = 80;
@@ -34,61 +35,6 @@ async function resolveCurrentSessionId(athleteId: number): Promise<string | null
   return rows[0].sessionId;
 }
 
-// Remove tool call / result pairs that are incomplete or out of order.
-// This handles rows that were persisted with wrong timestamps (pre-fix) which
-// could be reloaded in an order that breaks Anthropic's tool_use → tool_result invariant.
-function sanitizeHistory(messages: ModelMessage[]): ModelMessage[] {
-  const out: ModelMessage[] = [];
-  const pending = new Set<string>(); // tool call IDs awaiting results
-
-  for (const msg of messages) {
-    if (msg.role === 'assistant') {
-      if (pending.size > 0) {
-        // Previous assistant had unfulfilled tool calls — drop from there
-        while (out.length && out[out.length - 1].role !== 'user') out.pop();
-        pending.clear();
-      }
-      const parts = Array.isArray(msg.content)
-        ? (msg.content as Array<{type: string; toolCallId?: string}>)
-        : [];
-      parts.filter(p => p.type === 'tool-call' && p.toolCallId).forEach(p => pending.add(p.toolCallId!));
-      out.push(msg);
-    } else if (msg.role === 'tool') {
-      if (pending.size === 0) {
-        // Orphaned tool result with no matching tool call — remove the preceding assistant message too
-        while (out.length && out[out.length - 1].role !== 'user') out.pop();
-        continue;
-      }
-      const parts = Array.isArray(msg.content)
-        ? (msg.content as Array<{type: string; toolCallId?: string}>)
-        : [];
-      const resultIds = parts.filter(p => p.type === 'tool-result' && p.toolCallId).map(p => p.toolCallId!);
-      const unmatched = resultIds.filter(id => !pending.has(id));
-      if (unmatched.length > 0) {
-        // Results don't match pending calls — drop both sides
-        while (out.length && out[out.length - 1].role !== 'user') out.pop();
-        pending.clear();
-        continue;
-      }
-      resultIds.forEach(id => pending.delete(id));
-      out.push(msg);
-    } else {
-      // user message: if there are pending calls they'll never get results, drop them
-      if (pending.size > 0) {
-        while (out.length && out[out.length - 1].role !== 'user') out.pop();
-        pending.clear();
-      }
-      out.push(msg);
-    }
-  }
-
-  // Trailing unfulfilled tool calls
-  if (pending.size > 0) {
-    while (out.length && out[out.length - 1].role !== 'user') out.pop();
-  }
-
-  return out;
-}
 
 async function loadHistory(athleteId: number, sessionId: string | null | undefined): Promise<ModelMessage[]> {
   const db = getDb();
@@ -122,19 +68,10 @@ async function loadHistory(athleteId: number, sessionId: string | null | undefin
       };
     }
     if (r.role === 'assistant') {
-      try {
-        const parsed = JSON.parse(r.content);
-        if (Array.isArray(parsed)) {
-          const migrated = parsed.map((part: Record<string, unknown>) => {
-            if (part.type === 'tool-call' && 'args' in part && !('input' in part)) {
-              const {args, ...rest} = part;
-              return {...rest, input: args};
-            }
-            return part;
-          });
-          return {role: 'assistant' as const, content: migrated as unknown as AssistantContent};
-        }
-      } catch {}
+      const parsed = loadAssistantContent(r.content);
+      if (typeof parsed !== 'string') {
+        return {role: 'assistant' as const, content: parsed};
+      }
     }
     return {
       role: r.role as 'user' | 'assistant',
@@ -278,32 +215,6 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
         );
     }
   }
-}
-
-function rowsToUIMessages(rows: typeof schema.coachMessages.$inferSelect[]): UIMessage[] {
-  return rows.flatMap(r => {
-    let content = r.content;
-    if (r.role === 'assistant') {
-      try {
-        const parsed = JSON.parse(r.content);
-        if (Array.isArray(parsed)) {
-          const text = parsed
-            .filter((p): p is {type: 'text'; text: string} => p.type === 'text')
-            .map(p => p.text)
-            .join('');
-          if (!text) return [];
-          content = text;
-        }
-      } catch {}
-    }
-    if (!content) return [];
-    return [{
-      id: String(r.id),
-      role: r.role as 'user' | 'assistant',
-      parts: [{type: 'text' as const, text: content}],
-      createdAt: new Date(r.createdAt),
-    }];
-  });
 }
 
 // GET — supports ?sessionId=X, ?listSessions=1, or default (current session)
