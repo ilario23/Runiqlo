@@ -53,9 +53,10 @@ interface PlanOverviewProps {
   athleteId: number;
   onWeekClick?: (weekStart: string) => void;
   onPlanRestored?: () => void;
+  onPlanDeleted?: () => void;
 }
 
-export function PlanOverview({athleteId, onWeekClick, onPlanRestored}: PlanOverviewProps) {
+export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDeleted}: PlanOverviewProps) {
   const [plan, setPlan] = useState<TrainingPlan | null | undefined>(undefined);
   const [weekSketches, setWeekSketches] = useState<WeekSketch[] | null>(null);
   const [actualKmByWeek, setActualKmByWeek] = useState<Record<string, number>>({});
@@ -67,6 +68,7 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored}: PlanOverv
   const [allPlans, setAllPlans] = useState<TrainingPlan[] | null>(null);
   const [showPastPlans, setShowPastPlans] = useState(false);
   const [restoringPlanId, setRestoringPlanId] = useState<number | null>(null);
+  const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch(`/api/coach/plan?athleteId=${athleteId}`)
@@ -100,6 +102,18 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored}: PlanOverv
       onPlanRestored?.();
     } finally {
       setRestoringPlanId(null);
+    }
+  };
+
+  const handleDeletePlan = async (planId: number) => {
+    if (deletingPlanId !== null) return;
+    setDeletingPlanId(planId);
+    try {
+      await fetch(`/api/coach/plan?athleteId=${athleteId}&planId=${planId}`, {method: 'DELETE'});
+      setAllPlans(prev => prev?.filter(p => p.id !== planId) ?? prev);
+      onPlanDeleted?.();
+    } finally {
+      setDeletingPlanId(null);
     }
   };
 
@@ -426,6 +440,8 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored}: PlanOverv
         onToggle={() => setShowPastPlans(v => !v)}
         restoringPlanId={restoringPlanId}
         onRestore={handleRestore}
+        deletingPlanId={deletingPlanId}
+        onDelete={handleDeletePlan}
       />
     </div>
   );
@@ -440,6 +456,8 @@ function PastPlansSection({
   onToggle,
   restoringPlanId,
   onRestore,
+  deletingPlanId,
+  onDelete,
 }: {
   allPlans: TrainingPlan[] | null;
   activePlanId: number;
@@ -447,6 +465,8 @@ function PastPlansSection({
   onToggle: () => void;
   restoringPlanId: number | null;
   onRestore: (planId: number) => void;
+  deletingPlanId: number | null;
+  onDelete: (planId: number) => void;
 }) {
   const pastPlans = allPlans?.filter(p => p.id !== activePlanId) ?? [];
   const loading = allPlans === null;
@@ -498,6 +518,7 @@ function PastPlansSection({
               const phases = p.phases as TrainingPhase[];
               const totalWeeks = phases.reduce((s, ph) => s + ph.weekCount, 0);
               const isRestoring = restoringPlanId === p.id;
+              const isDeleting = deletingPlanId === p.id;
               const generatedDate = new Date(p.generatedAt).toLocaleDateString([], {
                 month: 'short', day: 'numeric', year: 'numeric',
               });
@@ -519,23 +540,44 @@ function PastPlansSection({
                     </div>
                     <div className="text-[10px] text-white/20 mt-0.5">Generated {generatedDate}</div>
                   </div>
-                  <button
-                    onClick={() => onRestore(p.id)}
-                    disabled={isRestoring}
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-white/[0.10] text-white/50 hover:text-white/80 border border-white/[0.08] transition-colors disabled:opacity-40"
-                  >
-                    {isRestoring ? (
-                      <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                      </svg>
-                    ) : (
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-                        <path d="M3 3v5h5" />
-                      </svg>
-                    )}
-                    {isRestoring ? 'Restoring…' : 'Restore'}
-                  </button>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => onRestore(p.id)}
+                      disabled={isRestoring || isDeleting}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-white/[0.10] text-white/50 hover:text-white/80 border border-white/[0.08] transition-colors disabled:opacity-40"
+                    >
+                      {isRestoring ? (
+                        <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                      ) : (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                          <path d="M3 3v5h5" />
+                        </svg>
+                      )}
+                      {isRestoring ? 'Restoring…' : 'Restore'}
+                    </button>
+                    <button
+                      onClick={() => onDelete(p.id)}
+                      disabled={isDeleting || isRestoring}
+                      title="Delete plan"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-white/30 hover:text-red-400 border border-white/[0.08] hover:border-red-500/30 transition-colors disabled:opacity-40"
+                    >
+                      {isDeleting ? (
+                        <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6M14 11v6" />
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
                 </div>
               );
             })

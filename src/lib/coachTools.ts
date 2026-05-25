@@ -363,8 +363,12 @@ export function getCoachTools(athleteId: number) {
                   ),
                   durationMinutes: z.number().nullable().optional(),
                   distanceKm: z.number().nullable().optional(),
-                  intensityDescription: z.string(),
-                  specificInstructions: z.string(),
+                  intensityDescription: z.string().describe(
+                    'One-line effort summary. MUST include the target HR zone using the 6-zone model (Zone 1–6), e.g. "Zone 2 · Easy aerobic · conversational pace" or "Zone 4 · Threshold · comfortably hard" or "Zone 6 · Neuromuscular · max sprint effort". Never omit the zone number.',
+                  ),
+                  specificInstructions: z.string().describe(
+                    'Structured session breakdown using newlines between phases. Start each phase label in ALL CAPS followed by a colon. EVERY phase must include its target zone from the 6-zone model (Zone 1–6). Zone guide: Z1 recovery, Z2 easy aerobic, Z3 aerobic/tempo, Z4 threshold, Z5 VO2max, Z6 neuromuscular/max sprint. e.g.:\nWARM-UP: 10 min Zone 1–2 · easy jog, conversational\nMAIN SET: 3 × 8 min Zone 3–4 · tempo at half-marathon effort, 2 min Zone 1 jog recovery\nCOOL-DOWN: 5 min Zone 1 · easy walk/jog\nFor strides: "4 × 20 sec Zone 6 · max sprint, 90 sec Zone 1 walk recovery". For easy runs with no phases, still state the zone: "Zone 2 throughout · nasal breathing, fully conversational".',
+                  ),
                   completed: z.boolean().default(false),
                   linkedStravaActivityId: z.number().nullable().optional(),
                 }),

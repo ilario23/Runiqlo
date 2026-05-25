@@ -3,6 +3,7 @@ import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, desc} from 'drizzle-orm';
 
+
 export async function GET(req: NextRequest) {
   const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
   if (!athleteId) return NextResponse.json({error: 'athleteId required'}, {status: 400});
@@ -35,5 +36,21 @@ export async function PUT(req: NextRequest) {
     .set({isActive: true})
     .where(and(eq(schema.trainingPlan.athleteId, athleteId), eq(schema.trainingPlan.id, restorePlanId)));
 
+  return NextResponse.json({ok: true});
+}
+
+export async function DELETE(req: NextRequest) {
+  const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
+  const planId = Number(req.nextUrl.searchParams.get('planId'));
+  if (!athleteId || !planId) {
+    return NextResponse.json({error: 'athleteId and planId required'}, {status: 400});
+  }
+  const db = getDb();
+  await db
+    .delete(schema.weeklyPlan)
+    .where(eq(schema.weeklyPlan.trainingPlanId, planId));
+  await db
+    .delete(schema.trainingPlan)
+    .where(and(eq(schema.trainingPlan.athleteId, athleteId), eq(schema.trainingPlan.id, planId)));
   return NextResponse.json({ok: true});
 }

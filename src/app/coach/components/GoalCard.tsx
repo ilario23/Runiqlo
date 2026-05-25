@@ -54,7 +54,7 @@ export function GoalCard({goal, currentPhase}: GoalCardProps) {
                   {weeksAway > 0 ? `${weeksAway} weeks away` : 'Event passed'}
                 </span>
               )}
-              <span className="text-xs text-white/30">{goal.weeklyHoursAvailable}h/week · {goal.experienceLevel}</span>
+              <span className="text-xs text-white/30">{goal.experienceLevel}</span>
             </div>
           </div>
         </div>

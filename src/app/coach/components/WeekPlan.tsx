@@ -1,6 +1,8 @@
 'use client';
 
 import {useState, useEffect, useCallback} from 'react';
+import {Activity, TrendingUp, Zap, Timer, Wind, Dumbbell, Bike, Leaf, Shuffle, Moon, Mountain, Waves, CalendarDays, Download} from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import {WorkoutCard} from './WorkoutCard';
 import type {WeeklyPlan, PlannedDay, PlannedWorkout} from '@/lib/coachTypes';
 import {COLORS} from '@/lib/activityModel';
@@ -50,6 +52,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SelectedWorkout | null>(null);
+  const [exporting, setExporting] = useState(false);
   const today = getMonday(new Date()) === weekStart
     ? (() => {
         const d = new Date();
@@ -78,6 +81,26 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
   const nextWeek = () => setWeekStart(addDays(weekStart, 7));
+
+  const handleExport = async () => {
+    if (!plan || exporting) return;
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/coach/week/ics?athleteId=${athleteId}&weekStart=${weekStart}`);
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `training-week-${weekStart}.ics`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch { /* silent */ } finally {
+      setExporting(false);
+    }
+  };
 
   const weekEnd = addDays(weekStart, 6);
   const isCurrentWeek = weekStart === getMonday();
@@ -115,6 +138,25 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           )}
         </div>
         <div className="flex items-center gap-1">
+          {plan && (
+            <>
+              <button
+                onClick={handleExport}
+                disabled={exporting}
+                title="Export to calendar (.ics)"
+                className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors disabled:opacity-40"
+              >
+                <Download style={{width: '12px', height: '12px'}} />
+              </button>
+              <a
+                href={`webcal://${typeof window !== 'undefined' ? window.location.host : ''}/api/coach/week/ics?athleteId=${athleteId}&mode=subscribe`}
+                title="Subscribe to training calendar"
+                className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors"
+              >
+                <CalendarDays style={{width: '12px', height: '12px'}} />
+              </a>
+            </>
+          )}
           <button
             onClick={prevWeek}
             className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors"
@@ -215,7 +257,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
         </>
       ) : (
         <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-6 text-center">
-          <div className="text-2xl mb-2">📅</div>
+          <CalendarDays className="w-8 h-8 text-white/20 mx-auto mb-2" />
           <p className="text-sm text-white/40 mb-1">No plan for this week yet</p>
           <p className="text-xs text-white/25">Ask the coach to generate your weekly schedule</p>
         </div>
@@ -238,12 +280,49 @@ interface MatchCandidate {
   alreadyLinked: boolean;
 }
 
-const ACTIVITY_TYPE_ICON: Record<string, string> = {
-  Run: '🏃',
-  Ride: '🚴',
-  Hike: '🥾',
-  Swim: '🏊',
+const ACTIVITY_TYPE_ICON: Record<string, LucideIcon> = {
+  Run: Activity,
+  Ride: Bike,
+  Hike: Mountain,
+  Swim: Waves,
 };
+
+function parsePhases(text: string | null | undefined): {label: string; text: string}[] {
+  if (!text) return [];
+
+  // Try splitting on newlines first
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+  if (lines.length > 1) {
+    return lines.map(line => {
+      const colonIdx = line.indexOf(':');
+      const candidate = colonIdx > 0 ? line.slice(0, colonIdx).trim() : '';
+      const isLabel = candidate.length > 0 && candidate.length <= 20 && candidate === candidate.toUpperCase();
+      return isLabel
+        ? {label: candidate, text: line.slice(colonIdx + 1).trim()}
+        : {label: '', text: line};
+    });
+  }
+
+  // Single line: try splitting on ", then " or " then "
+  const parts = text.split(/,?\s+then\s+/i).map(p => p.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    return parts.map(p => ({label: '', text: p}));
+  }
+
+  return [{label: '', text: text}];
+}
+
+function getZoneColor(intensityDescription: string | null | undefined): string {
+  if (!intensityDescription) return 'bg-white/[0.08] text-white/60';
+  const match = intensityDescription.match(/zone\s*([1-6])/i);
+  if (!match) return 'bg-white/[0.08] text-white/60';
+  const zone = parseInt(match[1]);
+  if (zone <= 2) return 'bg-accent-green/15 text-accent-green';
+  if (zone === 3) return 'bg-accent-yellow/15 text-accent-yellow';
+  if (zone <= 5) return 'bg-accent-red/15 text-accent-red';
+  return 'bg-accent-purple/15 text-accent-purple';
+}
 
 function WorkoutDetailPanel({
   selected,
@@ -266,27 +345,36 @@ function WorkoutDetailPanel({
   const {workout, dayIndex} = selected;
   const label = TYPE_LABELS[workout.type] ?? workout.type;
 
-  const TYPE_CONFIG: Record<string, {color: string; icon: string; accent: string}> = {
-    easy_run:     {color: 'border-accent-green/30 bg-accent-green/5',   icon: '🏃', accent: COLORS.green},
-    long_run:     {color: 'border-accent-green/30 bg-accent-green/5',   icon: '🏃', accent: COLORS.green},
-    tempo_run:    {color: 'border-accent-yellow/30 bg-accent-yellow/5', icon: '⚡', accent: COLORS.yellow},
-    interval_run: {color: 'border-accent-red/30 bg-accent-red/5',       icon: '🔥', accent: COLORS.red},
-    recovery_run: {color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',         icon: '🌊', accent: '#64d2ff'},
-    gym:          {color: 'border-accent-orange/30 bg-accent-orange/5', icon: '🏋️', accent: COLORS.orange},
-    cycling:      {color: 'border-accent-blue/30 bg-accent-blue/5',     icon: '🚴', accent: COLORS.blue},
-    yoga:         {color: 'border-accent-purple/30 bg-accent-purple/5', icon: '🧘', accent: COLORS.purple},
-    cross_training:{color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',        icon: '💪', accent: '#64d2ff'},
-    rest:         {color: 'border-white/10 bg-white/[0.02]',            icon: '😴', accent: '#ffffff60'},
+  const TYPE_CONFIG: Record<string, {color: string; icon: LucideIcon; iconColor: string; accent: string}> = {
+    easy_run:     {color: 'border-accent-green/30 bg-accent-green/5',   icon: Activity,   iconColor: 'text-accent-green',  accent: COLORS.green},
+    long_run:     {color: 'border-accent-green/30 bg-accent-green/5',   icon: TrendingUp, iconColor: 'text-accent-green',  accent: COLORS.green},
+    tempo_run:    {color: 'border-accent-yellow/30 bg-accent-yellow/5', icon: Zap,        iconColor: 'text-accent-yellow', accent: COLORS.yellow},
+    interval_run: {color: 'border-accent-red/30 bg-accent-red/5',       icon: Timer,      iconColor: 'text-accent-red',    accent: COLORS.red},
+    recovery_run: {color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',         icon: Wind,       iconColor: 'text-[#64d2ff]',     accent: '#64d2ff'},
+    gym:          {color: 'border-accent-orange/30 bg-accent-orange/5', icon: Dumbbell,   iconColor: 'text-accent-orange', accent: COLORS.orange},
+    cycling:      {color: 'border-accent-blue/30 bg-accent-blue/5',     icon: Bike,       iconColor: 'text-accent-blue',   accent: COLORS.blue},
+    yoga:         {color: 'border-accent-purple/30 bg-accent-purple/5', icon: Leaf,       iconColor: 'text-accent-purple', accent: COLORS.purple},
+    cross_training:{color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',        icon: Shuffle,    iconColor: 'text-[#64d2ff]',     accent: '#64d2ff'},
+    rest:         {color: 'border-white/10 bg-white/[0.02]',            icon: Moon,       iconColor: 'text-white/30',      accent: '#ffffff60'},
   };
 
   const cfg = TYPE_CONFIG[workout.type] ?? TYPE_CONFIG.rest;
+  const WorkoutIcon = cfg.icon;
+
+  // Parse specificInstructions into phases for structured display
+  const phases = parsePhases(workout.specificInstructions);
+
+  // Parse zone number from intensityDescription for color coding
+  const zoneColor = getZoneColor(workout.intensityDescription);
 
   return (
     <div className={`mt-3 rounded-2xl border p-4 ${cfg.color} animate-in slide-in-from-top-2 duration-200`}>
       {/* Header row */}
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2.5">
-          <span className="text-xl">{cfg.icon}</span>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-white/[0.06] ${cfg.iconColor} flex-shrink-0`}>
+            <WorkoutIcon className="w-4.5 h-4.5" style={{width: '18px', height: '18px'}} />
+          </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-white">{label}</span>
@@ -311,19 +399,35 @@ function WorkoutDetailPanel({
         </button>
       </div>
 
-      {/* Intensity / effort */}
+      {/* Effort badge */}
       {workout.intensityDescription && (
-        <div className="mb-3">
-          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1">Effort Level</div>
-          <p className="text-sm text-white/75 leading-relaxed">{workout.intensityDescription}</p>
+        <div className="mb-4">
+          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1.5">Effort</div>
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${zoneColor}`}>
+            {workout.intensityDescription}
+          </span>
         </div>
       )}
 
-      {/* Specific instructions */}
+      {/* Session breakdown */}
       {workout.specificInstructions && (
-        <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] px-3 py-3">
-          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-2">Session Instructions</div>
-          <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{workout.specificInstructions}</p>
+        <div>
+          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-2">Session</div>
+          <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+            {phases.map((phase, idx) => (
+              <div key={idx} className={`flex gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-white/[0.05]' : ''}`}>
+                <span className="w-5 h-5 rounded-full bg-white/[0.08] flex items-center justify-center text-[10px] font-semibold text-white/40 flex-shrink-0 mt-0.5">
+                  {idx + 1}
+                </span>
+                <div className="flex-1 min-w-0">
+                  {phase.label && (
+                    <div className="text-[10px] uppercase tracking-wider font-semibold text-white/40 mb-0.5">{phase.label}</div>
+                  )}
+                  <p className="text-sm text-white/80 leading-relaxed">{phase.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -392,7 +496,7 @@ function WorkoutDetailPanel({
               {candidates && candidates.length > 0 && !manualMode && (
                 <div className="space-y-1.5">
                   {candidates.slice(0, 5).map(c => {
-                    const icon = ACTIVITY_TYPE_ICON[c.type] ?? '🏃';
+                    const CandidateIcon = ACTIVITY_TYPE_ICON[c.type] ?? Activity;
                     return (
                       <button
                         key={c.id}
@@ -407,7 +511,7 @@ function WorkoutDetailPanel({
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
-                          <span className="text-base leading-none mt-0.5">{icon}</span>
+                          <CandidateIcon className="w-4 h-4 mt-0.5 text-white/50 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-sm font-medium text-white truncate">{c.name}</span>

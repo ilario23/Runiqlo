@@ -369,3 +369,18 @@ export async function POST(req: NextRequest) {
     },
   });
 }
+
+export async function DELETE(req: NextRequest) {
+  const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
+  const sessionIdParam = req.nextUrl.searchParams.get('sessionId');
+  if (!athleteId || sessionIdParam === null) {
+    return Response.json({error: 'athleteId and sessionId required'}, {status: 400});
+  }
+  const db = getDb();
+  const sessionId = sessionIdParam === 'null' ? null : sessionIdParam;
+  const where = sessionId === null
+    ? and(eq(schema.coachMessages.athleteId, athleteId), isNull(schema.coachMessages.sessionId))
+    : and(eq(schema.coachMessages.athleteId, athleteId), eq(schema.coachMessages.sessionId, sessionId));
+  await db.delete(schema.coachMessages).where(where);
+  return Response.json({ok: true});
+}

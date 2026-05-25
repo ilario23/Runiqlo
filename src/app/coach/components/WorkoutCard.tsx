@@ -1,18 +1,20 @@
 'use client';
 
+import {Activity, TrendingUp, Zap, Timer, Wind, Dumbbell, Bike, Leaf, Shuffle, Moon} from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import type {PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
 
-const TYPE_CONFIG: Record<WorkoutType, {label: string; color: string; icon: string}> = {
-  easy_run:     {label: 'Easy Run',     color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: '🏃'},
-  long_run:     {label: 'Long Run',     color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: '🏃'},
-  tempo_run:    {label: 'Tempo Run',    color: 'text-accent-yellow border-accent-yellow/30 bg-accent-yellow/8', icon: '⚡'},
-  interval_run: {label: 'Intervals',    color: 'text-accent-red border-accent-red/30 bg-accent-red/8',          icon: '🔥'},
-  recovery_run: {label: 'Recovery Run', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: '🌊'},
-  gym:          {label: 'Gym',          color: 'text-accent-orange border-accent-orange/30 bg-accent-orange/8', icon: '🏋️'},
-  cycling:      {label: 'Cycling',      color: 'text-accent-blue border-accent-blue/30 bg-accent-blue/8',       icon: '🚴'},
-  yoga:         {label: 'Yoga',         color: 'text-accent-purple border-accent-purple/30 bg-accent-purple/8', icon: '🧘'},
-  cross_training:{label: 'Cross Train', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: '💪'},
-  rest:         {label: 'Rest',         color: 'text-white/30 border-white/10 bg-white/4',                     icon: '😴'},
+const TYPE_CONFIG: Record<WorkoutType, {label: string; color: string; icon: LucideIcon}> = {
+  easy_run:     {label: 'Easy Run',     color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: Activity},
+  long_run:     {label: 'Long Run',     color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: TrendingUp},
+  tempo_run:    {label: 'Tempo Run',    color: 'text-accent-yellow border-accent-yellow/30 bg-accent-yellow/8', icon: Zap},
+  interval_run: {label: 'Intervals',    color: 'text-accent-red border-accent-red/30 bg-accent-red/8',          icon: Timer},
+  recovery_run: {label: 'Recovery Run', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: Wind},
+  gym:          {label: 'Gym',          color: 'text-accent-orange border-accent-orange/30 bg-accent-orange/8', icon: Dumbbell},
+  cycling:      {label: 'Cycling',      color: 'text-accent-blue border-accent-blue/30 bg-accent-blue/8',       icon: Bike},
+  yoga:         {label: 'Yoga',         color: 'text-accent-purple border-accent-purple/30 bg-accent-purple/8', icon: Leaf},
+  cross_training:{label: 'Cross Train', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: Shuffle},
+  rest:         {label: 'Rest',         color: 'text-white/30 border-white/10 bg-white/4',                     icon: Moon},
 };
 
 interface WorkoutCardProps {
@@ -34,7 +36,7 @@ export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClic
       onClick={onClick}
     >
       <div className="flex items-start gap-2">
-        <span className="text-sm leading-none mt-0.5">{cfg.icon}</span>
+        <cfg.icon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-xs font-semibold tracking-wide uppercase">{cfg.label}</span>

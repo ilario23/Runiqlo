@@ -8,6 +8,7 @@ interface SessionHistoryDrawerProps {
   athleteId: number;
   currentSessionId: string | null | undefined;
   onSelect: (sessionId: string | null) => void;
+  onDelete?: (sessionId: string | null) => void;
   onClose: () => void;
 }
 
@@ -32,9 +33,11 @@ export function SessionHistoryDrawer({
   athleteId,
   currentSessionId,
   onSelect,
+  onDelete,
   onClose,
 }: SessionHistoryDrawerProps) {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     fetch(`/api/coach/chat?athleteId=${athleteId}&listSessions=1`)
@@ -42,6 +45,16 @@ export function SessionHistoryDrawer({
       .then(setSessions)
       .catch(() => setSessions([]));
   }, [athleteId]);
+
+  const handleDelete = async (e: React.MouseEvent, sessionId: string | null) => {
+    e.stopPropagation();
+    setDeletingId(sessionId);
+    const param = sessionId === null ? 'null' : sessionId;
+    await fetch(`/api/coach/chat?athleteId=${athleteId}&sessionId=${param}`, {method: 'DELETE'});
+    setSessions(prev => prev?.filter(s => s.id !== sessionId) ?? prev);
+    onDelete?.(sessionId);
+    setDeletingId(undefined);
+  };
 
   return (
     <motion.div
@@ -94,31 +107,55 @@ export function SessionHistoryDrawer({
               const isActive =
                 session.id === currentSessionId ||
                 (session.id === null && (currentSessionId === null || currentSessionId === undefined));
+              const isDeleting = deletingId !== undefined && deletingId === session.id;
 
               return (
-                <button
+                <div
                   key={session.id ?? 'legacy'}
-                  onClick={() => onSelect(session.id)}
                   className={[
-                    'w-full text-left rounded-xl px-3 py-2.5 transition-colors border',
+                    'group relative rounded-xl border transition-colors',
                     isActive
                       ? 'bg-accent-blue/[0.12] border-accent-blue/30'
                       : 'hover:bg-white/[0.05] border-transparent',
                   ].join(' ')}
                 >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-white/30 tabular-nums">
-                      {formatSessionDate(session.createdAt)}
-                    </span>
-                    <span className="text-[11px] text-white/20 tabular-nums">
-                      {session.messageCount} msgs
-                    </span>
-                  </div>
-                  <p className="text-sm text-white/70 leading-snug line-clamp-2">{session.preview}</p>
-                  {isActive && (
-                    <span className="text-[10px] text-accent-blue/60 mt-1 block">Current session</span>
-                  )}
-                </button>
+                  <button
+                    onClick={() => onSelect(session.id)}
+                    className="w-full text-left px-3 py-2.5 pr-8"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-white/30 tabular-nums">
+                        {formatSessionDate(session.createdAt)}
+                      </span>
+                      <span className="text-[11px] text-white/20 tabular-nums">
+                        {session.messageCount} msgs
+                      </span>
+                    </div>
+                    <p className="text-sm text-white/70 leading-snug line-clamp-2">{session.preview}</p>
+                    {isActive && (
+                      <span className="text-[10px] text-accent-blue/60 mt-1 block">Current session</span>
+                    )}
+                  </button>
+                  <button
+                    onClick={e => handleDelete(e, session.id)}
+                    disabled={isDeleting}
+                    title="Delete conversation"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-all disabled:opacity-30"
+                  >
+                    {isDeleting ? (
+                      <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                    ) : (
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                        <path d="M10 11v6M14 11v6" />
+                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
               );
             })}
           </div>
