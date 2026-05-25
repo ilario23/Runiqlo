@@ -17,3 +17,23 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json(rows[0] ?? null);
 }
+
+export async function PUT(req: NextRequest) {
+  const {athleteId, restorePlanId} = await req.json() as {athleteId: number; restorePlanId: number};
+  if (!athleteId || !restorePlanId) {
+    return NextResponse.json({error: 'athleteId and restorePlanId required'}, {status: 400});
+  }
+
+  const db = getDb();
+  await db
+    .update(schema.trainingPlan)
+    .set({isActive: false})
+    .where(eq(schema.trainingPlan.athleteId, athleteId));
+
+  await db
+    .update(schema.trainingPlan)
+    .set({isActive: true})
+    .where(and(eq(schema.trainingPlan.athleteId, athleteId), eq(schema.trainingPlan.id, restorePlanId)));
+
+  return NextResponse.json({ok: true});
+}

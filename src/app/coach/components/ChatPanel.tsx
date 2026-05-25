@@ -9,6 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {COMMANDS, findCommand} from '../lib/chatCommands';
 import {MENTION_DEFS, resolveAtMentions} from '../lib/atMentions';
+import {SessionHistoryDrawer} from './SessionHistoryDrawer';
 
 const TOOL_LABELS: Record<string, string> = {
   getFitnessSummary: 'Checking fitness metrics',
@@ -189,20 +190,74 @@ function MessageBubble({role, content}: {role: 'user' | 'assistant'; content: st
   );
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────────
+// ── ChatInner — loading shell; remounts on session switch ─────────────────────
+// Fetches history first, then hands loaded messages to ChatContent.
+// This ensures useChat in ChatContent is ALWAYS initialized with the real history,
+// not with undefined (which would cause the hook to ignore the later prop update).
 
-interface ChatPanelProps {
+interface ChatInnerProps {
   athleteId: number;
+  /** Captured at mount and never changes within a single ChatInner lifetime. */
+  sessionId: string | null | undefined;
+  initialMessage?: string;
+  onPlanSaved?: () => void;
+  onSessionResolved?: (id: string | null) => void;
+}
+
+function ChatInner({athleteId, sessionId: sessionIdProp, initialMessage, onPlanSaved, onSessionResolved}: ChatInnerProps) {
+  const [sessionId] = useState(sessionIdProp);
+  const [historyMessages, setHistoryMessages] = useState<UIMessage[] | undefined>(undefined);
+
+  const sessionParam =
+    sessionId === undefined
+      ? ''
+      : `&sessionId=${sessionId === null ? 'null' : sessionId}`;
+
+  useEffect(() => {
+    fetch(`/api/coach/chat?athleteId=${athleteId}${sessionParam}`)
+      .then(r => r.json())
+      .then((data: {sessionId: string | null; messages: UIMessage[]}) => {
+        setHistoryMessages(data.messages ?? []);
+        onSessionResolved?.(data.sessionId);
+      })
+      .catch(() => setHistoryMessages([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (historyMessages === undefined) {
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center">
+        <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <ChatContent
+      athleteId={athleteId}
+      sessionId={sessionId}
+      historyMessages={historyMessages}
+      initialMessage={initialMessage}
+      onPlanSaved={onPlanSaved}
+    />
+  );
+}
+
+// ── ChatContent — actual chat UI; useChat is initialized with loaded history ───
+
+interface ChatContentProps {
+  athleteId: number;
+  sessionId: string | null | undefined;
+  historyMessages: UIMessage[];
   initialMessage?: string;
   onPlanSaved?: () => void;
 }
 
-export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelProps) {
+function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onPlanSaved}: ChatContentProps) {
   const {settings} = useSettings();
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState('');
-  const [historyMessages, setHistoryMessages] = useState<UIMessage[] | undefined>(undefined);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resolving, setResolving] = useState(false);
 
@@ -211,17 +266,12 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
   const [showMentions, setShowMentions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
 
-  useEffect(() => {
-    fetch(`/api/coach/chat?athleteId=${athleteId}`)
-      .then(r => r.json())
-      .then((msgs: UIMessage[]) => setHistoryMessages(msgs))
-      .catch(() => setHistoryMessages([]));
-  }, [athleteId]);
-
+  // useChat is initialized here with the already-loaded historyMessages.
+  // ChatContent only mounts after the history fetch completes, so this is always correct.
   const {messages, sendMessage, status} = useChat({
     transport: new DefaultChatTransport({
       api: '/api/coach/chat',
-      body: {athleteId, model: settings.coachModel ?? null},
+      body: {athleteId, model: settings.coachModel ?? null, sessionId},
     }),
     messages: historyMessages,
     onFinish: () => { onPlanSaved?.(); },
@@ -236,19 +286,16 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
 
   const sentInitial = useRef(false);
   useEffect(() => {
-    // Auto-send the onboarding/initial prompt only when the chat is truly empty.
-    // Guards against re-sending on page reload mid-conversation.
     if (
       initialMessage &&
       !sentInitial.current &&
-      historyMessages !== undefined &&
       historyMessages.length === 0 &&
       messages.length === 0
     ) {
       sentInitial.current = true;
       sendMessage({text: initialMessage});
     }
-  }, [initialMessage, historyMessages, messages.length, sendMessage]);
+  }, [initialMessage, historyMessages.length, messages.length, sendMessage]);
 
   const handleInputChange = useCallback((value: string) => {
     setInput(value);
@@ -326,41 +373,22 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
     doSend(input);
   };
 
-  if (historyMessages === undefined) {
-    return (
-      <div className="flex flex-col h-full items-center justify-center">
-        <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
-      </div>
-    );
-  }
-
   const hasMessages = messages.length > 0;
   const lastAssistantIdx = messages.reduce((last, m, i) => (m.role === 'assistant' ? i : last), -1);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-white/[0.07]">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent-blue/20 flex items-center justify-center">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
-              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
-            </svg>
-          </div>
-          <div>
-            <div className="text-sm font-semibold text-white">Your Coach</div>
-            <div className="text-xs text-white/30">AI-powered running coach</div>
-          </div>
-          {isLoading && (
-            <div className="ml-auto flex items-center gap-1.5 text-xs text-white/40">
-              <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-              </svg>
-              {resolving ? 'Resolving…' : 'Thinking'}
-            </div>
-          )}
+    <>
+      {/* Loading indicator row — rendered inside the header slot via a portal-free trick:
+          we pass isLoading up via a callback, but instead just show it inline here.
+          The outer ChatPanel header always shows; this loading area is in the messages flow. */}
+      {isLoading && (
+        <div className="flex-shrink-0 flex items-center justify-end gap-1.5 px-4 py-1 text-xs text-white/40 border-b border-white/[0.04]">
+          <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          {resolving ? 'Resolving…' : 'Thinking'}
         </div>
-      </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
@@ -526,6 +554,106 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
           <p className="text-xs text-white/20 mt-1.5 text-center">Enter to send · Shift+Enter for new line · / commands · @ references</p>
         </div>
       </div>
+    </>
+  );
+}
+
+// ── ChatPanel — outer shell, manages session state and history drawer ──────────
+
+interface ChatPanelProps {
+  athleteId: number;
+  initialMessage?: string;
+  onPlanSaved?: () => void;
+}
+
+export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelProps) {
+  // undefined = auto-resolve latest; string | null = specific session
+  const [resolvedSessionId, setResolvedSessionId] = useState<string | null | undefined>(undefined);
+  // desiredSessionId drives which session ChatInner loads (same type)
+  const [desiredSessionId, setDesiredSessionId] = useState<string | null | undefined>(undefined);
+  // Bumping this key remounts ChatInner, triggering a fresh history load
+  const [sessionKey, setSessionKey] = useState(0);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const switchSession = (id: string | null) => {
+    setDesiredSessionId(id);
+    setResolvedSessionId(id);
+    setSessionKey(k => k + 1);
+    setShowHistory(false);
+  };
+
+  const newSession = () => {
+    // A fresh timestamp string creates a new session in the backend on first send
+    const freshId = String(Date.now());
+    setDesiredSessionId(freshId);
+    setResolvedSessionId(freshId);
+    setSessionKey(k => k + 1);
+    setShowHistory(false);
+  };
+
+  return (
+    <div className="flex flex-col h-full relative">
+      {/* Header */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-white/[0.07]">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
+              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-white">Your Coach</div>
+            <div className="text-xs text-white/30 truncate">AI-powered running coach</div>
+          </div>
+          {/* New chat button */}
+          <button
+            onClick={newSession}
+            title="New conversation"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+          {/* History button */}
+          <button
+            onClick={() => setShowHistory(true)}
+            title="Conversation history"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {/* History drawer — overlays the entire panel including header */}
+      <AnimatePresence>
+        {showHistory && (
+          <SessionHistoryDrawer
+            athleteId={athleteId}
+            currentSessionId={resolvedSessionId}
+            onSelect={switchSession}
+            onClose={() => setShowHistory(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Chat inner — remounts when sessionKey changes */}
+      <ChatInner
+        key={sessionKey}
+        athleteId={athleteId}
+        sessionId={desiredSessionId}
+        initialMessage={initialMessage}
+        onPlanSaved={onPlanSaved}
+        onSessionResolved={(id) => {
+          // Only update if we haven't switched to a specific session yet
+          setResolvedSessionId(prev => prev === undefined ? id : prev);
+        }}
+      />
     </div>
   );
 }

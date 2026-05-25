@@ -318,7 +318,7 @@ export async function GET(req: NextRequest) {
     const sessionGroups = await db
       .select({
         sessionId: schema.coachMessages.sessionId,
-        minCreatedAt: sql<number>`min(${schema.coachMessages.createdAt})`,
+        lastActiveAt: sql<number>`max(${schema.coachMessages.createdAt})`,
         messageCount: sql<number>`count(*)`,
       })
       .from(schema.coachMessages)
@@ -327,7 +327,7 @@ export async function GET(req: NextRequest) {
         inArray(schema.coachMessages.role, ['user', 'assistant']),
       ))
       .groupBy(schema.coachMessages.sessionId)
-      .orderBy(desc(sql<number>`min(${schema.coachMessages.createdAt})`));
+      .orderBy(desc(sql<number>`max(${schema.coachMessages.createdAt})`));
 
     // Fetch first user message for each session as preview
     const sessions: SessionSummary[] = await Promise.all(
@@ -352,7 +352,7 @@ export async function GET(req: NextRequest) {
         const preview = firstMsg[0]?.content?.slice(0, 80) ?? 'Chat session';
         return {
           id: sg.sessionId,
-          createdAt: Number(sg.minCreatedAt),
+          createdAt: Number(sg.lastActiveAt),
           preview,
           messageCount: Number(sg.messageCount),
         };

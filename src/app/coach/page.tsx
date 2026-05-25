@@ -138,6 +138,11 @@ export default function CoachPage() {
                       setWeekStart(ws);
                       setActiveTab('week');
                     }}
+                    onPlanRestored={() => {
+                      fetchGoal();
+                      fetchPlan();
+                      setPlanKey(k => k + 1);
+                    }}
                   />
                 )}
               </>

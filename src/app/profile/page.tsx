@@ -1,32 +1,15 @@
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useState} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {motion, type Variants} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
-import {useSettings} from '@/contexts/SettingsContext';
-import {useAthleteStats, useAthleteGear, useAthleteNotes} from '@/hooks/useStrava';
-import type {InjuryEntry} from '@/hooks/useStrava';
-import {ZONE_COLORS, ZONE_NAMES, COLORS} from '@/lib/activityModel';
+import {useAthleteStats, useAthleteGear} from '@/hooks/useStrava';
+import {COLORS} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
 import type {StravaActivityTotal, StravaAthleteStats} from '@/lib/strava';
-import type {UserSettings} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
-
-// ─── types ─────────────────────────────────────────────────────────────────────
-
-interface ModelDef {
-  id: string;
-  label: string;
-  tier: string;
-}
-
-interface ProviderConfig {
-  provider: 'anthropic' | 'openai';
-  anthropicModels: ModelDef[];
-  openaiModels: ModelDef[];
-}
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -176,331 +159,14 @@ const ShoeIcon = () => (
   </svg>
 );
 
-const SEVERITY_COLORS: Record<string, string> = {
-  mild: COLORS.yellow,
-  moderate: COLORS.orange,
-  severe: COLORS.red,
-};
-
-const SEVERITY_OPTIONS = ['mild', 'moderate', 'severe'] as const;
-
-function AthleteNotesCard() {
-  const {notes, isLoading, saveNotes, isSaving} = useAthleteNotes();
-
-  const [editing, setEditing] = useState(false);
-  const [freeformDraft, setFreeformDraft] = useState('');
-  const [injuriesDraft, setInjuriesDraft] = useState<InjuryEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  const startEdit = () => {
-    setFreeformDraft(notes?.freeformNotes ?? '');
-    setInjuriesDraft(notes?.injuryHistory ? [...notes.injuryHistory] : []);
-    setError(null);
-    setEditing(true);
-  };
-
-  const cancel = () => { setEditing(false); setError(null); };
-
-  const save = async () => {
-    setError(null);
-    try {
-      await saveNotes({freeformNotes: freeformDraft || null, injuryHistory: injuriesDraft});
-      setEditing(false);
-    } catch {
-      setError('Failed to save — please try again.');
-    }
-  };
-
-  const addInjury = () =>
-    setInjuriesDraft(d => [...d, {bodyPart: '', severity: 'mild', resolved: false}]);
-
-  const removeInjury = (i: number) =>
-    setInjuriesDraft(d => d.filter((_, idx) => idx !== i));
-
-  const updateInjury = <K extends keyof InjuryEntry>(i: number, key: K, val: InjuryEntry[K]) =>
-    setInjuriesDraft(d => d.map((entry, idx) => idx === i ? {...entry, [key]: val} : entry));
-
-  return (
-    <motion.div variants={cardVariant} className="bento-card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Athlete Notes</h3>
-        {editing ? (
-          <div className="flex items-center gap-2">
-            <button onClick={cancel} className="text-[11px] text-white/30 hover:text-white/50 transition-colors px-2 py-0.5">
-              Cancel
-            </button>
-            <button
-              onClick={save}
-              disabled={isSaving}
-              className="text-[11px] bg-accent-blue text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-accent-blue/85 transition-colors disabled:opacity-50"
-            >
-              {isSaving ? 'Saving…' : 'Save'}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={startEdit}
-            className="text-[11px] text-white/50 hover:text-white/80 transition-colors flex items-center gap-1.5"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-            Edit
-          </button>
-        )}
-      </div>
-
-      {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-3/4" />
-          <Skeleton className="h-3 w-1/2" />
-        </div>
-      ) : editing ? (
-        <div className="space-y-4">
-          {/* Injury History */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide">Injury History</p>
-              <button
-                onClick={addInjury}
-                className="text-[10px] text-accent-blue hover:text-accent-blue/80 transition-colors flex items-center gap-0.5"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                Add
-              </button>
-            </div>
-            {injuriesDraft.length === 0 ? (
-              <p className="text-[11px] text-white/20 py-1">No injuries logged</p>
-            ) : (
-              <div className="space-y-2">
-                {injuriesDraft.map((inj, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      placeholder="Body part…"
-                      value={inj.bodyPart}
-                      onChange={e => updateInjury(i, 'bodyPart', e.target.value)}
-                      className="flex-1 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder:text-white/20 focus:outline-none focus:border-accent-blue/50 transition-colors"
-                    />
-                    <select
-                      value={inj.severity}
-                      onChange={e => updateInjury(i, 'severity', e.target.value as InjuryEntry['severity'])}
-                      className="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-accent-blue/50 transition-colors appearance-none"
-                    >
-                      {SEVERITY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <label className="flex items-center gap-1 text-[11px] text-white/40 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={inj.resolved}
-                        onChange={e => updateInjury(i, 'resolved', e.target.checked)}
-                        className="accent-accent-green"
-                      />
-                      Resolved
-                    </label>
-                    <button onClick={() => removeInjury(i)} className="text-white/20 hover:text-accent-red transition-colors flex-shrink-0">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Freeform Notes */}
-          <div>
-            <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Free-form Notes</p>
-            <textarea
-              value={freeformDraft}
-              onChange={e => setFreeformDraft(e.target.value)}
-              placeholder="Anything the coach should know — training preferences, lifestyle constraints, goals…"
-              rows={5}
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-[12px] text-white placeholder:text-white/20 focus:outline-none focus:border-accent-blue/40 transition-colors resize-none leading-relaxed"
-            />
-          </div>
-
-          {error && <p className="text-[11px] text-accent-red">{error}</p>}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Injury History — view */}
-          {notes?.injuryHistory && notes.injuryHistory.length > 0 && (
-            <div>
-              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Injury History</p>
-              <div className="flex flex-wrap gap-1.5">
-                {notes.injuryHistory.map((inj, i) => (
-                  <span
-                    key={i}
-                    className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border"
-                    style={{
-                      borderColor: `${SEVERITY_COLORS[inj.severity]}30`,
-                      color: inj.resolved ? 'rgba(255,255,255,0.3)' : SEVERITY_COLORS[inj.severity],
-                      background: `${SEVERITY_COLORS[inj.severity]}10`,
-                    }}
-                  >
-                    <span className={inj.resolved ? 'line-through' : ''}>{inj.bodyPart}</span>
-                    <span className="opacity-50 text-[10px]">{inj.severity}</span>
-                    {inj.resolved && <span className="opacity-40 text-[10px]">✓</span>}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Freeform Notes — view */}
-          {notes?.freeformNotes ? (
-            <div>
-              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Notes</p>
-              <p className="text-[12px] text-white/55 leading-relaxed whitespace-pre-wrap">{notes.freeformNotes}</p>
-            </div>
-          ) : null}
-
-          {(!notes || (!notes.freeformNotes && (!notes.injuryHistory || notes.injuryHistory.length === 0))) && (
-            <p className="text-[12px] text-white/20 py-2">
-              No notes yet — add context the AI coach should know about you.
-            </p>
-          )}
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-// ─── Coach Model card ─────────────────────────────────────────────────────────
-
-const TIER_BADGE: Record<string, string> = {
-  powerful: 'text-accent-blue bg-accent-blue/10',
-  balanced: 'text-accent-green bg-accent-green/10',
-  fast:     'text-yellow-400 bg-yellow-400/10',
-};
-
-function CoachModelCard() {
-  const {settings, updateSettings} = useSettings();
-  const [config, setConfig] = useState<ProviderConfig | null>(null);
-
-  useEffect(() => {
-    fetch('/api/coach/provider')
-      .then(r => r.json())
-      .then((d: ProviderConfig) => setConfig(d))
-      .catch(() => {/* keep null */});
-  }, []);
-
-  const allModels: {vendor: 'anthropic' | 'openai'; model: ModelDef}[] = config
-    ? [
-        ...config.anthropicModels.map(m => ({vendor: 'anthropic' as const, model: m})),
-        ...config.openaiModels.map(m => ({vendor: 'openai' as const, model: m})),
-      ]
-    : [];
-
-  const activeVendor = config?.provider ?? null;
-
-  const handleSelect = (vendorId: string) => {
-    updateSettings({coachModel: vendorId});
-  };
-
-  const defaultForVendor = activeVendor === 'anthropic' ? 'claude-sonnet-4-6' : 'gpt-4o-mini';
-  const selected = settings.coachModel ?? defaultForVendor;
-
-  return (
-    <motion.div variants={cardVariant} className="bento-card p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Coach Model</h3>
-        {activeVendor && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-white/35 font-medium capitalize">
-            {activeVendor}
-          </span>
-        )}
-      </div>
-
-      {!config ? (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-xl" />)}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {(['anthropic', 'openai'] as const).map(vendor => {
-            const models = vendor === 'anthropic' ? config.anthropicModels : config.openaiModels;
-            const isActiveVendor = vendor === activeVendor;
-            return (
-              <div key={vendor}>
-                <p className="text-[10px] font-medium uppercase tracking-wide mb-1.5 px-1"
-                   style={{color: isActiveVendor ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)'}}>
-                  {vendor === 'anthropic' ? 'Anthropic' : 'OpenAI'}
-                  {!isActiveVendor && <span className="ml-1.5 normal-case">(not configured)</span>}
-                </p>
-                <div className="grid grid-cols-1 gap-1.5">
-                  {models.map(m => {
-                    const isSelected = selected === m.id;
-                    const disabled = !isActiveVendor;
-                    return (
-                      <button
-                        key={m.id}
-                        disabled={disabled}
-                        onClick={() => handleSelect(m.id)}
-                        className={`
-                          w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all
-                          ${disabled
-                            ? 'opacity-30 cursor-not-allowed border-white/[0.05] bg-transparent'
-                            : isSelected
-                              ? 'border-accent-blue/40 bg-accent-blue/[0.08] cursor-default'
-                              : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.15] cursor-pointer'
-                          }
-                        `}
-                      >
-                        <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 transition-all ${
-                          isSelected && !disabled
-                            ? 'border-accent-blue bg-accent-blue'
-                            : 'border-white/20 bg-transparent'
-                        }`} />
-                        <span className={`flex-1 text-[12px] font-medium ${disabled ? 'text-white/30' : isSelected ? 'text-white' : 'text-white/70'}`}>
-                          {m.label}
-                        </span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${TIER_BADGE[m.tier] ?? 'text-white/30 bg-white/[0.05]'}`}>
-                          {m.tier}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
   const {isAuthenticated, isLoading: authLoading, athlete} = useStravaAuth();
-  const {settings, updateSettings} = useSettings();
   const {data: stats, isLoading: statsLoading} = useAthleteStats();
   const {data: gear, isLoading: gearLoading} = useAthleteGear();
 
-  const [editingZones, setEditingZones] = useState(false);
-  const [zoneDraft, setZoneDraft] = useState<UserSettings>(settings);
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('ytd');
-
-  const startZoneEdit = () => { setZoneDraft(settings); setEditingZones(true); };
-  const cancelZoneEdit = () => setEditingZones(false);
-  const saveZones = () => { updateSettings(zoneDraft); setEditingZones(false); };
-
-  const setZoneBound = (zKey: keyof UserSettings['zones'], idx: 0 | 1, val: number) => {
-    setZoneDraft(d => ({
-      ...d,
-      zones: {
-        ...d.zones,
-        [zKey]: idx === 0 ? [val, d.zones[zKey][1]] : [d.zones[zKey][0], val],
-      },
-    }));
-  };
 
   if (authLoading) {
     return (
@@ -631,190 +297,62 @@ export default function ProfilePage() {
               </div>
             </motion.div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Gear */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
-                <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-3">Gear</h3>
-                {gearLoading ? (
-                  <div className="space-y-2">
-                    {Array.from({length: 3}).map((_, i) => (
-                      <div key={i} className="flex items-center gap-3 py-2">
-                        <Skeleton className="w-9 h-9 rounded-xl" />
-                        <div className="flex-1 space-y-1.5">
-                          <Skeleton className="h-3.5 w-2/3" />
-                          <Skeleton className="h-2.5 w-1/3" />
-                        </div>
+            {/* Gear */}
+            <motion.div variants={cardVariant} className="bento-card p-5">
+              <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-3">Gear</h3>
+              {gearLoading ? (
+                <div className="space-y-2">
+                  {Array.from({length: 3}).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 py-2">
+                      <Skeleton className="w-9 h-9 rounded-xl" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-3.5 w-2/3" />
+                        <Skeleton className="h-2.5 w-1/3" />
                       </div>
-                    ))}
-                  </div>
-                ) : !gear || (gear.bikes.length === 0 && gear.shoes.length === 0) ? (
-                  <p className="text-sm text-white/25 py-4">No gear found</p>
-                ) : (
-                  <div>
-                    {gear.bikes.length > 0 && (
-                      <div className="mb-2">
-                        <p className="text-[10px] font-medium text-white/25 uppercase tracking-wide mb-1 px-1">Bikes</p>
-                        {[...gear.bikes]
-                          .sort((a, b) => b.distance - a.distance)
-                          .map((bike) => (
-                            <GearItem
-                              key={bike.id}
-                              name={bike.name}
-                              distanceM={bike.distance}
-                              isPrimary={bike.primary}
-                              isRetired={retiredIds.has(bike.id)}
-                              icon={<BikeIcon />}
-                            />
-                          ))}
-                      </div>
-                    )}
-                    {gear.shoes.length > 0 && (
-                      <div>
-                        <p className="text-[10px] font-medium text-white/25 uppercase tracking-wide mb-1 px-1">Shoes</p>
-                        {[...gear.shoes]
-                          .sort((a, b) => b.distance - a.distance)
-                          .map((shoe) => (
-                            <GearItem
-                              key={shoe.id}
-                              name={shoe.name}
-                              distanceM={shoe.distance}
-                              isPrimary={shoe.primary}
-                              isRetired={retiredIds.has(shoe.id)}
-                              icon={<ShoeIcon />}
-                            />
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-
-              {/* Zone Configuration */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
-                {/* Header */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Heart Rate Zones</h3>
-                  {editingZones ? (
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={cancelZoneEdit}
-                        className="text-[11px] text-white/30 hover:text-white/50 transition-colors px-2 py-0.5"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={saveZones}
-                        className="text-[11px] bg-accent-blue text-white font-medium px-2.5 py-0.5 rounded-md hover:bg-accent-blue/85 transition-colors"
-                      >
-                        Save
-                      </button>
                     </div>
-                  ) : (
-                    <button
-                      onClick={startZoneEdit}
-                      className="text-[11px] text-white/50 hover:text-white/80 transition-colors flex items-center gap-1.5"
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                      </svg>
-                      Edit
-                    </button>
+                  ))}
+                </div>
+              ) : !gear || (gear.bikes.length === 0 && gear.shoes.length === 0) ? (
+                <p className="text-sm text-white/25 py-4">No gear found</p>
+              ) : (
+                <div>
+                  {gear.bikes.length > 0 && (
+                    <div className="mb-2">
+                      <p className="text-[10px] font-medium text-white/25 uppercase tracking-wide mb-1 px-1">Bikes</p>
+                      {[...gear.bikes]
+                        .sort((a, b) => b.distance - a.distance)
+                        .map((bike) => (
+                          <GearItem
+                            key={bike.id}
+                            name={bike.name}
+                            distanceM={bike.distance}
+                            isPrimary={bike.primary}
+                            isRetired={retiredIds.has(bike.id)}
+                            icon={<BikeIcon />}
+                          />
+                        ))}
+                    </div>
+                  )}
+                  {gear.shoes.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-white/25 uppercase tracking-wide mb-1 px-1">Shoes</p>
+                      {[...gear.shoes]
+                        .sort((a, b) => b.distance - a.distance)
+                        .map((shoe) => (
+                          <GearItem
+                            key={shoe.id}
+                            name={shoe.name}
+                            distanceM={shoe.distance}
+                            isPrimary={shoe.primary}
+                            isRetired={retiredIds.has(shoe.id)}
+                            icon={<ShoeIcon />}
+                          />
+                        ))}
+                    </div>
                   )}
                 </div>
-
-                {/* Max HR + Resting HR — editable */}
-                {editingZones && (
-                  <div className="flex gap-3 mb-4 pb-4 border-b border-white/[0.06]">
-                    {([
-                      {label: 'Max HR', field: 'maxHr' as const, min: 100, max: 220},
-                      {label: 'Resting HR', field: 'restingHr' as const, min: 30, max: 100},
-                    ] as const).map(({label, field, min, max}) => (
-                      <div key={field} className="flex-1 bg-white/[0.04] rounded-xl p-3">
-                        <p className="text-[10px] text-white/45 uppercase tracking-wide mb-1.5">{label}</p>
-                        <div className="flex items-baseline gap-1">
-                          <input
-                            type="number"
-                            value={zoneDraft[field]}
-                            onChange={e => setZoneDraft(d => ({...d, [field]: Number(e.target.value)}))}
-                            className="w-14 bg-transparent border-b border-white/20 focus:border-accent-blue text-base font-bold text-white tabular-nums focus:outline-none transition-colors"
-                            min={min} max={max}
-                          />
-                          <span className="text-[11px] text-white/30">bpm</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Zone rows */}
-                <div className="space-y-2.5">
-                  {([1, 2, 3, 4, 5, 6] as const).map((z) => {
-                    const zKey = `z${z}` as keyof UserSettings['zones'];
-                    const data = editingZones ? zoneDraft.zones : settings.zones;
-                    const [lo, hi] = data[zKey];
-                    const color = ZONE_COLORS[z];
-                    const maxHr = editingZones ? zoneDraft.maxHr : settings.maxHr;
-                    return (
-                      <div key={z} className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{background: color}} />
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] text-white/60 font-medium flex-shrink-0">Z{z} · {ZONE_NAMES[z]}</span>
-                            {editingZones ? (
-                              <div className="flex items-center gap-1">
-                                <input
-                                  type="number"
-                                  value={lo}
-                                  onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
-                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/50 transition-colors"
-                                />
-                                <span className="text-[10px] text-white/25">–</span>
-                                <input
-                                  type="number"
-                                  value={hi}
-                                  onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
-                                  className="w-12 bg-white/[0.06] border border-white/10 rounded-md px-1.5 py-0.5 text-[11px] text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/50 transition-colors"
-                                />
-                                <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
-                              </div>
-                            ) : (
-                              <span className="text-[11px] font-semibold tabular-nums" style={{color}}>
-                                {lo}–{hi} bpm
-                              </span>
-                            )}
-                          </div>
-                          <div className="mt-1 h-1 rounded-full bg-white/[0.06] overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-300"
-                              style={{
-                                background: color,
-                                width: `${Math.min(100, ((hi - 60) / (maxHr - 60)) * 100)}%`,
-                                opacity: 0.65,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Footer: max/resting HR (view mode only) */}
-                {!editingZones && (
-                  <div className="mt-4 pt-3 border-t border-white/[0.05] flex items-center justify-between text-[11px] text-white/30">
-                    <span>Max HR: <span className="text-white/50 font-medium">{settings.maxHr} bpm</span></span>
-                    <span>Resting: <span className="text-white/50 font-medium">{settings.restingHr} bpm</span></span>
-                  </div>
-                )}
-              </motion.div>
-            </div>
-
-            {/* Coach Model */}
-            <CoachModelCard />
-
-            {/* Athlete Notes */}
-            <AthleteNotesCard />
+              )}
+            </motion.div>
 
           </motion.div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import {useState, useEffect, useRef} from 'react';
-import type {TrainingPlan, TrainingPhase, WeekSketch, WorkoutType} from '@/lib/coachTypes';
+import type {TrainingPlan, TrainingPhase, WeekSketch, WorkoutType, GoalType} from '@/lib/coachTypes';
 
 const PHASE_COLORS: Record<string, {bg: string; border: string; text: string; label: string; hex: string}> = {
   base:  {bg: 'bg-accent-blue/40',   border: 'border-accent-blue',   text: 'text-accent-blue',   label: 'Base',  hex: 'rgba(96,165,250,0.65)'},
@@ -41,12 +41,21 @@ interface TooltipState {
   weekStart: string;
 }
 
+const GOAL_LABELS: Record<GoalType, string> = {
+  marathon: 'Marathon',
+  half_marathon: 'Half Marathon',
+  '10k': '10K',
+  '5k': '5K',
+  general_fitness: 'General Fitness',
+};
+
 interface PlanOverviewProps {
   athleteId: number;
   onWeekClick?: (weekStart: string) => void;
+  onPlanRestored?: () => void;
 }
 
-export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
+export function PlanOverview({athleteId, onWeekClick, onPlanRestored}: PlanOverviewProps) {
   const [plan, setPlan] = useState<TrainingPlan | null | undefined>(undefined);
   const [weekSketches, setWeekSketches] = useState<WeekSketch[] | null>(null);
   const [actualKmByWeek, setActualKmByWeek] = useState<Record<string, number>>({});
@@ -55,6 +64,9 @@ export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
   const [tooltip, setTooltip] = useState<TooltipState>({visible: false, x: 0, y: 0, weekNumber: 0, phase: '', targetKm: 0, actualKm: null, weekStart: ''});
   const chartRef = useRef<HTMLDivElement>(null);
   const currentMonday = getMonday();
+  const [allPlans, setAllPlans] = useState<TrainingPlan[] | null>(null);
+  const [showPastPlans, setShowPastPlans] = useState(false);
+  const [restoringPlanId, setRestoringPlanId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch(`/api/coach/plan?athleteId=${athleteId}`)
@@ -69,7 +81,27 @@ export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
         setActualKmByWeek(data.actualKmByWeek);
       })
       .catch(() => {});
+
+    fetch(`/api/coach/plan/history?athleteId=${athleteId}`)
+      .then(r => r.json())
+      .then(setAllPlans)
+      .catch(() => setAllPlans([]));
   }, [athleteId]);
+
+  const handleRestore = async (planId: number) => {
+    if (restoringPlanId !== null) return;
+    setRestoringPlanId(planId);
+    try {
+      await fetch('/api/coach/plan', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({athleteId, restorePlanId: planId}),
+      });
+      onPlanRestored?.();
+    } finally {
+      setRestoringPlanId(null);
+    }
+  };
 
   const handleEditSave = async (weekStart: string) => {
     const km = parseFloat(editValue);
@@ -352,7 +384,7 @@ export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
       )}
 
       {/* Phase detail cards */}
-      <div className="space-y-3">
+      <div className="space-y-3 mb-8">
         {phases.map((p, i) => {
           const cfg = PHASE_COLORS[p.phase] ?? PHASE_COLORS.base;
           const isCurrentPhase = i === plan.currentPhaseIndex;
@@ -385,6 +417,131 @@ export function PlanOverview({athleteId, onWeekClick}: PlanOverviewProps) {
           );
         })}
       </div>
+
+      {/* Past plans */}
+      <PastPlansSection
+        allPlans={allPlans}
+        activePlanId={plan.id}
+        show={showPastPlans}
+        onToggle={() => setShowPastPlans(v => !v)}
+        restoringPlanId={restoringPlanId}
+        onRestore={handleRestore}
+      />
+    </div>
+  );
+}
+
+// ── Past plans section ────────────────────────────────────────────────────────
+
+function PastPlansSection({
+  allPlans,
+  activePlanId,
+  show,
+  onToggle,
+  restoringPlanId,
+  onRestore,
+}: {
+  allPlans: TrainingPlan[] | null;
+  activePlanId: number;
+  show: boolean;
+  onToggle: () => void;
+  restoringPlanId: number | null;
+  onRestore: (planId: number) => void;
+}) {
+  const pastPlans = allPlans?.filter(p => p.id !== activePlanId) ?? [];
+  const loading = allPlans === null;
+
+  return (
+    <div className="border-t border-white/[0.06] pt-6">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between text-left group mb-3"
+      >
+        <div className="flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-white/30" strokeWidth="1.5">
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M12 7v5l4 2" />
+          </svg>
+          <span className="text-xs font-medium text-white/40 group-hover:text-white/60 transition-colors">
+            Past training plans
+          </span>
+          {!loading && pastPlans.length > 0 && (
+            <span className="text-[10px] bg-white/[0.06] text-white/30 px-1.5 py-0.5 rounded-full tabular-nums">
+              {pastPlans.length}
+            </span>
+          )}
+        </div>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          className={`text-white/30 transition-transform ${show ? 'rotate-180' : ''}`}
+          strokeWidth="2"
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {show && (
+        <div className="space-y-2">
+          {loading ? (
+            <div className="flex items-center justify-center py-6">
+              <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white/50 animate-spin" />
+            </div>
+          ) : pastPlans.length === 0 ? (
+            <p className="text-xs text-white/25 text-center py-4">No previous plans</p>
+          ) : (
+            pastPlans.map(p => {
+              const phases = p.phases as TrainingPhase[];
+              const totalWeeks = phases.reduce((s, ph) => s + ph.weekCount, 0);
+              const isRestoring = restoringPlanId === p.id;
+              const generatedDate = new Date(p.generatedAt).toLocaleDateString([], {
+                month: 'short', day: 'numeric', year: 'numeric',
+              });
+              return (
+                <div
+                  key={p.id}
+                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 flex items-start gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs font-medium text-white/70">
+                        {GOAL_LABELS[p.goalType as GoalType] ?? p.goalType}
+                      </span>
+                      <span className="text-[10px] text-white/30 tabular-nums">{totalWeeks}wk</span>
+                    </div>
+                    <div className="text-[11px] text-white/30 tabular-nums">
+                      {p.startDate}
+                      {p.targetDate ? ` → ${p.targetDate}` : ''}
+                    </div>
+                    <div className="text-[10px] text-white/20 mt-0.5">Generated {generatedDate}</div>
+                  </div>
+                  <button
+                    onClick={() => onRestore(p.id)}
+                    disabled={isRestoring}
+                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-white/[0.10] text-white/50 hover:text-white/80 border border-white/[0.08] transition-colors disabled:opacity-40"
+                  >
+                    {isRestoring ? (
+                      <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                    ) : (
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                        <path d="M3 3v5h5" />
+                      </svg>
+                    )}
+                    {isRestoring ? 'Restoring…' : 'Restore'}
+                  </button>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }
