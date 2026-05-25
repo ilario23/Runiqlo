@@ -19,7 +19,10 @@ export type WorkoutType =
   | 'cycling'
   | 'yoga'
   | 'cross_training'
-  | 'rest';
+  | 'rest'
+  | 'swim'
+  | 'walk'
+  | 'hike';
 
 export interface Goal {
   athleteId: number;

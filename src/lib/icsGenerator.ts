@@ -17,6 +17,9 @@ const TYPE_LABELS: Record<WorkoutType, string> = {
   yoga: 'Yoga',
   cross_training: 'Cross Training',
   rest: 'Rest',
+  swim: 'Swim',
+  walk: 'Walk',
+  hike: 'Hike',
 };
 
 const CATEGORIES: Record<WorkoutType, string> = {
@@ -30,6 +33,9 @@ const CATEGORIES: Record<WorkoutType, string> = {
   yoga: 'Yoga',
   cross_training: 'Cross Training',
   rest: 'Rest',
+  swim: 'Swimming',
+  walk: 'Walking',
+  hike: 'Hiking',
 };
 
 function escapeText(s: string): string {

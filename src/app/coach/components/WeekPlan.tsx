@@ -1,11 +1,13 @@
 'use client';
 
 import {useState, useEffect, useCallback} from 'react';
-import {Activity, TrendingUp, Zap, Timer, Wind, Dumbbell, Bike, Leaf, Shuffle, Moon, Mountain, Waves, CalendarDays, Download} from 'lucide-react';
+import {Activity, TrendingUp, Zap, Timer, Wind, Dumbbell, Bike, Leaf, Shuffle, Moon, Mountain, Waves, CalendarDays, Download, Footprints} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {WorkoutCard} from './WorkoutCard';
-import type {WeeklyPlan, PlannedDay, PlannedWorkout} from '@/lib/coachTypes';
+import type {WeeklyPlan, PlannedDay, PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
 import {COLORS} from '@/lib/activityModel';
+import {useSettings} from '@/contexts/SettingsContext';
+import {convertSession, type ConvertibleSport} from '@/lib/trimpConversion';
 
 function getMonday(date: Date = new Date()): string {
   const d = new Date(date);
@@ -33,6 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   easy_run: 'Easy Run', long_run: 'Long Run', tempo_run: 'Tempo Run',
   interval_run: 'Intervals', recovery_run: 'Recovery Run', gym: 'Gym',
   cycling: 'Cycling', yoga: 'Yoga', cross_training: 'Cross Training', rest: 'Rest',
+  swim: 'Swim', walk: 'Walk', hike: 'Hike',
 };
 
 interface SelectedWorkout {
@@ -237,6 +240,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
             <WorkoutDetailPanel
               selected={selected}
               athleteId={athleteId}
+              weekStart={weekStart}
               onClose={() => setSelected(null)}
               canLink={selected.date <= (today || new Date().toISOString().slice(0, 10))}
               onMarkDone={(stravaActivityId: number) => {
@@ -251,6 +255,26 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                     stravaActivityId,
                   }),
                 }).then(() => fetchPlan(weekStart));
+              }}
+              onConvert={(newType: WorkoutType, newDurationMinutes: number) => {
+                setPlan(prev => {
+                  if (!prev) return prev;
+                  const days = prev.days.map(d => {
+                    if (d.date !== selected.date) return d;
+                    const workouts = d.workouts.map((w, wi) =>
+                      wi === selected.workoutIndex
+                        ? {...w, type: newType, durationMinutes: newDurationMinutes}
+                        : w
+                    );
+                    return {...d, workouts};
+                  });
+                  return {...prev, days};
+                });
+                setSelected(prev =>
+                  prev
+                    ? {...prev, workout: {...prev.workout, type: newType, durationMinutes: newDurationMinutes}}
+                    : prev
+                );
               }}
             />
           )}
@@ -324,24 +348,47 @@ function getZoneColor(intensityDescription: string | null | undefined): string {
   return 'bg-accent-purple/15 text-accent-purple';
 }
 
+const CONVERT_SPORT_CONFIG: Record<ConvertibleSport, {label: string; icon: LucideIcon; color: string}> = {
+  cycling: {label: 'Bike',  icon: Bike,       color: 'border-accent-blue/40 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20'},
+  swim:     {label: 'Swim',  icon: Waves,      color: 'border-[#64d2ff]/40 bg-[#64d2ff]/10 text-[#64d2ff] hover:bg-[#64d2ff]/20'},
+  walk:     {label: 'Walk',  icon: Footprints, color: 'border-accent-green/40 bg-accent-green/10 text-accent-green hover:bg-accent-green/20'},
+  hike:     {label: 'Hike',  icon: Mountain,   color: 'border-accent-green/40 bg-accent-green/10 text-accent-green hover:bg-accent-green/20'},
+};
+
+const SPORT_TO_WORKOUT_TYPE: Record<ConvertibleSport, WorkoutType> = {
+  cycling: 'cycling',
+  swim: 'swim',
+  walk: 'walk',
+  hike: 'hike',
+};
+
+const CONVERTIBLE_RUN_TYPES = new Set(['easy_run', 'long_run', 'tempo_run', 'recovery_run']);
+
 function WorkoutDetailPanel({
   selected,
   athleteId,
+  weekStart,
   onClose,
   canLink,
   onMarkDone,
+  onConvert,
 }: {
   selected: SelectedWorkout;
   athleteId: number;
+  weekStart: string;
   onClose: () => void;
   canLink: boolean;
   onMarkDone: (stravaActivityId: number) => void;
+  onConvert: (newType: WorkoutType, newDurationMinutes: number) => void;
 }) {
   const [showPicker, setShowPicker] = useState(false);
   const [candidates, setCandidates] = useState<MatchCandidate[] | null>(null);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [manualMode, setManualMode] = useState(false);
   const [activityIdInput, setActivityIdInput] = useState('');
+  const [convertTarget, setConvertTarget] = useState<ConvertibleSport | null>(null);
+  const [converting, setConverting] = useState(false);
+  const {settings} = useSettings();
   const {workout, dayIndex} = selected;
   const label = TYPE_LABELS[workout.type] ?? workout.type;
 
@@ -356,6 +403,9 @@ function WorkoutDetailPanel({
     yoga:         {color: 'border-accent-purple/30 bg-accent-purple/5', icon: Leaf,       iconColor: 'text-accent-purple', accent: COLORS.purple},
     cross_training:{color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',        icon: Shuffle,    iconColor: 'text-[#64d2ff]',     accent: '#64d2ff'},
     rest:         {color: 'border-white/10 bg-white/[0.02]',            icon: Moon,       iconColor: 'text-white/30',      accent: '#ffffff60'},
+    swim:         {color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',         icon: Waves,      iconColor: 'text-[#64d2ff]',     accent: '#64d2ff'},
+    walk:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Footprints, iconColor: 'text-accent-green',  accent: COLORS.green},
+    hike:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Mountain,   iconColor: 'text-accent-green',  accent: COLORS.green},
   };
 
   const cfg = TYPE_CONFIG[workout.type] ?? TYPE_CONFIG.rest;
@@ -431,19 +481,106 @@ function WorkoutDetailPanel({
         </div>
       )}
 
-      {/* Strava link */}
+      {/* Convert to another sport */}
+      {!workout.completed && CONVERTIBLE_RUN_TYPES.has(workout.type) && workout.durationMinutes && (
+        <div className="mt-4">
+          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1">Convert to another sport</div>
+          <p className="text-[11px] text-white/40 mb-2.5">Maintain aerobic stimulus · lower impact</p>
+          {convertTarget === null ? (
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(CONVERT_SPORT_CONFIG) as ConvertibleSport[]).map(sport => {
+                const duration = convertSession(workout.type, workout.durationMinutes!, settings.maxHr, settings.restingHr, sport);
+                if (!duration) return null;
+                const scfg = CONVERT_SPORT_CONFIG[sport];
+                const Icon = scfg.icon;
+                return (
+                  <button
+                    key={sport}
+                    onClick={() => setConvertTarget(sport)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors ${scfg.color}`}
+                  >
+                    <Icon style={{width: '12px', height: '12px'}} />
+                    {scfg.label} · {duration} min
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 flex-wrap">
+              {(() => {
+                const duration = convertSession(workout.type, workout.durationMinutes!, settings.maxHr, settings.restingHr, convertTarget);
+                const scfg = CONVERT_SPORT_CONFIG[convertTarget];
+                return (
+                  <>
+                    <span className="text-xs text-white/60">
+                      Convert to <span className="text-white font-medium">{scfg.label} · {duration} min</span>?
+                    </span>
+                    <button
+                      disabled={converting}
+                      onClick={async () => {
+                        if (!duration) return;
+                        setConverting(true);
+                        try {
+                          const res = await fetch('/api/coach/week', {
+                            method: 'PATCH',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({
+                              athleteId,
+                              weekStart,
+                              date: selected.date,
+                              workoutIndex: selected.workoutIndex,
+                              type: SPORT_TO_WORKOUT_TYPE[convertTarget],
+                              durationMinutes: duration,
+                            }),
+                          });
+                          if (res.ok) {
+                            onConvert(SPORT_TO_WORKOUT_TYPE[convertTarget], duration);
+                            setConvertTarget(null);
+                          }
+                        } finally {
+                          setConverting(false);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-xs font-semibold text-white hover:bg-white/20 transition-colors disabled:opacity-40"
+                    >
+                      {converting ? 'Saving…' : 'Confirm'}
+                    </button>
+                    <button
+                      onClick={() => setConvertTarget(null)}
+                      className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Activity links */}
       {workout.completed && workout.linkedStravaActivityId && (
-        <a
-          href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 text-xs text-brand hover:underline"
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-          </svg>
-          View on Strava
-        </a>
+        <div className="mt-3 flex items-center gap-2">
+          <a
+            href={`/activities/${workout.linkedStravaActivityId}`}
+            className="text-xs text-brand hover:underline"
+          >
+            View details
+          </a>
+          <span className="text-white/20">·</span>
+          <a
+            href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-brand hover:underline"
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+            </svg>
+            Strava
+          </a>
+        </div>
       )}
 
       {/* Mark done */}

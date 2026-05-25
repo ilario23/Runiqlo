@@ -1,6 +1,6 @@
 'use client';
 
-import {Activity, TrendingUp, Zap, Timer, Wind, Dumbbell, Bike, Leaf, Shuffle, Moon} from 'lucide-react';
+import {Activity, TrendingUp, Zap, Timer, Wind, Dumbbell, Bike, Leaf, Shuffle, Moon, Waves, Footprints, Mountain} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import type {PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
 
@@ -15,6 +15,9 @@ const TYPE_CONFIG: Record<WorkoutType, {label: string; color: string; icon: Luci
   yoga:         {label: 'Yoga',         color: 'text-accent-purple border-accent-purple/30 bg-accent-purple/8', icon: Leaf},
   cross_training:{label: 'Cross Train', color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: Shuffle},
   rest:         {label: 'Rest',         color: 'text-white/30 border-white/10 bg-white/4',                     icon: Moon},
+  swim:         {label: 'Swim',         color: 'text-[#64d2ff] border-[#64d2ff]/30 bg-[#64d2ff]/8',            icon: Waves},
+  walk:         {label: 'Walk',         color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: Footprints},
+  hike:         {label: 'Hike',         color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: Mountain},
 };
 
 interface WorkoutCardProps {
@@ -59,17 +62,25 @@ export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClic
       </div>
 
       {workout.completed && workout.linkedStravaActivityId && (
-        <a
-          href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-1.5 flex items-center gap-1 text-xs text-brand hover:underline"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
-          </svg>
-          View on Strava
-        </a>
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <a
+            href={`/activities/${workout.linkedStravaActivityId}`}
+            className="whitespace-nowrap text-xs text-brand hover:underline"
+          >
+            View details
+          </a>
+          <a
+            href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex shrink-0 items-center gap-1 text-xs text-white/40 hover:text-brand hover:underline"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
+            </svg>
+            Strava
+          </a>
+        </div>
       )}
 
       {!workout.completed && isToday && onMarkDone && (

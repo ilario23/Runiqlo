@@ -20,6 +20,7 @@ import {
 } from '@/hooks/useStrava';
 import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, SPORT_COLORS, COLORS} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
+import {Info} from 'lucide-react';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
 import type {StravaAthleteStats} from '@/lib/strava';
@@ -221,9 +222,10 @@ interface MetricCardProps {
   prev7Value: number | undefined;
   color: string;
   isLoading: boolean;
+  info?: string;
 }
 
-function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: MetricCardProps) {
+function MetricCard({label, sublabel, value, prev7Value, color, isLoading, info}: MetricCardProps) {
   const delta = typeof value === 'number' && typeof prev7Value === 'number'
     ? value - prev7Value
     : undefined;
@@ -240,9 +242,19 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading}: Metr
         </>
       ) : (
         <>
-          <div>
-            <p className="text-xs text-white/70 font-medium">{label}</p>
-            <p className="text-[10px] text-white/35 mt-0.5">{sublabel}</p>
+          <div className="flex items-start justify-between gap-1">
+            <div>
+              <p className="text-xs text-white/70 font-medium">{label}</p>
+              <p className="text-[10px] text-white/35 mt-0.5">{sublabel}</p>
+            </div>
+            {info && (
+              <div className="relative group flex-shrink-0">
+                <Info size={12} className="text-white/25 hover:text-white/55 cursor-default transition-colors mt-0.5" />
+                <div className="absolute right-0 top-5 w-52 p-3 rounded-xl bg-[#13131f] border border-white/10 text-[10px] text-white/65 leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 shadow-lg">
+                  {info}
+                </div>
+              </div>
+            )}
           </div>
           <div className="mt-2">
             <p className="text-4xl font-bold tracking-tight font-mono tabular-nums" style={{color}}>
@@ -428,9 +440,10 @@ interface StatTileProps {
   color?: string;
   isLoading: boolean;
   primary?: boolean;
+  info?: string;
 }
 
-function StatTile({label, value, sub, color, isLoading, primary}: StatTileProps) {
+function StatTile({label, value, sub, color, isLoading, primary, info}: StatTileProps) {
   return (
     <div className={`px-6 py-5 flex flex-col justify-between ${primary ? 'border-r border-white/[0.07]' : ''}`}>
       {isLoading ? (
@@ -440,7 +453,17 @@ function StatTile({label, value, sub, color, isLoading, primary}: StatTileProps)
         </>
       ) : (
         <>
-          <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest">{label}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-[10px] text-white/40 font-semibold uppercase tracking-widest">{label}</p>
+            {info && (
+              <div className="relative group">
+                <Info size={10} className="text-white/25 hover:text-white/55 cursor-default transition-colors" />
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-5 w-52 p-3 rounded-xl bg-[#13131f] border border-white/10 text-[10px] text-white/65 leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 shadow-lg">
+                  {info}
+                </div>
+              </div>
+            )}
+          </div>
           <div className="mt-2 flex items-baseline gap-1.5">
             <p
               className={`font-mono tracking-tight tabular-nums ${
@@ -514,6 +537,7 @@ function StatsStrip({
           value={typeof currentIT === 'number' ? currentIT.toFixed(1) : '—'}
           color={tsbColor}
           isLoading={fitnessLoading}
+          info="Training Stress Balance = CTL − ATL. Positive = fresh (CTL > ATL). Negative = fatigued. > 5: race-ready. −10 to 5: normal training. < −20: recovery priority."
         />
       </div>
     </div>
@@ -583,6 +607,7 @@ export default function DashboardPage() {
               prev7Value={prev7CTL}
               color={COLORS.blue}
               isLoading={fitnessLoading}
+              info="Chronic Training Load — your fitness base. 42-day exponential average of daily training load. Higher = more fit. Builds slowly, takes weeks to move."
             />
           </div>
 
@@ -594,6 +619,7 @@ export default function DashboardPage() {
               prev7Value={prev7ATL}
               color={COLORS.orange}
               isLoading={fitnessLoading}
+              info="Acute Training Load — your recent fatigue. 7-day exponential average of daily training load. Spikes fast after hard weeks, drops quickly with rest."
             />
           </div>
 
