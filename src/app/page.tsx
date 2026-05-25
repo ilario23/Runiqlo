@@ -1,21 +1,25 @@
 'use client';
 
+import {useState, useMemo} from 'react';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
-import {motion} from 'framer-motion';
+import {motion, AnimatePresence} from 'framer-motion';
 import {
   AreaChart,
   Area,
   XAxis,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {
   useDashboardActivities,
   useAthleteStats,
   useFitnessData,
-  useZoneBreakdowns,
+  usePerActivityZoneBreakdowns,
   useForceRefreshActivities,
 } from '@/hooks/useStrava';
 import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, SPORT_COLORS, COLORS} from '@/lib/activityModel';
@@ -24,7 +28,8 @@ import {Info} from 'lucide-react';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
 import type {StravaAthleteStats} from '@/lib/strava';
-import type {AggregatedZoneTotals} from '@/lib/zoneCompute';
+import {aggregateZoneBreakdowns} from '@/lib/zoneCompute';
+import type {AggregatedZoneTotals, ZoneBreakdown} from '@/lib/zoneCompute';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -274,29 +279,137 @@ function MetricCard({label, sublabel, value, prev7Value, color, isLoading, info}
 
 // ── HR Zone Breakdown ──
 
+function SegmentedControl<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: {value: T; label: string}[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex rounded-lg overflow-hidden border border-white/10">
+      {options.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => onChange(opt.value)}
+          className={`px-2 py-1 text-[10px] font-medium transition-colors ${
+            value === opt.value ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/60'
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function HRZoneCard({
-  data,
+  breakdownMap,
+  activities,
   isLoading,
   progress,
 }: {
-  data: AggregatedZoneTotals | undefined;
+  breakdownMap: Map<string, ZoneBreakdown> | undefined;
+  activities: ActivitySummary[] | undefined;
   isLoading: boolean;
   progress: {done: number; total: number};
 }) {
+  const [metric, setMetric] = useState<'time' | 'distance'>('time');
+  const [sportFilter, setSportFilter] = useState<'all' | 'Run'>('all');
+  const [grouping, setGrouping] = useState<'all' | 'grouped'>('all');
+
+  const data = useMemo<AggregatedZoneTotals | undefined>(() => {
+    if (!breakdownMap || breakdownMap.size === 0) return undefined;
+    if (sportFilter === 'all') {
+      return aggregateZoneBreakdowns(Array.from(breakdownMap.values()));
+    }
+    const allowedIds = new Set(
+      (activities ?? []).filter((a) => a.type === sportFilter).map((a) => a.id),
+    );
+    const filtered = Array.from(breakdownMap.entries())
+      .filter(([id]) => allowedIds.has(id))
+      .map(([, bd]) => bd);
+    if (filtered.length === 0) return undefined;
+    return aggregateZoneBreakdowns(filtered);
+  }, [breakdownMap, activities, sportFilter]);
+
+  const displayZones = useMemo(() => {
+    if (!data) return [];
+    if (grouping === 'all') {
+      return ([1, 2, 3, 4, 5, 6] as const).map((z) => ({
+        key: String(z),
+        label: `Z${z} · ${ZONE_NAMES[z]}`,
+        time: data.zones[z]?.time ?? 0,
+        distance: data.zones[z]?.distance ?? 0,
+        color: ZONE_COLORS[z],
+      }));
+    }
+    return [
+      {
+        key: 'easy',
+        label: 'Z1–2 · Easy',
+        time: (data.zones[1]?.time ?? 0) + (data.zones[2]?.time ?? 0),
+        distance: (data.zones[1]?.distance ?? 0) + (data.zones[2]?.distance ?? 0),
+        color: ZONE_COLORS[2],
+      },
+      {
+        key: 'intensity',
+        label: 'Z3–6 · Intensity',
+        time: ([3, 4, 5, 6] as const).reduce((s, z) => s + (data.zones[z]?.time ?? 0), 0),
+        distance: ([3, 4, 5, 6] as const).reduce((s, z) => s + (data.zones[z]?.distance ?? 0), 0),
+        color: ZONE_COLORS[4],
+      },
+    ];
+  }, [data, grouping]);
+
   const totalTime = data?.totalTime ?? 0;
+  const totalDistance = data?.totalDistance ?? 0;
+  const total = metric === 'time' ? totalTime : totalDistance;
+
+  const pieData = displayZones
+    .map((d) => ({...d, value: metric === 'time' ? d.time : d.distance}))
+    .filter((d) => d.value > 0);
 
   return (
     <div className="bento-card p-5 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4">
+      {/* Header row */}
+      <div className="flex items-start justify-between mb-2">
         <div>
           <h2 className="text-sm font-medium text-white">Zone Distribution</h2>
           <p className="text-xs text-white/50 mt-0.5">Last 4 weeks · Heart rate</p>
         </div>
-        {isLoading && progress.total > 0 && (
-          <span className="text-[10px] text-white/45">
-            {progress.done}/{progress.total}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {isLoading && progress.total > 0 && (
+            <span className="text-[10px] text-white/45">
+              {progress.done}/{progress.total}
+            </span>
+          )}
+          <SegmentedControl
+            options={[{value: 'all' as const, label: 'All'}, {value: 'Run' as const, label: 'Runs'}]}
+            value={sportFilter}
+            onChange={setSportFilter}
+          />
+          <SegmentedControl
+            options={[{value: 'time' as const, label: 'Time'}, {value: 'distance' as const, label: 'KM'}]}
+            value={metric}
+            onChange={setMetric}
+          />
+        </div>
+      </div>
+
+      {/* Zones grouping row */}
+      <div className="flex items-center gap-2 mb-4 pb-3 border-b border-white/[0.06]">
+        <span className="text-[10px] text-white/35 font-medium">Zones grouping</span>
+        <SegmentedControl
+          options={[
+            {value: 'all' as const, label: '6 zones'},
+            {value: 'grouped' as const, label: 'Easy vs Intensity'},
+          ]}
+          value={grouping}
+          onChange={setGrouping}
+        />
       </div>
 
       {isLoading && !data ? (
@@ -313,37 +426,93 @@ function HRZoneCard({
           <p className="text-xs text-white/25">No zone data for past 4 weeks</p>
         </div>
       ) : (
-        <div className="flex-1 space-y-3">
-          {([1, 2, 3, 4, 5, 6] as const).map((z) => {
-            const zone = data.zones[z];
-            const pct = zone ? Math.round((zone.time / totalTime) * 100) : 0;
-            const color = ZONE_COLORS[z];
-            return (
-              <div key={z}>
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[11px] text-white/60 font-medium">
-                    Z{z} · {ZONE_NAMES[z]}
-                  </span>
-                  <span className="text-[11px] text-white/45">
-                    {pct}% · {formatDuration(zone?.time ?? 0)}
-                  </span>
-                </div>
-                <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+        <div className="flex-1 flex flex-col gap-4">
+          {/* Bar list */}
+          <div className="space-y-2.5">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {displayZones.map((zone, i) => {
+                const value = metric === 'time' ? zone.time : zone.distance;
+                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+                return (
                   <motion.div
-                    className="h-full rounded-full"
-                    style={{background: color}}
-                    initial={{width: 0}}
-                    animate={{width: `${pct}%`}}
-                    transition={{duration: 0.6, delay: z * 0.05, ease: 'easeOut'}}
-                  />
-                </div>
-              </div>
-            );
-          })}
+                    key={zone.key}
+                    initial={{opacity: 0, height: 0, marginBottom: 0}}
+                    animate={{opacity: 1, height: 'auto', marginBottom: 0}}
+                    exit={{opacity: 0, height: 0}}
+                    transition={{duration: 0.25, ease: 'easeInOut'}}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[11px] text-white/60 font-medium">{zone.label}</span>
+                      <span className="text-[11px] text-white/45">
+                        {pct}%{' · '}
+                        {metric === 'time'
+                          ? formatDuration(zone.time)
+                          : `${zone.distance.toFixed(1)} km`}
+                      </span>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{background: zone.color}}
+                        initial={{width: 0}}
+                        animate={{width: `${pct}%`}}
+                        transition={{duration: 0.45, delay: i * 0.04, ease: 'easeOut'}}
+                      />
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
 
-          <p className="text-[10px] text-white/25 pt-1">
-            Total: {formatDuration(totalTime)}
-          </p>
+            <p className="text-[10px] text-white/25 pt-0.5">
+              Total:{' '}
+              {metric === 'time'
+                ? formatDuration(totalTime)
+                : `${totalDistance.toFixed(1)} km`}
+            </p>
+          </div>
+
+          {/* Donut Chart */}
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius="50%"
+                  outerRadius="75%"
+                  dataKey="value"
+                  strokeWidth={0}
+                  paddingAngle={1}
+                  isAnimationActive={false}
+                >
+                  {pieData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} />
+                  ))}
+                </Pie>
+                <RechartsTooltip
+                  cursor={false}
+                  content={({active, payload}) => {
+                    if (!active || !payload?.length) return null;
+                    const entry = payload[0].payload;
+                    const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
+                    return (
+                      <div className="bg-black/80 border border-white/10 rounded-lg px-3 py-2 backdrop-blur-sm">
+                        <p className="text-[11px] text-white font-medium">{entry.label}</p>
+                        <p className="text-[11px] text-white/55 mt-0.5">
+                          {pct}%{' · '}
+                          {metric === 'time'
+                            ? formatDuration(entry.time)
+                            : `${entry.distance.toFixed(1)} km`}
+                        </p>
+                      </div>
+                    );
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
     </div>
@@ -375,11 +544,11 @@ function ActivityRow({activity}: {activity: ActivitySummary}) {
         <p className="text-sm text-white/80 font-mono tabular-nums">
           {activity.distance.toFixed(1)} km
         </p>
-        {activity.avgPace > 0 && (
-          <p className="text-[11px] text-white/45 font-mono tabular-nums">
-            {formatPace(activity.avgPace)}/km
-          </p>
-        )}
+        <p className="text-[11px] text-white/45 font-mono tabular-nums">
+          {activity.avgPace > 0 ? `${formatPace(activity.avgPace)}/km` : ''}
+          {activity.avgPace > 0 && activity.avgHr > 0 ? ' · ' : ''}
+          {activity.avgHr > 0 ? `${Math.round(activity.avgHr)} bpm` : ''}
+        </p>
       </div>
     </div>
   );
@@ -398,9 +567,9 @@ function RecentActivitiesCard({
     <div className="bento-card p-5 flex flex-col h-full overflow-hidden">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-medium text-white">Recent Activities</h2>
-        {activities && (
-          <span className="text-[10px] text-white/45">{activities.length} total</span>
-        )}
+        <Link href="/activities" className="text-[10px] text-white/45 hover:text-white/70 transition-colors">
+          View all →
+        </Link>
       </div>
 
       {isLoading ? (
@@ -553,7 +722,7 @@ export default function DashboardPage() {
   const {data: activities, isLoading: activitiesLoading} = useDashboardActivities();
   const {data: stats, isLoading: statsLoading} = useAthleteStats();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
-  const {data: zones, isLoading: zonesLoading, progress} = useZoneBreakdowns(4);
+  const {data: breakdownMap, isLoading: zonesLoading, progress} = usePerActivityZoneBreakdowns(4);
 
   const currentTSB = fitnessData?.[fitnessData.length - 1]?.tsb;
   const prev7CTL = fitnessData?.[fitnessData.length - 8]?.ctl;
@@ -625,7 +794,7 @@ export default function DashboardPage() {
 
           {/* Zones + Recent Activities */}
           <div className="col-span-12 md:col-span-6 min-h-[320px]">
-            <HRZoneCard data={zones} isLoading={zonesLoading} progress={progress} />
+            <HRZoneCard breakdownMap={breakdownMap} activities={activities} isLoading={zonesLoading} progress={progress} />
           </div>
 
           <div className="col-span-12 md:col-span-6 min-h-[320px]">

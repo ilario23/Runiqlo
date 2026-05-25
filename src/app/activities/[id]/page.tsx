@@ -536,10 +536,10 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       const prColors: Record<number, string> = {1: COLORS.gold, 2: '#9CA3AF', 3: '#CD7C32'};
                       const prColor = se.pr_rank ? prColors[se.pr_rank] : undefined;
                       return (
-                        <div key={se.id} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-white/[0.03] transition-colors">
+                        <Link key={se.id} href={`/segments/${se.segment.id}`} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-white/[0.05] transition-colors group">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm text-white/75 truncate">{se.name}</p>
+                              <p className="text-sm text-white/75 truncate group-hover:text-white/90 transition-colors">{se.name}</p>
                               {se.pr_rank && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0" style={{color: prColor, background: `${prColor}20`}}>
                                   #{se.pr_rank}
@@ -548,13 +548,18 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                             </div>
                             <p className="text-[11px] text-white/30 mt-0.5">{(se.distance / 1000).toFixed(1)} km</p>
                           </div>
-                          <div className="text-right flex-shrink-0 ml-4">
-                            <p className="text-sm font-medium tabular-nums text-white/70">{fmtTime(se.elapsed_time)}</p>
-                            {se.average_heartrate && (
-                              <p className="text-[11px] text-white/30 tabular-nums">{Math.round(se.average_heartrate)} bpm</p>
-                            )}
+                          <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                            <div className="text-right">
+                              <p className="text-sm font-medium tabular-nums text-white/70">{fmtTime(se.elapsed_time)}</p>
+                              {se.average_heartrate && (
+                                <p className="text-[11px] text-white/30 tabular-nums">{Math.round(se.average_heartrate)} bpm</p>
+                              )}
+                            </div>
+                            <svg className="w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                            </svg>
                           </div>
-                        </div>
+                        </Link>
                       );
                     })}
                   </div>
