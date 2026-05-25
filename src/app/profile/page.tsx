@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {motion, type Variants} from 'framer-motion';
@@ -8,11 +8,25 @@ import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
 import {useAthleteStats, useAthleteGear, useAthleteNotes} from '@/hooks/useStrava';
 import type {InjuryEntry} from '@/hooks/useStrava';
-import {formatDuration, ZONE_COLORS, ZONE_NAMES, COLORS} from '@/lib/activityModel';
+import {ZONE_COLORS, ZONE_NAMES, COLORS} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
-import type {StravaActivityTotal} from '@/lib/strava';
+import type {StravaActivityTotal, StravaAthleteStats} from '@/lib/strava';
 import type {UserSettings} from '@/lib/activityModel';
 import AppHeader from '@/components/AppHeader';
+
+// ─── types ─────────────────────────────────────────────────────────────────────
+
+interface ModelDef {
+  id: string;
+  label: string;
+  tier: string;
+}
+
+interface ProviderConfig {
+  provider: 'anthropic' | 'openai';
+  anthropicModels: ModelDef[];
+  openaiModels: ModelDef[];
+}
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -34,6 +48,20 @@ function fmtHrs(seconds: number) {
   return (seconds / 3600).toLocaleString('en-US', {maximumFractionDigits: 0});
 }
 
+const STATS_PERIODS = [
+  {key: 'ytd', short: 'YTD'},
+  {key: 'alltime', short: 'All Time'},
+  {key: 'recent', short: '4 Weeks'},
+] as const;
+
+type StatsPeriod = typeof STATS_PERIODS[number]['key'];
+
+const PERIOD_KEYS = {
+  ytd:     {run: 'ytd_run_totals',    ride: 'ytd_ride_totals',    swim: 'ytd_swim_totals'},
+  alltime: {run: 'all_run_totals',    ride: 'all_ride_totals',    swim: 'all_swim_totals'},
+  recent:  {run: 'recent_run_totals', ride: 'recent_ride_totals', swim: 'recent_swim_totals'},
+} as const satisfies Record<StatsPeriod, Record<'run'|'ride'|'swim', keyof StravaAthleteStats>>;
+
 // ─── Stat columns ─────────────────────────────────────────────────────────────
 
 function SportStats({
@@ -47,40 +75,45 @@ function SportStats({
   totals: StravaActivityTotal | undefined;
   isLoading: boolean;
 }) {
+  const activityLabel = label === 'Run' ? 'runs' : label === 'Ride' ? 'rides' : 'swims';
   return (
-    <div className="flex-1 min-w-0">
-      <div className="flex items-center gap-1.5 mb-3">
-        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: color}} />
-        <span className="text-xs font-medium text-white/60 uppercase tracking-wide">{label}</span>
+    <div className="min-w-0">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: color}} />
+        <span className="text-[11px] font-medium text-white/45 uppercase tracking-widest">{label}</span>
       </div>
       {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-20" />
-          <Skeleton className="h-4 w-16" />
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-3 w-32" />
         </div>
       ) : totals && totals.count > 0 ? (
-        <div className="space-y-2">
-          <div>
-            <p className="text-xl font-mono font-bold tabular-nums tracking-tight text-white">{fmtKm(totals.distance)}</p>
-            <p className="text-[11px] text-white/45">km</p>
+        <>
+          <div className="mb-3">
+            <p className="text-2xl font-mono font-bold tabular-nums tracking-tight text-white leading-none">
+              {fmtKm(totals.distance)}
+            </p>
+            <p className="text-[11px] text-white/35 mt-1.5">km total</p>
           </div>
-          <div className="grid grid-cols-3 gap-2 pt-1">
-            <div>
-              <p className="text-sm font-mono font-semibold tabular-nums text-white/70">{totals.count}</p>
-              <p className="text-[10px] text-white/30">runs</p>
-            </div>
-            <div>
-              <p className="text-sm font-mono font-semibold tabular-nums text-white/70">{fmtHrs(totals.moving_time)}</p>
-              <p className="text-[10px] text-white/30">hrs</p>
-            </div>
-            <div>
-              <p className="text-sm font-mono font-semibold tabular-nums text-white/70">{Math.round(totals.elevation_gain / 1000).toLocaleString()}</p>
-              <p className="text-[10px] text-white/30">km ↑</p>
-            </div>
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]">
+            <span className="text-white/50">
+              <span className="font-mono font-semibold tabular-nums text-white/70">{totals.count}</span>
+              {' '}{activityLabel}
+            </span>
+            <span className="text-white/20">·</span>
+            <span className="text-white/50">
+              <span className="font-mono font-semibold tabular-nums text-white/70">{fmtHrs(totals.moving_time)}</span>
+              {' '}hrs
+            </span>
+            <span className="text-white/20">·</span>
+            <span className="text-white/50">
+              <span className="font-mono font-semibold tabular-nums text-white/70">{Math.round(totals.elevation_gain / 1000).toLocaleString()}</span>
+              {' '}km ↑
+            </span>
           </div>
-        </div>
+        </>
       ) : (
-        <p className="text-sm text-white/25">—</p>
+        <p className="text-2xl font-mono font-bold text-white/10 leading-none">—</p>
       )}
     </div>
   );
@@ -338,6 +371,111 @@ function AthleteNotesCard() {
   );
 }
 
+// ─── Coach Model card ─────────────────────────────────────────────────────────
+
+const TIER_BADGE: Record<string, string> = {
+  powerful: 'text-accent-blue bg-accent-blue/10',
+  balanced: 'text-accent-green bg-accent-green/10',
+  fast:     'text-yellow-400 bg-yellow-400/10',
+};
+
+function CoachModelCard() {
+  const {settings, updateSettings} = useSettings();
+  const [config, setConfig] = useState<ProviderConfig | null>(null);
+
+  useEffect(() => {
+    fetch('/api/coach/provider')
+      .then(r => r.json())
+      .then((d: ProviderConfig) => setConfig(d))
+      .catch(() => {/* keep null */});
+  }, []);
+
+  const allModels: {vendor: 'anthropic' | 'openai'; model: ModelDef}[] = config
+    ? [
+        ...config.anthropicModels.map(m => ({vendor: 'anthropic' as const, model: m})),
+        ...config.openaiModels.map(m => ({vendor: 'openai' as const, model: m})),
+      ]
+    : [];
+
+  const activeVendor = config?.provider ?? null;
+
+  const handleSelect = (vendorId: string) => {
+    updateSettings({coachModel: vendorId});
+  };
+
+  const defaultForVendor = activeVendor === 'anthropic' ? 'claude-sonnet-4-6' : 'gpt-4o-mini';
+  const selected = settings.coachModel ?? defaultForVendor;
+
+  return (
+    <motion.div variants={cardVariant} className="bento-card p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Coach Model</h3>
+        {activeVendor && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-white/35 font-medium capitalize">
+            {activeVendor}
+          </span>
+        )}
+      </div>
+
+      {!config ? (
+        <div className="space-y-2">
+          {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 w-full rounded-xl" />)}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {(['anthropic', 'openai'] as const).map(vendor => {
+            const models = vendor === 'anthropic' ? config.anthropicModels : config.openaiModels;
+            const isActiveVendor = vendor === activeVendor;
+            return (
+              <div key={vendor}>
+                <p className="text-[10px] font-medium uppercase tracking-wide mb-1.5 px-1"
+                   style={{color: isActiveVendor ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)'}}>
+                  {vendor === 'anthropic' ? 'Anthropic' : 'OpenAI'}
+                  {!isActiveVendor && <span className="ml-1.5 normal-case">(not configured)</span>}
+                </p>
+                <div className="grid grid-cols-1 gap-1.5">
+                  {models.map(m => {
+                    const isSelected = selected === m.id;
+                    const disabled = !isActiveVendor;
+                    return (
+                      <button
+                        key={m.id}
+                        disabled={disabled}
+                        onClick={() => handleSelect(m.id)}
+                        className={`
+                          w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all
+                          ${disabled
+                            ? 'opacity-30 cursor-not-allowed border-white/[0.05] bg-transparent'
+                            : isSelected
+                              ? 'border-accent-blue/40 bg-accent-blue/[0.08] cursor-default'
+                              : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.15] cursor-pointer'
+                          }
+                        `}
+                      >
+                        <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 transition-all ${
+                          isSelected && !disabled
+                            ? 'border-accent-blue bg-accent-blue'
+                            : 'border-white/20 bg-transparent'
+                        }`} />
+                        <span className={`flex-1 text-[12px] font-medium ${disabled ? 'text-white/30' : isSelected ? 'text-white' : 'text-white/70'}`}>
+                          {m.label}
+                        </span>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${TIER_BADGE[m.tier] ?? 'text-white/30 bg-white/[0.05]'}`}>
+                          {m.tier}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
@@ -348,6 +486,7 @@ export default function ProfilePage() {
 
   const [editingZones, setEditingZones] = useState(false);
   const [zoneDraft, setZoneDraft] = useState<UserSettings>(settings);
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('ytd');
 
   const startZoneEdit = () => { setZoneDraft(settings); setEditingZones(true); };
   const cancelZoneEdit = () => setEditingZones(false);
@@ -383,6 +522,16 @@ export default function ProfilePage() {
   }
 
   const retiredIds = new Set(gear?.retiredGearIds ?? []);
+
+  const ytdKm = !stats ? null : fmtKm(
+    (stats.ytd_run_totals?.distance ?? 0) +
+    (stats.ytd_ride_totals?.distance ?? 0) +
+    (stats.ytd_swim_totals?.distance ?? 0)
+  );
+  const ytdCount = !stats ? 0 :
+    (stats.ytd_run_totals?.count ?? 0) +
+    (stats.ytd_ride_totals?.count ?? 0) +
+    (stats.ytd_swim_totals?.count ?? 0);
 
   return (
     <>
@@ -430,6 +579,11 @@ export default function ProfilePage() {
                       {[athlete.city, athlete.state, athlete.country].filter(Boolean).join(', ')}
                     </p>
                   )}
+                  {!statsLoading && ytdCount > 0 && (
+                    <p className="text-[11px] text-white/35 mt-2 font-mono tabular-nums">
+                      {ytdKm} km · {ytdCount} activities this year
+                    </p>
+                  )}
                 </div>
                 <div className="flex-shrink-0">
                   <span className="text-xs bg-accent-green/15 text-accent-green px-3 py-1 rounded-full font-medium">
@@ -439,31 +593,41 @@ export default function ProfilePage() {
               </div>
             </motion.div>
 
-            {/* YTD Stats */}
+            {/* Unified Stats */}
             <motion.div variants={cardVariant} className="bento-card p-6">
-              <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-5">Year to Date</h3>
-              <div className="flex gap-6 divide-x divide-white/[0.06]">
-                <SportStats label="Run" color={COLORS.green} totals={stats?.ytd_run_totals} isLoading={statsLoading} />
-                <div className="pl-6">
-                  <SportStats label="Ride" color={COLORS.blue} totals={stats?.ytd_ride_totals} isLoading={statsLoading} />
-                </div>
-                <div className="pl-6">
-                  <SportStats label="Swim" color={COLORS.purple} totals={stats?.ytd_swim_totals} isLoading={statsLoading} />
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Stats</h3>
+                <div className="flex items-center bg-white/[0.05] rounded-full p-0.5">
+                  {STATS_PERIODS.map(p => (
+                    <button
+                      key={p.key}
+                      onClick={() => setStatsPeriod(p.key)}
+                      className={`cursor-pointer px-3.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
+                        statsPeriod === p.key
+                          ? 'bg-white/[0.15] text-white'
+                          : 'text-white/35 hover:text-white/60'
+                      }`}
+                    >
+                      {p.short}
+                    </button>
+                  ))}
                 </div>
               </div>
-            </motion.div>
-
-            {/* All-time Stats */}
-            <motion.div variants={cardVariant} className="bento-card p-6">
-              <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-5">All Time</h3>
-              <div className="flex gap-6 divide-x divide-white/[0.06]">
-                <SportStats label="Run" color={COLORS.green} totals={stats?.all_run_totals} isLoading={statsLoading} />
-                <div className="pl-6">
-                  <SportStats label="Ride" color={COLORS.blue} totals={stats?.all_ride_totals} isLoading={statsLoading} />
-                </div>
-                <div className="pl-6">
-                  <SportStats label="Swim" color={COLORS.purple} totals={stats?.all_swim_totals} isLoading={statsLoading} />
-                </div>
+              <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
+                {([
+                  {label: 'Run',  color: COLORS.green,  sport: 'run'  as const},
+                  {label: 'Ride', color: COLORS.blue,   sport: 'ride' as const},
+                  {label: 'Swim', color: COLORS.purple, sport: 'swim' as const},
+                ] as const).map(({label, color, sport}, idx) => (
+                  <div key={sport} className={idx === 0 ? 'pr-6' : idx === 2 ? 'pl-6' : 'px-6'}>
+                    <SportStats
+                      label={label}
+                      color={color}
+                      totals={stats?.[PERIOD_KEYS[statsPeriod][sport]]}
+                      isLoading={statsLoading}
+                    />
+                  </div>
+                ))}
               </div>
             </motion.div>
 
@@ -646,34 +810,8 @@ export default function ProfilePage() {
               </motion.div>
             </div>
 
-            {/* Recent stats summary */}
-            <motion.div variants={cardVariant} className="bento-card p-5">
-              <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-4">Recent (4 weeks)</h3>
-              <div className="grid grid-cols-3 gap-4">
-                {[
-                  {label: 'Run', color: COLORS.green, totals: stats?.recent_run_totals},
-                  {label: 'Ride', color: COLORS.blue, totals: stats?.recent_ride_totals},
-                  {label: 'Swim', color: COLORS.purple, totals: stats?.recent_swim_totals},
-                ].map(({label, color, totals}) => (
-                  <div key={label} className="bento-card px-4 py-3">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <div className="w-1.5 h-1.5 rounded-full" style={{background: color}} />
-                      <span className="text-[10px] font-medium text-white/40 uppercase tracking-wide">{label}</span>
-                    </div>
-                    {statsLoading ? (
-                      <Skeleton className="h-5 w-16" />
-                    ) : totals && totals.count > 0 ? (
-                      <>
-                        <p className="text-lg font-bold tabular-nums tracking-tight text-white">{fmtKm(totals.distance)}</p>
-                        <p className="text-[10px] text-white/30 mt-0.5">{totals.count} activit{totals.count === 1 ? 'y' : 'ies'} · {formatDuration(totals.moving_time)}</p>
-                      </>
-                    ) : (
-                      <p className="text-sm text-white/25">—</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+            {/* Coach Model */}
+            <CoachModelCard />
 
             {/* Athlete Notes */}
             <AthleteNotesCard />

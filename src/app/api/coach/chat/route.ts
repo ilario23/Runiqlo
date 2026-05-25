@@ -34,6 +34,62 @@ async function resolveCurrentSessionId(athleteId: number): Promise<string | null
   return rows[0].sessionId;
 }
 
+// Remove tool call / result pairs that are incomplete or out of order.
+// This handles rows that were persisted with wrong timestamps (pre-fix) which
+// could be reloaded in an order that breaks Anthropic's tool_use → tool_result invariant.
+function sanitizeHistory(messages: ModelMessage[]): ModelMessage[] {
+  const out: ModelMessage[] = [];
+  const pending = new Set<string>(); // tool call IDs awaiting results
+
+  for (const msg of messages) {
+    if (msg.role === 'assistant') {
+      if (pending.size > 0) {
+        // Previous assistant had unfulfilled tool calls — drop from there
+        while (out.length && out[out.length - 1].role !== 'user') out.pop();
+        pending.clear();
+      }
+      const parts = Array.isArray(msg.content)
+        ? (msg.content as Array<{type: string; toolCallId?: string}>)
+        : [];
+      parts.filter(p => p.type === 'tool-call' && p.toolCallId).forEach(p => pending.add(p.toolCallId!));
+      out.push(msg);
+    } else if (msg.role === 'tool') {
+      if (pending.size === 0) {
+        // Orphaned tool result with no matching tool call — remove the preceding assistant message too
+        while (out.length && out[out.length - 1].role !== 'user') out.pop();
+        continue;
+      }
+      const parts = Array.isArray(msg.content)
+        ? (msg.content as Array<{type: string; toolCallId?: string}>)
+        : [];
+      const resultIds = parts.filter(p => p.type === 'tool-result' && p.toolCallId).map(p => p.toolCallId!);
+      const unmatched = resultIds.filter(id => !pending.has(id));
+      if (unmatched.length > 0) {
+        // Results don't match pending calls — drop both sides
+        while (out.length && out[out.length - 1].role !== 'user') out.pop();
+        pending.clear();
+        continue;
+      }
+      resultIds.forEach(id => pending.delete(id));
+      out.push(msg);
+    } else {
+      // user message: if there are pending calls they'll never get results, drop them
+      if (pending.size > 0) {
+        while (out.length && out[out.length - 1].role !== 'user') out.pop();
+        pending.clear();
+      }
+      out.push(msg);
+    }
+  }
+
+  // Trailing unfulfilled tool calls
+  if (pending.size > 0) {
+    while (out.length && out[out.length - 1].role !== 'user') out.pop();
+  }
+
+  return out;
+}
+
 async function loadHistory(athleteId: number, sessionId: string | null | undefined): Promise<ModelMessage[]> {
   const db = getDb();
 
@@ -43,14 +99,15 @@ async function loadHistory(athleteId: number, sessionId: string | null | undefin
       ? and(eq(schema.coachMessages.athleteId, athleteId), isNull(schema.coachMessages.sessionId))
       : and(eq(schema.coachMessages.athleteId, athleteId), eq(schema.coachMessages.sessionId, sessionId));
 
-  const rows = await db
+  // Load the most recent MAX_HISTORY rows descending, then reverse for chronological order
+  const rows = (await db
     .select()
     .from(schema.coachMessages)
     .where(whereClause)
-    .orderBy(asc(schema.coachMessages.createdAt))
-    .limit(MAX_HISTORY);
+    .orderBy(desc(schema.coachMessages.createdAt))
+    .limit(MAX_HISTORY)).reverse();
 
-  return rows.map(r => {
+  return sanitizeHistory(rows.map(r => {
     if (r.role === 'tool') {
       return {
         role: 'tool' as const,
@@ -83,13 +140,14 @@ async function loadHistory(athleteId: number, sessionId: string | null | undefin
       role: r.role as 'user' | 'assistant',
       content: r.content,
     };
-  });
+  }));
 }
 
 async function persistMessages(athleteId: number, sessionId: string | null, messages: ModelMessage[]): Promise<void> {
   const db = getDb();
   const now = Date.now();
   const toInsert = [];
+  let timeOffset = 0;
 
   for (const msg of messages) {
     if (msg.role === 'user') {
@@ -113,7 +171,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
         content,
         toolCallId: null,
         toolName: null,
-        createdAt: now,
+        createdAt: now + timeOffset++,
       });
     } else if (msg.role === 'assistant') {
       if (typeof msg.content === 'string') {
@@ -126,7 +184,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
             content: msg.content,
             toolCallId: null,
             toolName: null,
-            createdAt: now + 1,
+            createdAt: now + timeOffset++,
           });
         }
       } else if (Array.isArray(msg.content)) {
@@ -140,7 +198,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
             content: JSON.stringify(msg.content),
             toolCallId: null,
             toolName: null,
-            createdAt: now + 1,
+            createdAt: now + timeOffset++,
           });
         } else {
           const textParts = (msg.content as Array<{type: string; text?: string}>)
@@ -156,7 +214,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
               content: textParts,
               toolCallId: null,
               toolName: null,
-              createdAt: now + 1,
+              createdAt: now + timeOffset++,
             });
           }
         }
@@ -175,7 +233,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
             content: JSON.stringify(part.output),
             toolCallId: part.toolCallId ?? null,
             toolName: part.toolName ?? null,
-            createdAt: now + 2,
+            createdAt: now + timeOffset++,
           });
         }
       }
@@ -342,10 +400,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const {messages, athleteId, sessionId: rawSessionId} = await req.json() as {
+  const {messages, athleteId, sessionId: rawSessionId, model: modelOverride} = await req.json() as {
     messages: UIMessage[];
     athleteId: number;
     sessionId?: string | null;
+    model?: string | null;
   };
 
   if (!athleteId) {
@@ -381,7 +440,7 @@ export async function POST(req: NextRequest) {
     : [];
 
   const result = streamText({
-    model: getLLMModel(),
+    model: getLLMModel(modelOverride),
     ...(isAnthropicProvider() ? {} : {system}),
     messages: [...systemMessages, ...allMessages],
     tools: getCoachTools(athleteId),

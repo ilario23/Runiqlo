@@ -106,6 +106,7 @@ export const trainingPlan = pgTable('training_plan', {
   targetDate: text('target_date'),
   startDate: text('start_date').notNull(),
   phases: jsonb('phases').notNull(), // TrainingPhase[]
+  weekSketches: jsonb('week_sketches'), // WeekSketch[] | null — nullable for backwards compat
   currentPhaseIndex: integer('current_phase_index').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
   generatedAt: bigint('generated_at', {mode: 'number'}).notNull(),

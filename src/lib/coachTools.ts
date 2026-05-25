@@ -252,7 +252,7 @@ export function getCoachTools(athleteId: number) {
 
     saveTrainingPlan: tool({
       description:
-        "Save a new macro training plan. Deactivates any existing plan and creates the new one. Call this after generating a full periodized plan.",
+        "Save a new macro training plan. Deactivates any existing plan and creates the new one. Call this after generating a full periodized plan. You MUST provide weekSketches — one entry per week across the full block.",
       inputSchema: z.object({
         goalType: z.string(),
         targetDate: z.string().nullable(),
@@ -268,6 +268,18 @@ export function getCoachTools(athleteId: number) {
             keyWorkouts: z.array(z.string()),
           }),
         ),
+        weekSketches: z
+          .array(
+            z.object({
+              weekNumber: z.number().describe('1-based week index across the full block'),
+              weekStart: z.string().describe('Monday date YYYY-MM-DD'),
+              phase: z.enum(['base', 'build', 'peak', 'taper']),
+              targetKm: z.number().describe('Single km target for this week — must follow progressive overload (no >10% consecutive jumps); recovery weeks every 3-4wks at ~85% of previous; taper at ~60-70% of peak'),
+              keyWorkoutTypes: z.array(z.string()).describe('2-4 workout types for this week e.g. long_run, tempo_run'),
+              progressionNote: z.string().describe('One line explaining this week\'s role in the block e.g. "first 20km long run", "recovery week after peak load"'),
+            }),
+          )
+          .describe('One sketch per week covering the full block duration — used for the volume chart and coach context window'),
         currentPhaseIndex: z.number().default(0),
       }),
       execute: async input => {
@@ -287,6 +299,7 @@ export function getCoachTools(athleteId: number) {
             targetDate: input.targetDate,
             startDate: input.startDate,
             phases: input.phases,
+            weekSketches: input.weekSketches,
             currentPhaseIndex: input.currentPhaseIndex,
             isActive: true,
             generatedAt: now,
@@ -295,6 +308,35 @@ export function getCoachTools(athleteId: number) {
           .returning();
 
         return {success: true, planId: row.id};
+      },
+    }),
+
+    getWeekSketches: tool({
+      description:
+        "Get the week-level volume sketches for the active training plan. Returns targetKm and key workout types per week. Use when you need to see where the block is going before generating the current week's detailed plan.",
+      inputSchema: z.object({
+        fromWeek: z.number().optional().describe('1-based week number to start from (default: current week - 2)'),
+        toWeek: z.number().optional().describe('1-based week number to end at (default: current week + 4)'),
+      }),
+      execute: async ({fromWeek, toWeek}) => {
+        const rows = await db
+          .select()
+          .from(schema.trainingPlan)
+          .where(and(eq(schema.trainingPlan.athleteId, athleteId), eq(schema.trainingPlan.isActive, true)))
+          .limit(1);
+
+        if (!rows[0]) return {sketches: null, message: 'No active training plan.'};
+
+        const sketches = (rows[0].weekSketches ?? []) as Array<{weekNumber: number; weekStart: string; phase: string; targetKm: number; keyWorkoutTypes: string[]; progressionNote: string}>;
+        if (!sketches.length) return {sketches: [], message: 'Plan has no week sketches — was created before this feature.'};
+
+        const from = fromWeek ?? Math.max(1, (sketches.find(s => s.weekStart <= new Date().toISOString().slice(0, 10))?.weekNumber ?? 1) - 2);
+        const to = toWeek ?? from + 6;
+
+        return {
+          sketches: sketches.filter(s => s.weekNumber >= from && s.weekNumber <= to),
+          totalWeeks: sketches.length,
+        };
       },
     }),
 

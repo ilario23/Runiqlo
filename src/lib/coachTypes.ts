@@ -46,6 +46,15 @@ export interface TrainingPhase {
   keyWorkouts: string[];
 }
 
+export interface WeekSketch {
+  weekNumber: number;
+  weekStart: string; // YYYY-MM-DD (Monday)
+  phase: PlanPhase;
+  targetKm: number;
+  keyWorkoutTypes: WorkoutType[];
+  progressionNote: string;
+}
+
 export interface TrainingPlan {
   id: number;
   athleteId: number;
@@ -53,6 +62,7 @@ export interface TrainingPlan {
   targetDate: string | null;
   startDate: string;
   phases: TrainingPhase[];
+  weekSketches: WeekSketch[] | null;
   currentPhaseIndex: number;
   isActive: boolean;
   generatedAt: number;

@@ -1,7 +1,7 @@
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
-import {eq, and, desc} from 'drizzle-orm';
-import type {TrainingPhase} from './coachTypes';
+import {eq, and, desc, gte, lt} from 'drizzle-orm';
+import type {TrainingPhase, WeekSketch, PlannedWorkout} from './coachTypes';
 
 const promptCache = new Map<number, {prompt: string; expiresAt: number}>();
 const CACHE_TTL_MS = 60_000;
@@ -31,7 +31,13 @@ export async function buildCoachSystemPrompt(athleteId: number): Promise<string>
   const weekday = new Date().toLocaleDateString('en-US', {weekday: 'long'});
   const currentMonday = getMonday();
 
-  const [goalRows, planRows, weekRows, notesRows, cacheRows, statsRows] = await Promise.all([
+  const threeWeeksAgo = (() => {
+    const d = new Date(currentMonday + 'T00:00:00');
+    d.setDate(d.getDate() - 21);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const [goalRows, planRows, weekRows, notesRows, cacheRows, statsRows, recentWeekRows] = await Promise.all([
     db.select().from(schema.coachGoal).where(eq(schema.coachGoal.athleteId, athleteId)).limit(1),
     db
       .select()
@@ -47,6 +53,18 @@ export async function buildCoachSystemPrompt(athleteId: number): Promise<string>
     db.select().from(schema.athleteNotes).where(eq(schema.athleteNotes.athleteId, athleteId)).limit(1),
     db.select().from(schema.dashboardCache).where(eq(schema.dashboardCache.athleteId, athleteId)).limit(1),
     db.select().from(schema.athleteStats).where(eq(schema.athleteStats.athleteId, athleteId)).limit(1),
+    db
+      .select()
+      .from(schema.weeklyPlan)
+      .where(
+        and(
+          eq(schema.weeklyPlan.athleteId, athleteId),
+          gte(schema.weeklyPlan.weekStart, threeWeeksAgo),
+          lt(schema.weeklyPlan.weekStart, currentMonday),
+        ),
+      )
+      .orderBy(desc(schema.weeklyPlan.weekStart))
+      .limit(3),
   ]);
 
   // Athlete name
@@ -107,6 +125,7 @@ Form: ${tsb > 5 ? 'Fresh' : tsb > -10 ? 'Neutral' : tsb > -20 ? 'Fatigued' : 'Ve
 
   // ── Training plan ────────────────────────────────────────────────────────────
   let planSection = 'No training plan — create one with saveTrainingPlan.';
+  let blockTimelineSection = '';
   const plan = planRows[0];
   if (plan) {
     const phases = plan.phases as TrainingPhase[];
@@ -119,6 +138,35 @@ Form: ${tsb > 5 ? 'Fresh' : tsb > -10 ? 'Neutral' : tsb > -20 ? 'Fatigued' : 'Ve
 Volume target: ${cur?.targetWeeklyKmRange?.[0]}–${cur?.targetWeeklyKmRange?.[1]} km/wk
 Key workouts: ${cur?.keyWorkouts?.join(', ') ?? 'none'}
 Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
+
+    const sketches = (plan.weekSketches ?? []) as WeekSketch[];
+    if (sketches.length > 0) {
+      const actualKmByWeek: Record<string, number> = {};
+      for (const wr of recentWeekRows) {
+        const days = wr.days as Array<{workouts: PlannedWorkout[]}>;
+        const km = days.flatMap(d => d.workouts).filter(w => w.completed && w.distanceKm != null).reduce((s, w) => s + (w.distanceKm ?? 0), 0);
+        actualKmByWeek[wr.weekStart] = Math.round(km * 10) / 10;
+      }
+      const curWeek = weekRows[0];
+      if (curWeek) {
+        const days = curWeek.days as Array<{workouts: PlannedWorkout[]}>;
+        const km = days.flatMap(d => d.workouts).filter(w => w.completed && w.distanceKm != null).reduce((s, w) => s + (w.distanceKm ?? 0), 0);
+        if (km > 0) actualKmByWeek[currentMonday] = Math.round(km * 10) / 10;
+      }
+      const curIdx = sketches.findIndex(s => s.weekStart === currentMonday);
+      const from = Math.max(0, curIdx - 3);
+      const to = Math.min(sketches.length - 1, curIdx + 3);
+      const lines = sketches.slice(from, to + 1).map(s => {
+        const isCurrent = s.weekStart === currentMonday;
+        const isPast = s.weekStart < currentMonday;
+        const actual = actualKmByWeek[s.weekStart];
+        if (isPast) {
+          return `  Wk${s.weekNumber} (${s.weekStart}, ${s.phase}): planned ${s.targetKm}km / actual ${actual != null ? actual + 'km' : '?'}`;
+        }
+        return `  Wk${s.weekNumber}${isCurrent ? ' →TODAY' : ''} (${s.weekStart}, ${s.phase}): target ${s.targetKm}km  [${s.keyWorkoutTypes.join(', ')}]${s.progressionNote ? '  — ' + s.progressionNote : ''}`;
+      });
+      blockTimelineSection = `\n\n## Block Timeline (last 3 → next 3 weeks)\n${lines.join('\n')}`;
+    }
   }
 
   // ── This week ────────────────────────────────────────────────────────────────
@@ -172,6 +220,18 @@ Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
 - Explain your reasoning so the athlete learns and stays motivated
 - Be honest about risk; don't just tell the athlete what they want to hear
 
+## Response Style
+Voice: Direct, warm, science-backed, and accessible. Never generic wellness platitudes.
+Length: 1–3 short paragraphs for conversational replies; structured sections only for plan creation. Never open with a data dump — lead with what the athlete asked, then add context.
+Never say "Great job!" or hollow affirmations — be specific about what was good.
+Does NOT sound like: a generic AI health assistant, an academic exercise science paper, or a corporate wellness app.
+Success = athlete knows exactly what to do next and understands why. They feel understood, not lectured.
+
+<example>
+Athlete: "How did yesterday's tempo run feel?"
+Coach: "Solid session — you hit 4:52/km average with TSB at -8 (slightly fatigued), so the perceived effort was probably higher than the splits suggest. That's a good adaptation signal, not a warning sign. Keep Thursday easy as planned; Saturday's long run is the key session this week."
+</example>
+
 ## Current Fitness (${today})
 ${fitnessSection}
 
@@ -179,7 +239,7 @@ ${fitnessSection}
 ${goalSection}
 
 ## Training Plan
-${planSection}
+${planSection}${blockTimelineSection}
 
 ## This Week (${currentMonday})
 ${weekSection}
@@ -188,22 +248,35 @@ ${weekSection}
 ${notesSection}
 
 ## Tool Usage Rules
-- Call getFitnessSummary before making any load/intensity decisions
-- Call getRecentActivities before generating any weekly plan
-- ALWAYS call saveWeeklyPlan after generating a weekly schedule — never just describe it in text
-- ALWAYS call saveTrainingPlan after generating a macro plan
-- Call updateAthleteNotes when you learn anything new about the athlete
-- Call linkCompletedActivity when the athlete mentions completing a workout with a Strava ID
-- Call askQuestion when you need the athlete to choose between 2–4 discrete options before you can proceed (e.g. goal distance, preferred long-run day, subjective fatigue level). Do not repeat the question in free text after calling this tool — just wait for the reply.
-- Before generating a weekly plan, ask how many days are available that specific week — availability varies. Use askQuestion with options like "3 days", "4 days", "5 days", "6 days".
-- When modifying a week mid-week: check the [done] days in the week section above — those are already completed and MUST NOT be changed. Only propose changes to remaining days.
-- Format workouts precisely: type + distance or duration + target zone + specific instructions
+Always call getFitnessSummary before making any load/intensity decisions.
+Always call getRecentActivities before generating any weekly plan.
+Always call saveWeeklyPlan after generating a weekly schedule — never describe a weekly plan in text only.
+Always call updateAthleteNotes when you learn anything new about the athlete.
+Always call linkCompletedActivity when the athlete mentions completing a workout with a Strava ID.
+Always call askQuestion when you need the athlete to choose between 2–4 discrete options — do not repeat the question in free text after calling it, just wait for the reply.
+Always ask how many days are available before generating a weekly plan — use askQuestion with options "3 days", "4 days", "5 days", "6 days".
+Never call saveTrainingPlan without explicit athlete confirmation ("looks good", "save it", "yes") — present the plan overview first and wait.
+Always include weekSketches when calling saveTrainingPlan — one entry per week for the full block. Use progressive overload: no >10% volume increase week-over-week; recovery week every 3–4 weeks at ~85% of the prior week; taper at ~60–70% of peak volume. The block timeline above is the ground truth for load progression — use it to ensure each new weekly plan fits the shape of the block.
+Never modify [done] days — they are completed workouts; only propose changes to remaining days.
+Always format workouts precisely: type + distance or duration + target zone + specific instructions.
 
 ## Preference Collection (REQUIRED before creating any training plan)
-Before calling saveTrainingPlan, check the Athlete Knowledge section above for these preferences. For each one that is MISSING:
-1. preferred_long_run_day — call askQuestion: "Which day works best for your weekly long run?" with options [Saturday, Sunday, Weekday/Flexible]. Then call updateAthleteNotes with {"preferences": {"preferred_long_run_day": "<answer>"}} BEFORE proceeding.
-2. gym_access — call askQuestion: "Do you have regular gym access for strength training?" with options [Yes, No]. Then call updateAthleteNotes with {"preferences": {"gym_access": "<yes/no>"}} BEFORE proceeding.
-Do NOT skip these steps even if the athlete has explicitly asked you to start building the plan. Gather both preferences first, then proceed.
+Before calling saveTrainingPlan, check the Athlete Knowledge section above for these preferences. Collect each one that is MISSING, one question per turn:
+1. preferred_long_run_day — call askQuestion: "Which day works best for your weekly long run?" → [Saturday, Sunday, Weekday/Flexible]. Then call updateAthleteNotes with {"preferences": {"preferred_long_run_day": "<answer>"}}.
+2. gym_access — call askQuestion: "Do you have regular gym access for strength training?" → [Yes, No]. Then call updateAthleteNotes with {"preferences": {"gym_access": "<yes/no>"}}.
+3. weekly_training_days — call askQuestion: "How many days per week can you dedicate to training?" → [3 days, 4 days, 5 days, 6 days]. Then call updateAthleteNotes with {"preferences": {"weekly_training_days": "<answer>"}}.
+4. training_approach — call askQuestion: "How would you like to approach the buildup?" → [Conservative (safety first), Balanced (steady progression), Ambitious (push the limits)]. Then call updateAthleteNotes with {"preferences": {"training_approach": "<answer>"}}.
+Do NOT skip these steps even if the athlete has explicitly asked you to start building the plan. Gather all four preferences first, then proceed.
+
+## Plan Draft & Confirmation Flow (REQUIRED when creating a new macro plan)
+After gathering all preferences above, present the plan as a natural-language overview BEFORE saving it. Structure the overview as:
+- Goal & timeline: race, date, weeks remaining
+- Phase structure: list each phase (name, duration, focus, weekly km range)
+- Long run progression: rough peak long run distance and taper strategy
+- Key workout types per phase
+- Any constraints or tradeoffs you've baked in (e.g. conservative ramp due to injury history)
+
+End with: "Does this look good, or would you like to adjust anything before I save it?" Then WAIT for the athlete's reply. Only call saveTrainingPlan after explicit confirmation ("looks good", "save it", "yes", etc.) or after incorporating requested changes.
 
 ## Long Run & Gym Scheduling Rule
 When generating any weekly plan (saveWeeklyPlan):
@@ -221,15 +294,17 @@ Sequence:
 4. askQuestion: "Your experience level?" → ["Beginner", "Intermediate", "Advanced"]
 5. askQuestion: "Preferred long run day?" → ["Saturday", "Sunday", "Weekday / Flexible"]
 6. askQuestion: "Gym access for strength?" → ["Yes", "No"]
-7. If race goal: in plain chat, ask for the target race date (accept any natural format and convert to YYYY-MM-DD).
-8. If race goal: in plain chat, ask for the target finish time (accept "3:45", "sub 4h", etc — convert to minutes).
-9. In plain chat, briefly ask about injury history (one line, optional — accept "none").
-10. Call getPeakWeeklyKm to compute their recent peak weekly volume from Strava.
-11. Call setGoal with all structured fields gathered.
-12. Call updateAthleteNotes with {"preferences": {"preferred_long_run_day": "...", "gym_access": "true|false"}} and any injury entries.
-13. Briefly confirm what you've saved in 2–3 lines, then ask if they're ready for you to generate the periodized training plan now.
+7. askQuestion: "How many days per week can you train?" → ["3 days", "4 days", "5 days", "6 days"]
+8. askQuestion: "How would you like to approach the buildup?" → ["Conservative (safety first)", "Balanced (steady progression)", "Ambitious (push the limits)"]
+9. If race goal: in plain chat, ask for the target race date (accept any natural format and convert to YYYY-MM-DD).
+10. If race goal: in plain chat, ask for the target finish time (accept "3:45", "sub 4h", etc — convert to minutes).
+11. In plain chat, briefly ask about injury history (one line, optional — accept "none").
+12. Call getPeakWeeklyKm to compute their recent peak weekly volume from Strava.
+13. Call setGoal with all structured fields gathered.
+14. Call updateAthleteNotes with {"preferences": {"preferred_long_run_day": "...", "gym_access": "true|false", "weekly_training_days": "...", "training_approach": "..."}} and any injury entries.
+15. Briefly confirm what you've saved in 2–3 lines, then ask if they're ready for you to draft the periodized training plan.
 
-Do NOT call saveTrainingPlan during onboarding — wait for explicit confirmation in step 13.
+Do NOT call saveTrainingPlan during onboarding — wait for explicit confirmation after presenting the plan draft (see Plan Draft & Confirmation Flow above).
 `}
 
 Today: ${today} (${weekday}) | Week start: ${currentMonday}`;

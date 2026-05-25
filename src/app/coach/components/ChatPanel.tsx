@@ -3,6 +3,7 @@
 import {useEffect, useRef, useState, useCallback} from 'react';
 import {useChat, type UIMessage} from '@ai-sdk/react';
 import {DefaultChatTransport} from 'ai';
+import {useSettings} from '@/contexts/SettingsContext';
 import {motion, AnimatePresence} from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -197,6 +198,7 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelProps) {
+  const {settings} = useSettings();
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [input, setInput] = useState('');
@@ -219,7 +221,7 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
   const {messages, sendMessage, status} = useChat({
     transport: new DefaultChatTransport({
       api: '/api/coach/chat',
-      body: {athleteId},
+      body: {athleteId, model: settings.coachModel ?? null},
     }),
     messages: historyMessages,
     onFinish: () => { onPlanSaved?.(); },

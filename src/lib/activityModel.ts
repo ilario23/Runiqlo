@@ -37,6 +37,7 @@ export interface UserSettings {
     z5: [number, number];
     z6: [number, number];
   };
+  coachModel?: string | null;
 }
 
 export const defaultSettings: UserSettings = {
