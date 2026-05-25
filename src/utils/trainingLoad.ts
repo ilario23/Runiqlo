@@ -1,7 +1,8 @@
 // ============================================================
 // COROS EvoLab–style Training Metrics
-// TL (Training Load), BF (Base Fitness), LI (Load Impact),
-// IT (Intensity Trend), ACWR
+// TL (Training Load), CTL (Chronic Training Load / 42-day EWMA),
+// ATL (Acute Training Load / 7-day EWMA), TSB (Training Stress Balance),
+// ACWR — industry-standard naming (TrainingPeaks / Garmin convention)
 // Derived from activity summary data (no extra API calls needed)
 // ============================================================
 
@@ -18,17 +19,17 @@ export interface DailyLoad {
 
 export interface FitnessDataPoint {
   date: string; // YYYY-MM-DD
-  bf: number; // Base Fitness (~42-day EWMA of TL)
-  li: number; // Load Impact (~7-day EWMA of TL)
-  it: number; // Intensity Trend (LI - BF)
+  ctl: number; // Chronic Training Load (~42-day EWMA of TL)
+  atl: number; // Acute Training Load (~7-day EWMA of TL)
+  tsb: number; // Training Stress Balance (CTL - ATL)
   tl: number; // Raw daily Training Load
 }
 
 export interface ACWRDataPoint {
   date: string;
   acwr: number; // Acute:Chronic Workload Ratio
-  bf: number;
-  li: number;
+  ctl: number;
+  atl: number;
 }
 
 export interface AdvancedMetricsDataPoint {
@@ -69,8 +70,8 @@ export interface RiskIntelligence {
 
 /** EWMA state stored for incremental resumption */
 export interface ContinuationState {
-  bf: number;
-  li: number;
+  ctl: number;
+  atl: number;
   lastDate: string; // YYYY-MM-DD — last day processed
 }
 
@@ -82,8 +83,8 @@ export interface FitnessResult {
 
 // ----- Constants -----
 
-const BF_DAYS = 42; // Base Fitness window (chronic / ~6 weeks)
-const LI_DAYS = 7; // Load Impact window (acute / 1 week)
+const CTL_DAYS = 42; // Chronic Training Load window (~6 weeks)
+const ATL_DAYS = 7; // Acute Training Load window (1 week)
 
 /**
  * Zone intensity weights used in the COROS-style Training Load formula.
@@ -198,15 +199,15 @@ export const hashTrainingSettings = (
 
 /**
  * Calculate COROS EvoLab–style fitness time series:
- *   BF (Base Fitness)   — ~42-day EWMA of daily TL
- *   LI (Load Impact)    — ~7-day  EWMA of daily TL
- *   IT (Intensity Trend) — LI - BF
+ *   CTL (Chronic Training Load) — ~42-day EWMA of daily TL
+ *   ATL (Acute Training Load)   — ~7-day  EWMA of daily TL
+ *   TSB (Training Stress Balance) — CTL - ATL
  *
  * Returns both the data points and the continuation state so results
  * can be cached and incrementally extended when new activities arrive.
  *
- * IT > 0  → training above your fitness (stimulus / overreaching)
- * IT < 0  → training below your fitness (recovery / detraining)
+ * TSB > 0  → training below fitness level (fresh / recovering)
+ * TSB < 0  → training above fitness level (fatigue accumulating)
  */
 export const calcFitnessData = (
   activities: ActivitySummary[],
@@ -218,14 +219,14 @@ export const calcFitnessData = (
   const rawLoads = buildDailyLoads(activities, restHR, maxHR, zones);
   if (rawLoads.length === 0) {
     const todayStr = new Date().toISOString().slice(0, 10);
-    return {data: [], continuation: {bf: 0, li: 0, lastDate: todayStr}};
+    return {data: [], continuation: {ctl: 0, atl: 0, lastDate: todayStr}};
   }
 
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
 
   // Go back further than daysBack to warm up the EWMA
-  const warmupDays = BF_DAYS * 2;
+  const warmupDays = CTL_DAYS * 2;
   const earliest = rawLoads[0]?.date ?? todayStr;
 
   const startDate = new Date(today);
@@ -237,11 +238,11 @@ export const calcFitnessData = (
 
   const dailyLoads = fillDailyGaps(rawLoads, startStr, todayStr);
 
-  const bfDecay = 1 - Math.exp(-1 / BF_DAYS);
-  const liDecay = 1 - Math.exp(-1 / LI_DAYS);
+  const ctlDecay = 1 - Math.exp(-1 / CTL_DAYS);
+  const atlDecay = 1 - Math.exp(-1 / ATL_DAYS);
 
-  let bf = 0;
-  let li = 0;
+  let ctl = 0;
+  let atl = 0;
   const result: FitnessDataPoint[] = [];
 
   const cutoffDate = new Date(today);
@@ -249,17 +250,17 @@ export const calcFitnessData = (
   const cutoffStr = cutoffDate.toISOString().slice(0, 10);
 
   for (const day of dailyLoads) {
-    bf = bf + bfDecay * (day.tl - bf);
-    li = li + liDecay * (day.tl - li);
-    const it = li - bf;
+    ctl = ctl + ctlDecay * (day.tl - ctl);
+    atl = atl + atlDecay * (day.tl - atl);
+    const tsb = ctl - atl;
 
     // Only output points within the requested window
     if (day.date >= cutoffStr) {
       result.push({
         date: day.date,
-        bf: Number(bf.toFixed(1)),
-        li: Number(li.toFixed(1)),
-        it: Number(it.toFixed(1)),
+        ctl: Number(ctl.toFixed(1)),
+        atl: Number(atl.toFixed(1)),
+        tsb: Number(tsb.toFixed(1)),
         tl: Number(day.tl.toFixed(1)),
       });
     }
@@ -267,7 +268,7 @@ export const calcFitnessData = (
 
   return {
     data: result,
-    continuation: {bf, li, lastDate: todayStr},
+    continuation: {ctl, atl, lastDate: todayStr},
   };
 };
 
@@ -277,7 +278,7 @@ export const calcFitnessData = (
  * the days between lastDate + 1 and today.
  *
  * @param newActivities — only activities with date > continuation.lastDate
- * @param continuation  — stored EWMA state (bf, li) to resume from
+ * @param continuation  — stored EWMA state (ctl, atl) to resume from
  * @param existingData  — cached FitnessDataPoint[] to append to
  * @param restHR        — resting heart rate
  * @param maxHR         — maximum heart rate
@@ -312,23 +313,23 @@ export const appendFitnessData = (
   // Fill gaps from the day after lastDate through today
   const dailyLoads = fillDailyGaps(rawLoads, nextDateStr, todayStr);
 
-  const bfDecay = 1 - Math.exp(-1 / BF_DAYS);
-  const liDecay = 1 - Math.exp(-1 / LI_DAYS);
+  const ctlDecay = 1 - Math.exp(-1 / CTL_DAYS);
+  const atlDecay = 1 - Math.exp(-1 / ATL_DAYS);
 
-  let bf = continuation.bf;
-  let li = continuation.li;
+  let ctl = continuation.ctl;
+  let atl = continuation.atl;
   const newPoints: FitnessDataPoint[] = [];
 
   for (const day of dailyLoads) {
-    bf = bf + bfDecay * (day.tl - bf);
-    li = li + liDecay * (day.tl - li);
-    const it = li - bf;
+    ctl = ctl + ctlDecay * (day.tl - ctl);
+    atl = atl + atlDecay * (day.tl - atl);
+    const tsb = ctl - atl;
 
     newPoints.push({
       date: day.date,
-      bf: Number(bf.toFixed(1)),
-      li: Number(li.toFixed(1)),
-      it: Number(it.toFixed(1)),
+      ctl: Number(ctl.toFixed(1)),
+      atl: Number(atl.toFixed(1)),
+      tsb: Number(tsb.toFixed(1)),
       tl: Number(day.tl.toFixed(1)),
     });
   }
@@ -344,13 +345,13 @@ export const appendFitnessData = (
 
   return {
     data: trimmed,
-    continuation: {bf, li, lastDate: todayStr},
+    continuation: {ctl, atl, lastDate: todayStr},
   };
 };
 
 /**
  * Calculate Acute:Chronic Workload Ratio time series.
- * ACWR = LI / BF — a common injury risk metric.
+ * ACWR = ATL / CTL — a common injury risk metric.
  *
  * Risk zones:
  *   < 0.8  = under-trained / detraining
@@ -363,9 +364,9 @@ export const calcACWRData = (
 ): ACWRDataPoint[] => {
   return fitnessData.map((d) => ({
     date: d.date,
-    acwr: d.bf > 0 ? Number((d.li / d.bf).toFixed(2)) : 0,
-    bf: d.bf,
-    li: d.li,
+    acwr: d.ctl > 0 ? Number((d.atl / d.ctl).toFixed(2)) : 0,
+    ctl: d.ctl,
+    atl: d.atl,
   }));
 };
 
@@ -475,8 +476,8 @@ export const calcAdvancedMetricsData = (
 
   for (let i = 0; i < fitnessData.length; i++) {
     const point = fitnessData[i];
-    const ctl = point.bf;
-    const atl = point.li;
+    const ctl = point.ctl;
+    const atl = point.atl;
     const tsb = Number((ctl - atl).toFixed(1));
     const acwr = ctl > 0 ? Number((atl / ctl).toFixed(2)) : 0;
 

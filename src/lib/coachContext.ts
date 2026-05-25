@@ -78,17 +78,17 @@ export async function buildCoachSystemPrompt(athleteId: number): Promise<string>
   let fitnessSection = 'No fitness data available (athlete needs to sync activities).';
   const cache = cacheRows[0];
   if (cache) {
-    const data = cache.data as Array<{date: string; bf: number; li: number; tl: number}>;
+    const data = cache.data as Array<{date: string; ctl: number; atl: number; tl: number}>;
     if (data.length > 0) {
       const latest = data[data.length - 1];
-      const tsb = Number((latest.bf - latest.li).toFixed(1));
-      const acwr = latest.bf > 0 ? Number((latest.li / latest.bf).toFixed(2)) : 0;
+      const tsb = Number((latest.ctl - latest.atl).toFixed(1));
+      const acwr = latest.ctl > 0 ? Number((latest.atl / latest.ctl).toFixed(2)) : 0;
       const tls = data.slice(-35).map(d => d.tl);
       const lastWeek = tls.slice(-7).reduce((s, v) => s + v, 0);
       const prior4 = tls.slice(-35, -7).reduce((s, v) => s + v, 0) / 4;
       const rampRate = prior4 > 0 ? Number((((lastWeek - prior4) / prior4) * 100).toFixed(1)) : 0;
       const risk = acwr > 1.5 || rampRate > 15 ? 'HIGH' : acwr > 1.3 || rampRate > 10 || tsb < -20 ? 'MODERATE' : 'LOW';
-      fitnessSection = `CTL: ${latest.bf} | ATL: ${latest.li} | TSB: ${tsb} | ACWR: ${acwr} | Ramp: ${rampRate}% | Risk: ${risk}
+      fitnessSection = `CTL: ${latest.ctl} | ATL: ${latest.atl} | TSB: ${tsb} | ACWR: ${acwr} | Ramp: ${rampRate}% | Risk: ${risk}
 Form: ${tsb > 5 ? 'Fresh' : tsb > -10 ? 'Neutral' : tsb > -20 ? 'Fatigued' : 'Very fatigued — recovery priority'}`;
     }
   }
@@ -216,6 +216,7 @@ Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
 ## Coaching Philosophy
 - Periodization: Base → Build → Peak → Taper
 - Mixed modality: running + gym strength + cycling (low-impact aerobic) + yoga/mobility + rest
+- When the athlete has active injury history or mentions joint/impact concerns, proactively replace 1–2 running sessions per week with cycling, swim, or cross_training in the generated plan
 - Injury prevention first: always check TSB and ACWR before prescribing hard sessions
 - Explain your reasoning so the athlete learns and stays motivated
 - Be honest about risk; don't just tell the athlete what they want to hear

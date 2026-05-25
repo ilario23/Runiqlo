@@ -412,23 +412,23 @@ export const cachedCalcFitnessData = async (
       if (cached.lastDate === todayStr) return cached.data;
 
       const result = appendFitnessData([], {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
-      const {bf, li} = result.continuation;
-      await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+      const {ctl, atl} = result.continuation;
+      await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
       return result.data;
     }
 
     if (cached.hrHash === currentHash) {
       const newActivities = activities.filter((a) => a.date > cached.lastDate);
       const result = appendFitnessData(newActivities, {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
-      const {bf, li} = result.continuation;
-      await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+      const {ctl, atl} = result.continuation;
+      await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
       return result.data;
     }
   }
 
   const result = calcFitnessData(activities, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
-  const {bf, li} = result.continuation;
-  await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {bf, li}, data: result.data, computedAt: Date.now()});
+  const {ctl, atl} = result.continuation;
+  await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
   return result.data;
 };
 

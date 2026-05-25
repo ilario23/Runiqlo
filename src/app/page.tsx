@@ -116,20 +116,20 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-sm font-medium text-white">Training Load</h2>
-          <p className="text-xs text-white/50 mt-0.5">Base Fitness · Load Impact · Intensity Trend</p>
+          <p className="text-xs text-white/50 mt-0.5">CTL · ATL · TSB</p>
         </div>
         <div className="flex items-center gap-3 text-[10px] font-medium">
           <span className="flex items-center gap-1">
             <span className="w-3 h-0.5 rounded bg-accent-blue inline-block" />
-            <span className="text-white/50">BF</span>
+            <span className="text-white/50">CTL</span>
           </span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-0.5 rounded bg-accent-orange inline-block" />
-            <span className="text-white/50">LI</span>
+            <span className="text-white/50">ATL</span>
           </span>
           <span className="flex items-center gap-1">
             <span className="w-3 h-0.5 rounded bg-accent-purple inline-block" />
-            <span className="text-white/50">IT</span>
+            <span className="text-white/50">TSB</span>
           </span>
         </div>
       </div>
@@ -143,11 +143,11 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={last90} margin={{top: 4, right: 4, left: 0, bottom: 0}}>
               <defs>
-                <linearGradient id="gradBF" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="gradCTL" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={COLORS.blue} stopOpacity={0.45} />
                   <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.03} />
                 </linearGradient>
-                <linearGradient id="gradLI" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="gradATL" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor={COLORS.orange} stopOpacity={0.35} />
                   <stop offset="95%" stopColor={COLORS.orange} stopOpacity={0.02} />
                 </linearGradient>
@@ -174,29 +174,29 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
 
               <Area
                 type="monotone"
-                dataKey="li"
-                name="LI"
+                dataKey="atl"
+                name="ATL"
                 stroke={COLORS.orange}
                 strokeWidth={2}
-                fill="url(#gradLI)"
+                fill="url(#gradATL)"
                 dot={false}
                 activeDot={{r: 4, fill: COLORS.orange}}
               />
               <Area
                 type="monotone"
-                dataKey="bf"
-                name="BF"
+                dataKey="ctl"
+                name="CTL"
                 stroke={COLORS.blue}
                 strokeWidth={3}
-                fill="url(#gradBF)"
+                fill="url(#gradCTL)"
                 dot={false}
                 activeDot={{r: 4, fill: COLORS.blue}}
                 filter="url(#glow-blue)"
               />
               <Area
                 type="monotone"
-                dataKey="it"
-                name="IT"
+                dataKey="tsb"
+                name="TSB"
                 stroke={COLORS.purple}
                 strokeWidth={1.5}
                 fill="none"
@@ -212,7 +212,7 @@ function TrainingLoadCard({data, isLoading}: {data: FitnessDataPoint[] | undefin
   );
 }
 
-// ── Metric Card (BF / LI) ──
+// ── Metric Card (CTL / ATL) ──
 
 interface MetricCardProps {
   label: string;
@@ -531,11 +531,11 @@ export default function DashboardPage() {
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
   const {data: zones, isLoading: zonesLoading, progress} = useZoneBreakdowns(4);
 
-  const currentIT = fitnessData?.[fitnessData.length - 1]?.it;
-  const prev7BF = fitnessData?.[fitnessData.length - 8]?.bf;
-  const prev7LI = fitnessData?.[fitnessData.length - 8]?.li;
-  const currentBF = fitnessData?.[fitnessData.length - 1]?.bf;
-  const currentLI = fitnessData?.[fitnessData.length - 1]?.li;
+  const currentTSB = fitnessData?.[fitnessData.length - 1]?.tsb;
+  const prev7CTL = fitnessData?.[fitnessData.length - 8]?.ctl;
+  const prev7ATL = fitnessData?.[fitnessData.length - 8]?.atl;
+  const currentCTL = fitnessData?.[fitnessData.length - 1]?.ctl;
+  const currentATL = fitnessData?.[fitnessData.length - 1]?.atl;
 
   if (authLoading) {
     return (
@@ -564,23 +564,23 @@ export default function DashboardPage() {
           <div className="col-span-12">
             <StatsStrip
               stats={stats}
-              currentIT={currentIT}
+              currentIT={currentTSB}
               statsLoading={statsLoading}
               fitnessLoading={fitnessLoading}
             />
           </div>
 
-          {/* Training Load + BF + LI */}
+          {/* Training Load + CTL + ATL */}
           <div className="col-span-12 md:col-span-8 h-[260px]">
             <TrainingLoadCard data={fitnessData} isLoading={fitnessLoading} />
           </div>
 
           <div className="col-span-6 md:col-span-2 h-[260px]">
             <MetricCard
-              label="Base Fitness"
+              label="CTL"
               sublabel="42-day EWMA"
-              value={currentBF}
-              prev7Value={prev7BF}
+              value={currentCTL}
+              prev7Value={prev7CTL}
               color={COLORS.blue}
               isLoading={fitnessLoading}
             />
@@ -588,10 +588,10 @@ export default function DashboardPage() {
 
           <div className="col-span-6 md:col-span-2 h-[260px]">
             <MetricCard
-              label="Load Impact"
+              label="ATL"
               sublabel="7-day EWMA"
-              value={currentLI}
-              prev7Value={prev7LI}
+              value={currentATL}
+              prev7Value={prev7ATL}
               color={COLORS.orange}
               isLoading={fitnessLoading}
             />

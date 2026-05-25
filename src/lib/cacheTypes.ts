@@ -62,8 +62,8 @@ export interface CachedZoneBreakdown {
 }
 
 export interface CachedDashboardContinuationState {
-  bf: number;
-  li: number;
+  ctl: number;
+  atl: number;
 }
 
 export interface CachedActivityWeather {

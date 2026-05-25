@@ -12,17 +12,17 @@ export async function GET(req: NextRequest) {
   const cached = rows[0];
   if (!cached) return NextResponse.json(null);
 
-  const data = cached.data as Array<{date: string; bf: number; li: number; tl: number}>;
+  const data = cached.data as Array<{date: string; ctl: number; atl: number; tl: number}>;
   if (!data.length) return NextResponse.json(null);
 
   const latest = data[data.length - 1];
-  const tsb = Number((latest.bf - latest.li).toFixed(1));
-  const acwr = latest.bf > 0 ? Number((latest.li / latest.bf).toFixed(2)) : 0;
+  const tsb = Number((latest.ctl - latest.atl).toFixed(1));
+  const acwr = latest.ctl > 0 ? Number((latest.atl / latest.ctl).toFixed(2)) : 0;
   const tls = data.slice(-35).map(d => d.tl);
   const lastWeekTl = tls.slice(-7).reduce((s, v) => s + v, 0);
   const prior4Avg = tls.slice(-35, -7).reduce((s, v) => s + v, 0) / 4;
   const rampRate = prior4Avg > 0 ? Number((((lastWeekTl - prior4Avg) / prior4Avg) * 100).toFixed(1)) : 0;
   const riskLevel = acwr > 1.5 || rampRate > 15 ? 'HIGH' : acwr > 1.3 || rampRate > 10 || tsb < -20 ? 'MODERATE' : 'LOW';
 
-  return NextResponse.json({ctl: latest.bf, atl: latest.li, tsb, acwr, rampRate, riskLevel});
+  return NextResponse.json({ctl: latest.ctl, atl: latest.atl, tsb, acwr, rampRate, riskLevel});
 }

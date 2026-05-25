@@ -28,14 +28,14 @@ export function getCoachTools(athleteId: number) {
           return {error: 'No fitness data available. The athlete needs to sync activities first.'};
         }
 
-        const fitnessData = cached.data as Array<{date: string; bf: number; li: number; it: number; tl: number}>;
+        const fitnessData = cached.data as Array<{date: string; ctl: number; atl: number; tsb: number; tl: number}>;
         if (fitnessData.length === 0) return {error: 'No fitness data points available.'};
 
         const latest = fitnessData[fitnessData.length - 1];
-        const bf = latest.bf;
-        const li = latest.li;
-        const tsb = Number((bf - li).toFixed(1));
-        const acwr = bf > 0 ? Number((li / bf).toFixed(2)) : 0;
+        const ctl = latest.ctl;
+        const atl = latest.atl;
+        const tsb = Number((ctl - atl).toFixed(1));
+        const acwr = ctl > 0 ? Number((atl / ctl).toFixed(2)) : 0;
 
         const tls = fitnessData.slice(-35).map(d => d.tl);
         const lastWeekTl = tls.slice(-7).reduce((s, v) => s + v, 0);
@@ -51,8 +51,8 @@ export function getCoachTools(athleteId: number) {
 
         return {
           date: latest.date,
-          ctl: bf,
-          atl: li,
+          ctl,
+          atl,
           tsb,
           acwr,
           rampRate,
