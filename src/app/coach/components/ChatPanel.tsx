@@ -10,6 +10,8 @@ import remarkGfm from 'remark-gfm';
 import {COMMANDS, findCommand} from '../lib/chatCommands';
 import {MENTION_DEFS, resolveAtMentions} from '../lib/atMentions';
 import {SessionHistoryDrawer} from './SessionHistoryDrawer';
+import {parseStructuredSteps} from '@/lib/workoutUtils';
+import {StructuredWorkoutDisplay} from './StructuredWorkoutDisplay';
 
 const TOOL_LABELS: Record<string, string> = {
   getFitnessSummary: 'Checking fitness metrics',
@@ -148,6 +150,27 @@ const markdownComponents: React.ComponentProps<typeof ReactMarkdown>['components
   h1: ({children}) => <h1 className="font-bold text-white text-base mb-1 mt-2">{children}</h1>,
   h2: ({children}) => <h2 className="font-semibold text-white text-sm mb-1 mt-2">{children}</h2>,
   h3: ({children}) => <h3 className="font-semibold text-white/90 text-sm mb-0.5 mt-1.5">{children}</h3>,
+  pre: ({children}) => {
+    const child = Array.isArray(children) ? children[0] : children;
+    const codeEl = child as React.ReactElement<{className?: string; children?: unknown}> | null;
+    if (codeEl?.props?.className?.includes('language-structured-workout')) {
+      try {
+        const raw = String(codeEl.props.children ?? '').trim();
+        const blocks = parseStructuredSteps(JSON.parse(raw));
+        if (blocks) {
+          return (
+            <div className="my-3 rounded-2xl border border-white/[0.09] bg-white/[0.03] p-3">
+              <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-2">Session Breakdown</div>
+              <StructuredWorkoutDisplay blocks={blocks} />
+            </div>
+          );
+        }
+      } catch {
+        // fall through to default
+      }
+    }
+    return <pre className="bg-white/[0.06] rounded-lg px-3 py-2 text-xs font-mono text-white/80 my-2 overflow-x-auto">{children}</pre>;
+  },
   code: ({children, className}) => {
     const isBlock = className?.includes('language-');
     return isBlock

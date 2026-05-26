@@ -10,6 +10,7 @@ import {COLORS} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
 import type {StravaActivityTotal, StravaAthleteStats} from '@/lib/strava';
 import AppHeader from '@/components/AppHeader';
+import AthleteNotesCard from '@/components/AthleteNotesCard';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -352,6 +353,11 @@ export default function ProfilePage() {
                   )}
                 </div>
               )}
+            </motion.div>
+
+            {/* Athlete Notes */}
+            <motion.div variants={cardVariant}>
+              <AthleteNotesCard />
             </motion.div>
 
           </motion.div>

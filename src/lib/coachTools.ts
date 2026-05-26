@@ -371,6 +371,42 @@ export function getCoachTools(athleteId: number) {
                   ),
                   completed: z.boolean().default(false),
                   linkedStravaActivityId: z.number().nullable().optional(),
+                  structuredSteps: z
+                    .array(
+                      z.union([
+                        z.object({
+                          stepType: z.enum(['warmup', 'training', 'rest', 'cooldown']),
+                          durationSeconds: z.number().int().positive(),
+                          zoneName: z.string(),
+                          zoneNumber: z.number().int().min(1).max(6).optional(),
+                          intensityMin: z.number().min(0).max(200),
+                          intensityMax: z.number().min(0).max(200),
+                          bpmMin: z.number().int().positive().optional(),
+                          bpmMax: z.number().int().positive().optional(),
+                          notes: z.string().optional(),
+                        }),
+                        z.object({
+                          repeatCount: z.number().int().positive(),
+                          steps: z.array(
+                            z.object({
+                              stepType: z.enum(['warmup', 'training', 'rest', 'cooldown']),
+                              durationSeconds: z.number().int().positive(),
+                              zoneName: z.string(),
+                              zoneNumber: z.number().int().min(1).max(6).optional(),
+                              intensityMin: z.number().min(0).max(200),
+                              intensityMax: z.number().min(0).max(200),
+                              bpmMin: z.number().int().positive().optional(),
+                              bpmMax: z.number().int().positive().optional(),
+                              notes: z.string().optional(),
+                            }),
+                          ),
+                        }),
+                      ]),
+                    )
+                    .optional()
+                    .describe(
+                      'Structured step-by-step blocks for interval_run and tempo_run workouts. Each block is a WorkoutStep (warmup/training/rest/cooldown) or a RepeatBlock with repeatCount and nested steps. intensityMin/Max are % of LTHR. Include bpmMin/bpmMax when LTHR is known. Omit this field entirely for easy_run, long_run, and rest days.',
+                    ),
                 }),
               ),
             }),

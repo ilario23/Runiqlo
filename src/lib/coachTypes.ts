@@ -72,6 +72,27 @@ export interface TrainingPlan {
   updatedAt: number;
 }
 
+export type WorkoutStepType = 'warmup' | 'training' | 'rest' | 'cooldown';
+
+export interface WorkoutStep {
+  stepType: WorkoutStepType;
+  durationSeconds: number;
+  zoneName: string;
+  zoneNumber?: number;
+  intensityMin: number;
+  intensityMax: number;
+  bpmMin?: number;
+  bpmMax?: number;
+  notes?: string;
+}
+
+export interface RepeatBlock {
+  repeatCount: number;
+  steps: WorkoutStep[];
+}
+
+export type WorkoutBlock = WorkoutStep | RepeatBlock;
+
 export interface PlannedWorkout {
   type: WorkoutType;
   durationMinutes: number | null;
@@ -80,6 +101,7 @@ export interface PlannedWorkout {
   specificInstructions: string;
   linkedStravaActivityId: number | null;
   completed: boolean;
+  structuredSteps?: WorkoutBlock[];
 }
 
 export interface PlannedDay {

@@ -7,6 +7,8 @@ import {WorkoutCard} from './WorkoutCard';
 import type {WeeklyPlan, PlannedDay, PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
 import {COLORS} from '@/lib/activityModel';
 import {useSettings} from '@/contexts/SettingsContext';
+import {parseStructuredSteps} from '@/lib/workoutUtils';
+import {StructuredWorkoutDisplay} from './StructuredWorkoutDisplay';
 import {convertSession, type ConvertibleSport} from '@/lib/trimpConversion';
 
 function getMonday(date: Date = new Date()): string {
@@ -413,6 +415,7 @@ function WorkoutDetailPanel({
 
   // Parse specificInstructions into phases for structured display
   const phases = parsePhases(workout.specificInstructions);
+  const structuredBlocks = parseStructuredSteps(workout.structuredSteps);
 
   // Parse zone number from intensityDescription for color coding
   const zoneColor = getZoneColor(workout.intensityDescription);
@@ -460,24 +463,28 @@ function WorkoutDetailPanel({
       )}
 
       {/* Session breakdown */}
-      {workout.specificInstructions && (
+      {(structuredBlocks || workout.specificInstructions) && (
         <div>
           <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-2">Session</div>
-          <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
-            {phases.map((phase, idx) => (
-              <div key={idx} className={`flex gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-white/[0.05]' : ''}`}>
-                <span className="w-5 h-5 rounded-full bg-white/[0.08] flex items-center justify-center text-[10px] font-semibold text-white/40 flex-shrink-0 mt-0.5">
-                  {idx + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  {phase.label && (
-                    <div className="text-[10px] uppercase tracking-wider font-semibold text-white/40 mb-0.5">{phase.label}</div>
-                  )}
-                  <p className="text-sm text-white/80 leading-relaxed">{phase.text}</p>
+          {structuredBlocks ? (
+            <StructuredWorkoutDisplay blocks={structuredBlocks} />
+          ) : (
+            <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+              {phases.map((phase, idx) => (
+                <div key={idx} className={`flex gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-white/[0.05]' : ''}`}>
+                  <span className="w-5 h-5 rounded-full bg-white/[0.08] flex items-center justify-center text-[10px] font-semibold text-white/40 flex-shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    {phase.label && (
+                      <div className="text-[10px] uppercase tracking-wider font-semibold text-white/40 mb-0.5">{phase.label}</div>
+                    )}
+                    <p className="text-sm text-white/80 leading-relaxed">{phase.text}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

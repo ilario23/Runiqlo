@@ -1,6 +1,7 @@
 'use client';
 
 import {useState} from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
@@ -40,17 +41,6 @@ const NAV_LINKS = [
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
         <line x1="4" y1="22" x2="4" y2="15" />
-      </svg>
-    ),
-    exact: true,
-  },
-  {
-    href: '/profile',
-    label: 'Profile',
-    icon: (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-        <circle cx="12" cy="7" r="4" />
       </svg>
     ),
     exact: true,
@@ -98,7 +88,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
           </svg>
         </div>
         <span className="font-semibold text-sm text-white tracking-tight hidden sm:inline">
-          Strava Coach
+          Runiqlo
         </span>
       </div>
 
@@ -149,12 +139,33 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
           </svg>
         </button>
 
-        {initials && (
-          <div className="w-7 h-7 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center hidden md:flex flex-shrink-0">
-            <span className="text-[10px] font-bold text-white/75 leading-none tracking-wide">
-              {initials}
-            </span>
-          </div>
+        {athlete && (
+          <Link
+            href="/profile"
+            className={`hidden md:flex items-center gap-2 px-2 py-1 rounded-lg transition-colors cursor-pointer ${
+              pathname === '/profile'
+                ? 'bg-white/[0.08] border border-white/[0.10]'
+                : 'hover:bg-white/[0.06] border border-transparent'
+            }`}
+          >
+            {athlete.profile_medium ? (
+              <Image
+                src={athlete.profile_medium}
+                alt={`${athlete.firstname} ${athlete.lastname}`}
+                width={28}
+                height={28}
+                className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                unoptimized
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0">
+                <span className="text-[10px] font-bold text-white/75 leading-none tracking-wide">
+                  {initials}
+                </span>
+              </div>
+            )}
+            <span className="text-sm font-medium text-white/70 leading-none">{athlete.firstname}</span>
+          </Link>
         )}
 
         <Link
