@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Strava Coach',
+  title: 'Runiqlo',
   description: 'Your personal training dashboard',
   manifest: '/manifest.json',
 };

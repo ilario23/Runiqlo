@@ -1,6 +1,6 @@
 {
-  "name": "Strava Coach",
-  "short_name": "Coach",
+  "name": "Runiqlo",
+  "short_name": "Runiqlo",
   "description": "Your personal training dashboard",
   "start_url": "/",
   "display": "standalone",
