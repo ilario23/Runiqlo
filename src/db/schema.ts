@@ -79,6 +79,7 @@ export const userSettings = pgTable('user_settings', {
   paceZones: jsonb('pace_zones'),
   weight: real('weight'),
   city: text('city'),
+  coachModel: text('coach_model'),
   updatedAt: bigint('updated_at', {mode: 'number'}).notNull(),
 });
 

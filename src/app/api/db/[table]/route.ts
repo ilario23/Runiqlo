@@ -428,13 +428,13 @@ export async function POST(
       }
 
       case 'user-settings': {
-        const r = body as {athleteId: number; maxHr: number; restingHr: number; zones: unknown; paceZones?: unknown; weight?: number; city?: string; updatedAt: number};
+        const r = body as {athleteId: number; maxHr: number; restingHr: number; zones: unknown; paceZones?: unknown; weight?: number; city?: string; coachModel?: string | null; updatedAt: number};
         await db
           .insert(schema.userSettings)
-          .values({athleteId: r.athleteId, maxHr: r.maxHr, restingHr: r.restingHr, zones: r.zones, paceZones: r.paceZones ?? null, weight: r.weight ?? null, city: r.city ?? null, updatedAt: r.updatedAt})
+          .values({athleteId: r.athleteId, maxHr: r.maxHr, restingHr: r.restingHr, zones: r.zones, paceZones: r.paceZones ?? null, weight: r.weight ?? null, city: r.city ?? null, coachModel: r.coachModel ?? null, updatedAt: r.updatedAt})
           .onConflictDoUpdate({
             target: schema.userSettings.athleteId,
-            set: {maxHr: sql`excluded.max_hr`, restingHr: sql`excluded.resting_hr`, zones: sql`excluded.zones`, paceZones: sql`excluded.pace_zones`, weight: sql`excluded.weight`, city: sql`excluded.city`, updatedAt: sql`excluded.updated_at`},
+            set: {maxHr: sql`excluded.max_hr`, restingHr: sql`excluded.resting_hr`, zones: sql`excluded.zones`, paceZones: sql`excluded.pace_zones`, weight: sql`excluded.weight`, city: sql`excluded.city`, coachModel: sql`excluded.coach_model`, updatedAt: sql`excluded.updated_at`},
           });
         return NextResponse.json({ok: true});
       }
@@ -483,6 +483,7 @@ export async function PATCH(
       const patch: Record<string, unknown> = {};
       if ('weight' in body) patch.weight = body.weight;
       if ('city' in body) patch.city = body.city;
+      if ('coachModel' in body) patch.coachModel = body.coachModel;
       if (Object.keys(patch).length === 0) return NextResponse.json({ok: true});
       await db
         .update(schema.userSettings)

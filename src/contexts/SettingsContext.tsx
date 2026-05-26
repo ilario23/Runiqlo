@@ -1,37 +1,95 @@
 'use client';
 
-import {createContext, useContext, useState, useEffect, ReactNode} from 'react';
+import {createContext, useContext, useState, useEffect, useRef, ReactNode} from 'react';
 import {defaultSettings, type UserSettings} from '@/lib/activityModel';
+import {useStravaAuth} from '@/contexts/StravaAuthContext';
 
 interface SettingsContextType {
   settings: UserSettings;
   updateSettings: (patch: Partial<UserSettings>) => void;
+  isLoading: boolean;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 const SETTINGS_KEY = 'strava-coach-settings';
 
-export const SettingsProvider = ({children}: {children: ReactNode}) => {
-  const [settings, setSettings] = useState<UserSettings>(defaultSettings);
+const readLocal = (): UserSettings => {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) return {...defaultSettings, ...JSON.parse(raw)};
+  } catch { /* ignore */ }
+  return defaultSettings;
+};
 
+const writeLocal = (s: UserSettings) => {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch { /* noop */ }
+};
+
+const rowToSettings = (row: Record<string, unknown>): UserSettings => ({
+  ...defaultSettings,
+  maxHr: (row.maxHr as number) ?? defaultSettings.maxHr,
+  restingHr: (row.restingHr as number) ?? defaultSettings.restingHr,
+  zones: (row.zones as UserSettings['zones']) ?? defaultSettings.zones,
+  coachModel: (row.coachModel as string | null) ?? null,
+});
+
+export const SettingsProvider = ({children}: {children: ReactNode}) => {
+  const {athlete} = useStravaAuth();
+  const [settings, setSettings] = useState<UserSettings>(defaultSettings);
+  const [isLoading, setIsLoading] = useState(true);
+  const athleteIdRef = useRef<number | null>(null);
+
+  // Hydrate from localStorage immediately to avoid flash of defaults
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(SETTINGS_KEY);
-      if (raw) setSettings({...defaultSettings, ...JSON.parse(raw)});
-    } catch { /* keep defaults */ }
+    setSettings(readLocal());
   }, []);
+
+  // Load from DB when athlete is known
+  useEffect(() => {
+    if (!athlete?.id) {
+      setIsLoading(false);
+      return;
+    }
+    athleteIdRef.current = athlete.id;
+    setIsLoading(true);
+    fetch(`/api/db/user-settings?athleteId=${athlete.id}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((row) => {
+        if (!row) return;
+        const merged = rowToSettings(row);
+        setSettings(merged);
+        writeLocal(merged);
+      })
+      .catch(() => { /* keep current */ })
+      .finally(() => setIsLoading(false));
+  }, [athlete?.id]);
 
   const updateSettings = (patch: Partial<UserSettings>) => {
     setSettings((prev) => {
       const next = {...prev, ...patch};
-      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(next)); } catch { /* noop */ }
+      writeLocal(next);
+      const athleteId = athleteIdRef.current;
+      if (athleteId) {
+        fetch('/api/db/user-settings', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            athleteId,
+            maxHr: next.maxHr,
+            restingHr: next.restingHr,
+            zones: next.zones,
+            coachModel: next.coachModel ?? null,
+            updatedAt: Date.now(),
+          }),
+        }).catch(() => { /* fire and forget */ });
+      }
       return next;
     });
   };
 
   return (
-    <SettingsContext.Provider value={{settings, updateSettings}}>
+    <SettingsContext.Provider value={{settings, updateSettings, isLoading}}>
       {children}
     </SettingsContext.Provider>
   );

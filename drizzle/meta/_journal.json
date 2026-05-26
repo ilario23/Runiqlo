@@ -29,6 +29,13 @@
       "when": 1748044800000,
       "tag": "0003_coach_goal_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1779828354210,
+      "tag": "0004_familiar_jane_foster",
+      "breakpoints": true
     }
   ]
 }
