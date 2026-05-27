@@ -75,26 +75,30 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
         style={{boxShadow: '0 1px 0 rgba(255,255,255,0.07), 0 1px 12px rgba(0,0,0,0.4)'}}
       >
         {/* Logo */}
-        <div className='flex items-center gap-2 mr-6'>
+        <div className='flex items-center gap-2 mr-8'>
           <Image src='/mylogo.png' alt='Runiqlo' width={28} height={28} className='w-7 h-7 flex-shrink-0' />
-          <span className='font-semibold text-sm text-white tracking-tight hidden sm:inline'>Runiqlo</span>
+          <span className='font-semibold text-sm text-white tracking-wide hidden sm:inline' style={{letterSpacing: '0.06em'}}>
+            RUNIQLO
+          </span>
         </div>
 
         {/* Nav links — desktop only; mobile uses bottom bar */}
-        <nav className='hidden md:flex items-center gap-0.5 flex-1'>
+        <nav className='hidden md:flex items-center gap-1 flex-1'>
           {NAV_LINKS.map(({href, label, icon, exact}) => {
             const active = isActive(href, exact);
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                  active
-                    ? 'text-white bg-white/[0.08] border border-white/[0.10]'
-                    : 'text-white/45 hover:text-white/70 hover:bg-white/[0.05] border border-transparent'
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold tracking-wide uppercase transition-colors cursor-pointer relative ${
+                  active ? 'text-white' : 'hover:text-white/70'
                 }`}
+                style={{
+                  color: active ? 'var(--color-text-1)' : 'var(--color-text-2)',
+                  borderBottom: active ? '2px solid #fc4c02' : '2px solid transparent',
+                }}
               >
-                <span className={active ? 'text-white/75' : 'text-white/35'}>{icon}</span>
+                <span style={{color: active ? 'rgba(255,255,255,0.7)' : 'var(--color-text-3)'}}>{icon}</span>
                 <span>{label}</span>
               </Link>
             );
@@ -134,11 +138,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
           {athlete && (
             <Link
               href='/profile'
-              className={`hidden md:flex items-center gap-2 px-2 py-1 rounded-lg transition-colors cursor-pointer ${
-                pathname === '/profile'
-                  ? 'bg-white/[0.08] border border-white/[0.10]'
-                  : 'hover:bg-white/[0.06] border border-transparent'
-              }`}
+              className='hidden md:flex items-center gap-2 px-2 py-1 rounded-lg transition-colors cursor-pointer hover:bg-white/[0.05]'
             >
               {athlete.profile_medium ? (
                 <Image
@@ -160,11 +160,8 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
 
           <Link
             href='/settings'
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
-              pathname === '/settings'
-                ? 'bg-white/[0.08] border border-white/[0.10] text-white/75'
-                : 'bg-white/[0.06] hover:bg-white/[0.10] text-white/60 border border-transparent'
-            }`}
+            className='w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-white/[0.07]'
+            style={{color: pathname === '/settings' ? 'var(--color-text-1)' : 'var(--color-text-2)'}}
             aria-label='Settings'
           >
             <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>

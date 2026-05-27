@@ -11,9 +11,6 @@ import {
   XAxis,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
 } from 'recharts';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {
@@ -29,6 +26,7 @@ import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
 import {aggregateZoneBreakdowns} from '@/lib/zoneCompute';
 import type {AggregatedZoneTotals, ZoneBreakdown} from '@/lib/zoneCompute';
+import type {WeeklyPlan} from '@/lib/coachTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +35,34 @@ const fmtDate = (iso: string) =>
 
 const fmtNum = (n: number | undefined, dec = 1) =>
   typeof n === 'number' ? n.toFixed(dec) : '—';
+
+function localDateISO(d = new Date()): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getMondayISO(d = new Date()): string {
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  return localDateISO(monday);
+}
+
+const WORKOUT_LABELS: Record<string, string> = {
+  easy_run: 'Easy Run',
+  long_run: 'Long Run',
+  tempo_run: 'Tempo Run',
+  interval_run: 'Intervals',
+  recovery_run: 'Recovery Run',
+  gym: 'Gym',
+  cycling: 'Cycling',
+  yoga: 'Yoga',
+  cross_training: 'Cross Training',
+  rest: 'Rest Day',
+  swim: 'Swim',
+  walk: 'Walk',
+  hike: 'Hike',
+};
 
 function useCountUp(target: number | undefined, duration = 550): number | undefined {
   const [display, setDisplay] = useState<number | undefined>(target);
@@ -74,14 +100,14 @@ function ConnectPrompt() {
         initial={{opacity: 0, scale: 0.96}}
         animate={{opacity: 1, scale: 1}}
         transition={{duration: 0.4}}
-        className='bento-card p-10 max-w-sm w-full text-center space-y-5'
+        className='surface-card p-10 max-w-sm w-full text-center space-y-5'
       >
         <div className='w-14 h-14 flex items-center justify-center mx-auto'>
           <Image src='/logo.png' alt='Runiqlo' width={56} height={56} />
         </div>
         <div>
           <h2 className='text-lg font-semibold text-white'>Connect Strava</h2>
-          <p className='text-sm text-white/40 mt-1'>Link your account to start syncing training data</p>
+          <p className='text-sm mt-1' style={{color: 'var(--color-text-2)'}}>Link your account to start syncing training data</p>
         </div>
         <Link
           href='/settings'
@@ -105,15 +131,17 @@ interface ChartTooltipProps {
 function ChartTooltip({active, payload, label}: ChartTooltipProps) {
   if (!active || !payload?.length || !label) return null;
   return (
-    <div className='bento-card px-3 py-2.5 text-xs space-y-1 min-w-[130px]'>
-      <p className='text-white/40 mb-1.5'>{fmtDate(label)}</p>
+    <div className='surface-card px-3 py-2.5 text-xs space-y-1 min-w-[120px]'>
+      <p className='mb-1.5' style={{color: 'var(--color-text-3)'}}>
+        {fmtDate(label)}
+      </p>
       {payload.map((p) => (
         <div key={p.name} className='flex items-center justify-between gap-3'>
           <span className='flex items-center gap-1.5'>
             <span className='w-1.5 h-1.5 rounded-full inline-block' style={{background: p.color}} />
-            <span className='text-white/60'>{p.name}</span>
+            <span style={{color: 'var(--color-text-2)'}}>{p.name}</span>
           </span>
-          <span className='font-mono font-medium text-white'>{p.value?.toFixed(1)}</span>
+          <span className='font-mono font-medium' style={{color: 'var(--color-text-1)'}}>{p.value?.toFixed(1)}</span>
         </div>
       ))}
     </div>
@@ -139,7 +167,7 @@ function StatPill({label, sublabel, value, prev, color, isLoading, info}: StatPi
   const isDown = delta !== undefined && delta < 0;
 
   return (
-    <div className='bento-card-recessed px-4 py-3 min-w-[110px]'>
+    <div className='surface-raised px-4 py-3 min-w-[110px]'>
       {isLoading ? (
         <>
           <Skeleton className='h-2.5 w-12 mb-2' />
@@ -148,13 +176,21 @@ function StatPill({label, sublabel, value, prev, color, isLoading, info}: StatPi
       ) : (
         <>
           <div className='flex items-center gap-1.5 mb-1'>
-            <span className='text-xs text-white/40 font-medium'>{label}</span>
-            <span className='text-xs text-white/20'>·</span>
-            <span className='text-xs text-white/25'>{sublabel}</span>
+            <span className='metric-label'>{label}</span>
+            <span style={{color: 'var(--color-text-3)'}}>·</span>
+            <span className='text-xs' style={{color: 'var(--color-text-3)'}}>{sublabel}</span>
             {info && (
               <div className='relative group flex-shrink-0'>
-                <Info size={10} className='text-white/20 hover:text-white/50 cursor-default transition-colors' />
-                <div className='absolute right-0 top-5 w-52 p-3 rounded-xl bg-[#13131f] border border-white/10 text-xs text-white/65 leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50 shadow-lg'>
+                <Info size={10} className='cursor-default transition-colors' style={{color: 'var(--color-text-3)'}} />
+                <div
+                  className='absolute right-0 top-5 w-52 p-3 rounded-xl text-xs leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50'
+                  style={{
+                    background: 'var(--color-surface-2)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-2)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                  }}
+                >
                   {info}
                 </div>
               </div>
@@ -164,9 +200,8 @@ function StatPill({label, sublabel, value, prev, color, isLoading, info}: StatPi
             {typeof animated === 'number' ? animated.toFixed(1) : '—'}
           </p>
           {delta !== undefined && (
-            <p
-              className={`text-xs font-mono mt-0.5 ${isUp ? 'text-accent-green' : isDown ? 'text-accent-red' : 'text-white/30'}`}
-            >
+            <p className={`text-xs font-mono mt-0.5 ${isUp ? 'text-accent-green' : isDown ? 'text-accent-red' : ''}`}
+              style={!isUp && !isDown ? {color: 'var(--color-text-3)'} : {}}>
               {isUp ? '↑' : isDown ? '↓' : '→'} {Math.abs(delta).toFixed(1)} vs 7d
             </p>
           )}
@@ -196,7 +231,7 @@ function TsbSparkline({data, color}: {data: number[]; color: string}) {
       {min < 0 && max > 0 && (
         <line
           x1="0" y1={zeroY} x2="100" y2={zeroY}
-          stroke="white" strokeWidth="1" opacity={0.08}
+          stroke="white" strokeWidth="1" opacity={0.06}
           vectorEffect="non-scaling-stroke"
           strokeDasharray="3,3"
         />
@@ -209,24 +244,20 @@ function TsbSparkline({data, color}: {data: number[]; color: string}) {
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
-        opacity={0.5}
+        opacity={0.6}
       />
     </svg>
   );
 }
 
-// ── Form Hero Slab ──
+// ── Form Hero Slab (open stage — no card wrapper) ──
 
 function FormHeroSlab({
   fitnessData,
-  activities,
   fitnessLoading,
-  activitiesLoading,
 }: {
   fitnessData: FitnessDataPoint[] | undefined;
-  activities: ActivitySummary[] | undefined;
   fitnessLoading: boolean;
-  activitiesLoading: boolean;
 }) {
   const last = fitnessData?.[fitnessData.length - 1];
   const prev7 = fitnessData?.[fitnessData.length - 8];
@@ -247,46 +278,38 @@ function FormHeroSlab({
       ? {label: 'Loaded', sub: 'High training stress', color: COLORS.orange}
       : {label: 'Fatigued', sub: 'Recovery priority', color: COLORS.red};
 
-  const weekStats = useMemo(() => {
-    if (!activities) return null;
-    const now = new Date();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - now.getDay());
-    weekStart.setHours(0, 0, 0, 0);
-    const thisWeek = activities.filter((a) => new Date(a.date) >= weekStart);
-    return {
-      km: thisWeek.reduce((s, a) => s + a.distance, 0),
-      duration: thisWeek.reduce((s, a) => s + a.duration, 0),
-      count: thisWeek.length,
-    };
-  }, [activities]);
-
   const tsbHistory = useMemo(
     () => (fitnessData?.slice(-14).map((d) => d.tsb) ?? []),
     [fitnessData],
   );
 
   return (
-    <div className='bento-card-stage p-5 md:p-6'>
-      <div className='flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-6'>
+    <div className='surface-stage relative py-10 md:py-14'>
+      {/* Subtle accent wash behind hero number */}
+      <div
+        className='absolute inset-0 pointer-events-none'
+        style={{
+          background: 'radial-gradient(ellipse 40% 60% at 0% 50%, var(--color-accent-dim) 0%, transparent 70%)',
+        }}
+      />
+
+      <div className='relative flex flex-col sm:flex-row sm:items-center gap-6 sm:gap-8'>
         {/* Left — TSB hero number */}
         <div className='flex-shrink-0'>
-          <p className='text-xs text-white/35 font-semibold uppercase tracking-widest mb-2'>
-            Form · TSB
-          </p>
+          <p className='metric-label mb-3'>Form · TSB</p>
           {fitnessLoading || tsb === undefined ? (
             <div className='flex items-baseline gap-4'>
-              <Skeleton className='h-14 w-24' />
+              <Skeleton className='h-20 w-32' />
               <div className='space-y-1.5'>
                 <Skeleton className='h-4 w-16' />
                 <Skeleton className='h-3 w-28' />
               </div>
             </div>
           ) : (
-            <div className='flex items-baseline gap-4'>
+            <div className='flex items-baseline gap-5'>
               <p
-                className='text-6xl font-black tracking-tight font-mono tabular-nums leading-none'
-                style={{color: status?.color ?? '#f5f5f7'}}
+                className='metric-display'
+                style={{color: status?.color ?? 'var(--color-text-1)'}}
               >
                 {typeof animatedTSB === 'number'
                   ? `${animatedTSB > 0 ? '+' : ''}${animatedTSB.toFixed(1)}`
@@ -294,8 +317,12 @@ function FormHeroSlab({
               </p>
               {status && (
                 <div>
-                  <p className='text-base font-semibold text-white/90 leading-tight'>{status.label}</p>
-                  <p className='text-xs text-white/40 mt-0.5'>{status.sub}</p>
+                  <p className='text-base font-semibold leading-tight' style={{color: 'var(--color-text-1)'}}>
+                    {status.label}
+                  </p>
+                  <p className='text-sm mt-0.5' style={{color: 'var(--color-text-2)'}}>
+                    {status.sub}
+                  </p>
                 </div>
               )}
             </div>
@@ -304,16 +331,16 @@ function FormHeroSlab({
 
         {/* Middle — 14-day TSB trend */}
         {tsbHistory.length >= 2 && !fitnessLoading && (
-          <div className='hidden sm:flex flex-1 flex-col justify-center gap-1.5 min-w-0'>
-            <p className='text-[10px] text-white/25 font-semibold uppercase tracking-widest'>14d trend</p>
-            <div className='h-10 w-full'>
+          <div className='hidden sm:flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-[180px]'>
+            <p className='metric-label'>14d trend</p>
+            <div className='h-12 w-full'>
               <TsbSparkline data={tsbHistory} color={status?.color ?? COLORS.blue} />
             </div>
           </div>
         )}
 
         {/* Right — CTL + ATL pills */}
-        <div className='flex sm:flex-col gap-3 sm:gap-2'>
+        <div className='flex sm:flex-col gap-3 sm:gap-2 sm:ml-auto'>
           <StatPill
             label='CTL'
             sublabel='Fitness'
@@ -334,37 +361,178 @@ function FormHeroSlab({
           />
         </div>
       </div>
-
-      {/* This week strip */}
-      <div className='mt-4 pt-4 border-t border-white/[0.06] flex items-center gap-5 flex-wrap'>
-        <span className='text-xs text-white/25 font-semibold uppercase tracking-widest'>
-          This week
-        </span>
-        {activitiesLoading || !weekStats ? (
-          <Skeleton className='h-3 w-48' />
-        ) : weekStats.count === 0 ? (
-          <span className='text-xs text-white/25'>No activities yet</span>
-        ) : (
-          <>
-            <span className='text-xs text-white/55 font-mono tabular-nums'>
-              <span className='text-white font-semibold'>{weekStats.km.toFixed(1)}</span> km
-            </span>
-            <span className='text-xs text-white/55'>
-              <span className='text-white font-semibold'>{weekStats.count}</span>{' '}
-              {weekStats.count === 1 ? 'session' : 'sessions'}
-            </span>
-            <span className='text-xs text-white/55 font-mono tabular-nums'>
-              <span className='text-white font-semibold'>{formatDuration(weekStats.duration)}</span>{' '}
-              moving
-            </span>
-          </>
-        )}
-      </div>
     </div>
   );
 }
 
-// ── Training Load Slab (chart + CTL/ATL/TSB merged into one surface) ──
+// ── Today's Workout Strip ──
+
+function TodayWorkoutStrip() {
+  const {athlete} = useStravaAuth();
+  const [plan, setPlan] = useState<WeeklyPlan | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!athlete?.id) return;
+    const weekStart = getMondayISO();
+    fetch(`/api/coach/week?athleteId=${athlete.id}&weekStart=${weekStart}`)
+      .then((r) => r.json())
+      .then((data) => setPlan(data ?? null))
+      .catch(() => setPlan(null));
+  }, [athlete?.id]);
+
+  if (plan === undefined) return null; // loading — show nothing
+
+  const todayISO = localDateISO();
+  const todayEntry = plan?.days?.find((d) => d.date === todayISO);
+  const firstWorkout = todayEntry?.workouts?.[0];
+
+  if (!plan || !firstWorkout) {
+    return (
+      <motion.div
+        initial={{opacity: 0}}
+        animate={{opacity: 1}}
+        transition={{duration: 0.3}}
+      >
+        <Link
+          href='/coach'
+          className='surface-card flex items-center gap-4 px-5 py-3.5 group transition-colors hover:border-[var(--color-accent)]/30'
+          style={{borderLeftWidth: '2px', borderLeftColor: 'var(--color-text-3)'}}
+        >
+          <span className='metric-label'>Today</span>
+          <span className='text-sm' style={{color: 'var(--color-text-2)'}}>
+            {!plan ? 'No training plan set up' : 'Rest day'}
+          </span>
+          <span className='ml-auto text-sm group-hover:translate-x-0.5 transition-transform' style={{color: 'var(--color-text-3)'}}>
+            {!plan ? 'Set up plan →' : ''}
+          </span>
+        </Link>
+      </motion.div>
+    );
+  }
+
+  const label = WORKOUT_LABELS[firstWorkout.type] ?? firstWorkout.type;
+  const duration = firstWorkout.durationMinutes ? `${firstWorkout.durationMinutes} min` : null;
+  const distance = firstWorkout.distanceKm ? `${firstWorkout.distanceKm} km` : null;
+  const target = [duration, distance].filter(Boolean).join(' · ');
+
+  return (
+    <motion.div
+      initial={{opacity: 0}}
+      animate={{opacity: 1}}
+      transition={{duration: 0.3}}
+    >
+      <Link
+        href='/coach'
+        className='surface-card flex items-center gap-4 px-5 py-3.5 group transition-colors hover:border-[var(--color-accent)]/30'
+        style={{borderLeftWidth: '2px', borderLeftColor: 'var(--color-accent)'}}
+      >
+        <span className='metric-label'>Today</span>
+        <span className='text-sm font-medium' style={{color: 'var(--color-text-1)'}}>{label}</span>
+        {target && (
+          <>
+            <span style={{color: 'var(--color-text-3)'}}>·</span>
+            <span className='text-sm font-mono' style={{color: 'var(--color-text-2)'}}>{target}</span>
+          </>
+        )}
+        {firstWorkout.intensityDescription && (
+          <span className='hidden md:block text-sm truncate flex-1 ml-2' style={{color: 'var(--color-text-2)'}}>
+            {firstWorkout.intensityDescription}
+          </span>
+        )}
+        <span className='ml-auto text-sm group-hover:translate-x-0.5 transition-transform' style={{color: 'var(--color-text-3)'}}>→</span>
+      </Link>
+    </motion.div>
+  );
+}
+
+// ── Featured Last Run Card ──
+
+function LastRunCard({
+  activities,
+  isLoading,
+}: {
+  activities: ActivitySummary[] | undefined;
+  isLoading: boolean;
+}) {
+  const run = activities?.[0];
+  const color = run ? (SPORT_COLORS[run.type] ?? 'var(--color-text-2)') : 'var(--color-accent)';
+
+  if (isLoading) {
+    return (
+      <div className='surface-card p-5' style={{borderLeftWidth: '3px', borderLeftColor: 'var(--color-surface-1)'}}>
+        <div className='space-y-3'>
+          <Skeleton className='h-3 w-24' />
+          <Skeleton className='h-7 w-64' />
+          <div className='flex gap-8 mt-2'>
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className='space-y-1'>
+                <Skeleton className='h-2.5 w-10' />
+                <Skeleton className='h-5 w-14' />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!run) return null;
+
+  const dateStr = new Date(run.date).toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+
+  const stats = [
+    {label: 'Distance', value: `${run.distance.toFixed(2)} km`},
+    {label: 'Avg Pace', value: run.avgPace > 0 ? `${formatPace(run.avgPace)}/km` : '—'},
+    {label: 'Avg HR', value: run.avgHr > 0 ? `${Math.round(run.avgHr)} bpm` : '—'},
+    {label: 'Elevation', value: run.elevationGain > 0 ? `+${Math.round(run.elevationGain)} m` : '—'},
+  ];
+
+  return (
+    <motion.div
+      initial={{opacity: 0, x: -8}}
+      animate={{opacity: 1, x: 0}}
+      transition={{duration: 0.35}}
+    >
+      <Link
+        href={`/activities/${run.id}`}
+        className='surface-card block p-5 group transition-colors hover:border-[rgba(255,255,255,0.09)]'
+        style={{borderLeftWidth: '3px', borderLeftColor: color}}
+      >
+        <div className='flex items-start gap-3 mb-4'>
+          <div className='w-2 h-2 rounded-full mt-1.5 flex-shrink-0' style={{background: color}} />
+          <div className='flex-1 min-w-0'>
+            <p className='metric-label mb-1'>{dateStr} · {run.type}</p>
+            <h3 className='text-xl font-bold truncate group-hover:opacity-80 transition-opacity'
+              style={{color: 'var(--color-text-1)', letterSpacing: '-0.02em'}}>
+              {run.name}
+            </h3>
+          </div>
+          <span className='text-sm opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1'
+            style={{color: 'var(--color-text-2)'}}>
+            →
+          </span>
+        </div>
+
+        <div className='flex gap-6 md:gap-10'>
+          {stats.map((s) => (
+            <div key={s.label}>
+              <p className='metric-label mb-1'>{s.label}</p>
+              <p className='text-base font-semibold font-mono tabular-nums' style={{color: 'var(--color-text-1)'}}>
+                {s.value}
+              </p>
+            </div>
+          ))}
+        </div>
+      </Link>
+    </motion.div>
+  );
+}
+
+// ── Training Load Slab (CTL + TSB only, ATL removed from chart) ──
 
 function TrainingLoadSlab({
   data,
@@ -391,34 +559,34 @@ function TrainingLoadSlab({
       : undefined;
 
   return (
-    <div className='bento-card p-5 flex flex-col h-full min-h-[220px]'>
-      <div className='flex items-center justify-between mb-4 flex-wrap gap-2'>
+    <div className='surface-card p-5 flex flex-col h-full min-h-[220px]'>
+      <div className='flex items-center justify-between mb-5 flex-wrap gap-2'>
         <div>
-          <h2 className='text-sm font-medium text-white'>Training Load</h2>
-          <p className='text-xs text-white/40 mt-0.5'>Last 90 days</p>
+          <h2 className='text-sm font-semibold' style={{color: 'var(--color-text-1)'}}>Training Load</h2>
+          <p className='text-xs mt-0.5' style={{color: 'var(--color-text-2)'}}>Last 90 days</p>
         </div>
 
-        <div className='flex items-center gap-4 text-xs'>
+        <div className='flex items-center gap-5 text-xs'>
           <span className='flex items-center gap-1.5'>
-            <span className='w-3 h-0.5 rounded bg-accent-blue inline-block' />
-            <span className='text-white/45'>CTL</span>
-            <span className='font-mono font-semibold text-white/80 ml-0.5 tabular-nums'>
+            <span className='w-3 h-0.5 rounded inline-block' style={{background: COLORS.blue}} />
+            <span style={{color: 'var(--color-text-2)'}}>CTL</span>
+            <span className='font-mono font-semibold ml-0.5 tabular-nums' style={{color: 'var(--color-text-1)'}}>
               {isLoading ? '—' : fmtNum(currentCTL)}
             </span>
           </span>
           <span className='flex items-center gap-1.5'>
-            <span className='w-3 h-0.5 rounded bg-accent-orange inline-block' />
-            <span className='text-white/45'>ATL</span>
-            <span className='font-mono font-semibold text-white/80 ml-0.5 tabular-nums'>
+            <span className='w-3 h-0.5 rounded inline-block opacity-60' style={{background: COLORS.orange}} />
+            <span style={{color: 'var(--color-text-2)'}}>ATL</span>
+            <span className='font-mono font-semibold ml-0.5 tabular-nums' style={{color: 'var(--color-text-1)'}}>
               {isLoading ? '—' : fmtNum(currentATL)}
             </span>
           </span>
           <span className='flex items-center gap-1.5'>
-            <span className='w-3 h-0.5 rounded bg-accent-purple inline-block opacity-70' />
-            <span className='text-white/45'>TSB</span>
+            <span className='w-3 h-px rounded inline-block' style={{background: tsbColor ?? COLORS.yellow, borderTop: '1px dashed'}} />
+            <span style={{color: 'var(--color-text-2)'}}>TSB</span>
             <span
               className='font-mono font-semibold ml-0.5 tabular-nums'
-              style={{color: tsbColor ?? 'rgba(255,255,255,0.8)'}}
+              style={{color: tsbColor ?? 'var(--color-text-1)'}}
             >
               {isLoading
                 ? '—'
@@ -438,22 +606,14 @@ function TrainingLoadSlab({
             <AreaChart data={last90} margin={{top: 4, right: 4, left: 0, bottom: 0}}>
               <defs>
                 <linearGradient id='gradCTL' x1='0' y1='0' x2='0' y2='1'>
-                  <stop offset='5%' stopColor={COLORS.blue} stopOpacity={0.45} />
-                  <stop offset='95%' stopColor={COLORS.blue} stopOpacity={0.03} />
+                  <stop offset='5%' stopColor={COLORS.blue} stopOpacity={0.35} />
+                  <stop offset='95%' stopColor={COLORS.blue} stopOpacity={0.02} />
                 </linearGradient>
-                <linearGradient id='gradATL' x1='0' y1='0' x2='0' y2='1'>
-                  <stop offset='5%' stopColor={COLORS.orange} stopOpacity={0.35} />
-                  <stop offset='95%' stopColor={COLORS.orange} stopOpacity={0.02} />
-                </linearGradient>
-                <filter id='glow-blue'>
-                  <feGaussianBlur stdDeviation='3' result='blur' />
-                  <feComposite in='SourceGraphic' in2='blur' operator='over' />
-                </filter>
               </defs>
               <XAxis
                 dataKey='date'
                 tickFormatter={fmtDate}
-                tick={{fill: 'rgba(255,255,255,0.3)', fontSize: 10}}
+                tick={{fill: 'var(--color-text-3)', fontSize: 10}}
                 axisLine={false}
                 tickLine={false}
                 interval='preserveStartEnd'
@@ -461,38 +621,27 @@ function TrainingLoadSlab({
               />
               <RechartsTooltip
                 content={<ChartTooltip />}
-                cursor={{stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1}}
-              />
-              <Area
-                type='monotone'
-                dataKey='atl'
-                name='ATL'
-                stroke={COLORS.orange}
-                strokeWidth={2}
-                fill='url(#gradATL)'
-                dot={false}
-                activeDot={{r: 4, fill: COLORS.orange}}
+                cursor={{stroke: 'var(--color-border)', strokeWidth: 1}}
               />
               <Area
                 type='monotone'
                 dataKey='ctl'
                 name='CTL'
                 stroke={COLORS.blue}
-                strokeWidth={3}
+                strokeWidth={2.5}
                 fill='url(#gradCTL)'
                 dot={false}
                 activeDot={{r: 4, fill: COLORS.blue}}
-                filter='url(#glow-blue)'
               />
               <Area
                 type='monotone'
                 dataKey='tsb'
                 name='TSB'
-                stroke={COLORS.purple}
+                stroke={tsbColor ?? COLORS.yellow}
                 strokeWidth={1.5}
                 fill='none'
                 dot={false}
-                activeDot={{r: 3, fill: COLORS.purple}}
+                activeDot={{r: 3, fill: tsbColor ?? COLORS.yellow}}
                 strokeDasharray='4 3'
               />
             </AreaChart>
@@ -515,14 +664,22 @@ function SegmentedControl<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <div className='flex rounded-lg overflow-hidden border border-white/10'>
+    <div
+      className='flex rounded-lg overflow-hidden'
+      style={{
+        background: 'var(--color-surface-1)',
+        border: '1px solid var(--color-border)',
+      }}
+    >
       {options.map((opt) => (
         <button
           key={opt.value}
           onClick={() => onChange(opt.value)}
-          className={`px-2 py-1 text-xs font-medium transition-colors cursor-pointer ${
-            value === opt.value ? 'bg-white/15 text-white' : 'text-white/40 hover:text-white/65'
-          }`}
+          className='px-2.5 py-1 text-xs font-medium transition-colors cursor-pointer'
+          style={{
+            background: value === opt.value ? 'var(--color-surface-2)' : 'transparent',
+            color: value === opt.value ? 'var(--color-text-1)' : 'var(--color-text-2)',
+          }}
         >
           {opt.label}
         </button>
@@ -531,7 +688,7 @@ function SegmentedControl<T extends string>({
   );
 }
 
-// ── HR Zone card (simplified: 2 controls in header, defaults to grouped/80-20 view) ──
+// ── HR Zone card (bars only — pie removed) ──
 
 function HRZoneCard({
   breakdownMap,
@@ -556,6 +713,19 @@ function HRZoneCard({
     if (filtered.length === 0) return aggregateZoneBreakdowns(Array.from(breakdownMap.values()));
     return aggregateZoneBreakdowns(filtered);
   }, [breakdownMap, activities]);
+
+  const weekStats = useMemo(() => {
+    if (!activities) return null;
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const thisWeek = activities.filter((a) => new Date(a.date) >= weekStart);
+    return {
+      km: thisWeek.reduce((s, a) => s + a.distance, 0),
+      count: thisWeek.length,
+    };
+  }, [activities]);
 
   const displayZones = useMemo(() => {
     if (!data) return [];
@@ -590,21 +760,17 @@ function HRZoneCard({
   const totalDistance = data?.totalDistance ?? 0;
   const total = metric === 'time' ? totalTime : totalDistance;
 
-  const pieData = displayZones
-    .map((d) => ({...d, value: metric === 'time' ? d.time : d.distance}))
-    .filter((d) => d.value > 0);
-
   return (
-    <div className='bento-card p-5 flex flex-col h-full'>
-      {/* Header — 2 controls max */}
-      <div className='flex items-start justify-between mb-4'>
+    <div className='surface-card p-5 flex flex-col h-full'>
+      {/* Header */}
+      <div className='flex items-start justify-between mb-1'>
         <div>
-          <h2 className='text-sm font-medium text-white'>Zone Distribution</h2>
-          <p className='text-xs text-white/40 mt-0.5'>Runs · Last 4 weeks</p>
+          <h2 className='text-sm font-semibold' style={{color: 'var(--color-text-1)'}}>Zone Distribution</h2>
+          <p className='text-xs mt-0.5' style={{color: 'var(--color-text-2)'}}>Runs · Last 4 weeks</p>
         </div>
         <div className='flex items-center gap-2 flex-wrap justify-end'>
           {isLoading && progress.total > 0 && (
-            <span className='text-xs text-white/35'>
+            <span className='text-xs' style={{color: 'var(--color-text-3)'}}>
               {progress.done}/{progress.total}
             </span>
           )}
@@ -627,142 +793,111 @@ function HRZoneCard({
         </div>
       </div>
 
+      {/* This week stats */}
+      {weekStats && (
+        <div className='flex items-center gap-4 mb-4 mt-2'>
+          <span className='metric-label'>This week</span>
+          <span className='text-xs font-mono tabular-nums' style={{color: 'var(--color-text-1)'}}>
+            {weekStats.km.toFixed(1)} km
+          </span>
+          <span className='text-xs' style={{color: 'var(--color-text-2)'}}>
+            {weekStats.count} {weekStats.count === 1 ? 'session' : 'sessions'}
+          </span>
+        </div>
+      )}
+
       {isLoading && !data ? (
-        <div className='flex-1 space-y-3'>
+        <div className='flex-1 space-y-4'>
           {[1, 2, 3, 4].map((z) => (
             <div key={z} className='space-y-1.5'>
               <Skeleton className='h-2.5 w-20' />
-              <Skeleton className='h-2 w-full' />
+              <Skeleton className='h-2.5 w-full' />
             </div>
           ))}
         </div>
       ) : !data || totalTime === 0 ? (
         <div className='flex-1 flex items-center justify-center'>
-          <p className='text-xs text-white/25'>No zone data for past 4 weeks</p>
+          <p className='text-xs' style={{color: 'var(--color-text-3)'}}>No zone data for past 4 weeks</p>
         </div>
       ) : (
-        <div className='flex-1 flex flex-col gap-4'>
-          <AnimatePresence mode='wait' initial={false}>
-            <motion.div
-              key={grouping}
-              initial={{opacity: 0}}
-              animate={{opacity: 1}}
-              exit={{opacity: 0}}
-              transition={{duration: 0.15}}
-              className='space-y-2.5'
-            >
-              {displayZones.map((zone, i) => {
-                const value = metric === 'time' ? zone.time : zone.distance;
-                const pct = total > 0 ? Math.round((value / total) * 100) : 0;
-                return (
-                  <div key={zone.key}>
-                    <div className='flex items-center justify-between mb-1'>
-                      <span className='text-xs text-white/60 font-medium'>{zone.label}</span>
-                      <span className='text-xs text-white/40'>
-                        {pct}%{' · '}
-                        {metric === 'time' ? formatDuration(zone.time) : `${zone.distance.toFixed(1)} km`}
-                      </span>
-                    </div>
-                    <div className='h-1.5 rounded-full bg-white/[0.06] overflow-hidden'>
-                      <motion.div
-                        className='h-full rounded-full'
-                        style={{background: zone.color}}
-                        initial={{width: 0}}
-                        animate={{width: `${pct}%`}}
-                        transition={{duration: 0.45, delay: i * 0.05, ease: 'easeOut'}}
-                      />
-                    </div>
+        <AnimatePresence mode='wait' initial={false}>
+          <motion.div
+            key={grouping}
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+            exit={{opacity: 0}}
+            transition={{duration: 0.15}}
+            className='flex-1 space-y-3'
+          >
+            {displayZones.map((zone, i) => {
+              const value = metric === 'time' ? zone.time : zone.distance;
+              const pct = total > 0 ? Math.round((value / total) * 100) : 0;
+              return (
+                <div key={zone.key}>
+                  <div className='flex items-center justify-between mb-1.5'>
+                    <span className='text-xs font-medium' style={{color: 'var(--color-text-1)'}}>{zone.label}</span>
+                    <span className='text-xs font-mono tabular-nums' style={{color: 'var(--color-text-2)'}}>
+                      {pct}%{' · '}
+                      {metric === 'time' ? formatDuration(zone.time) : `${zone.distance.toFixed(1)} km`}
+                    </span>
                   </div>
-                );
-              })}
-              <p className='text-xs text-white/20 pt-0.5'>
-                Total:{' '}
-                {metric === 'time' ? formatDuration(totalTime) : `${totalDistance.toFixed(1)} km`}
-              </p>
-            </motion.div>
-          </AnimatePresence>
-
-          <AnimatePresence mode='wait' initial={false}>
-            <motion.div
-              key={`chart-${grouping}`}
-              className='h-[160px]'
-              initial={{opacity: 0}}
-              animate={{opacity: 1}}
-              exit={{opacity: 0}}
-              transition={{duration: 0.15}}
-            >
-              <ResponsiveContainer width='100%' height='100%'>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx='50%'
-                    cy='50%'
-                    innerRadius='50%'
-                    outerRadius='75%'
-                    dataKey='value'
-                    strokeWidth={0}
-                    paddingAngle={1}
-                    isAnimationActive
-                    animationBegin={0}
-                    animationDuration={450}
-                    animationEasing='ease-out'
+                  <div
+                    className='h-2 rounded-full overflow-hidden'
+                    style={{background: 'var(--color-surface-1)'}}
                   >
-                    {pieData.map((entry, i) => (
-                      <Cell key={i} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip
-                    cursor={false}
-                    content={({active, payload}) => {
-                      if (!active || !payload?.length) return null;
-                      const entry = payload[0].payload;
-                      const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
-                      return (
-                        <div className='bg-black/80 border border-white/10 rounded-lg px-3 py-2 backdrop-blur-sm'>
-                          <p className='text-xs text-white font-medium'>{entry.label}</p>
-                          <p className='text-xs text-white/55 mt-0.5'>
-                            {pct}%{' · '}
-                            {metric === 'time'
-                              ? formatDuration(entry.time)
-                              : `${entry.distance.toFixed(1)} km`}
-                          </p>
-                        </div>
-                      );
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+                    <motion.div
+                      className='h-full rounded-full'
+                      style={{background: zone.color}}
+                      initial={{width: 0}}
+                      animate={{width: `${pct}%`}}
+                      transition={{duration: 0.45, delay: i * 0.05, ease: 'easeOut'}}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+            <p className='text-xs pt-1' style={{color: 'var(--color-text-3)'}}>
+              Total:{' '}
+              {metric === 'time' ? formatDuration(totalTime) : `${totalDistance.toFixed(1)} km`}
+            </p>
+          </motion.div>
+        </AnimatePresence>
       )}
     </div>
   );
 }
 
-// ── Recent Activities (paginated, no internal scroll) ──
+// ── Recent Activities (index rail) ──
 
 function ActivityRow({activity}: {activity: ActivitySummary}) {
-  const color = SPORT_COLORS[activity.type] ?? '#ffffff60';
+  const color = SPORT_COLORS[activity.type] ?? 'var(--color-text-3)';
   const dateStr = new Date(activity.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
 
   return (
     <Link
       href={`/activities/${activity.id}`}
-      className='flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group'
+      className='flex items-center gap-3 py-3 px-4 transition-colors cursor-pointer group'
+      style={{borderBottom: '1px solid var(--color-border)'}}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--color-surface-1)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
     >
       <div className='w-2 h-2 rounded-full flex-shrink-0' style={{background: color}} />
       <div className='flex-1 min-w-0'>
-        <p className='text-sm text-white/80 truncate font-medium leading-tight group-hover:text-white transition-colors'>
+        <p
+          className='text-sm font-medium truncate leading-tight transition-colors'
+          style={{color: 'var(--color-text-1)'}}
+        >
           {activity.name}
         </p>
-        <p className='text-xs text-white/40 mt-0.5'>
+        <p className='text-xs mt-0.5' style={{color: 'var(--color-text-2)'}}>
           {dateStr} · {activity.type}
         </p>
       </div>
       <div className='text-right flex-shrink-0'>
-        <p className='text-sm text-white/75 font-mono tabular-nums'>{activity.distance.toFixed(1)} km</p>
-        <p className='text-xs text-white/40 font-mono tabular-nums'>
+        <p className='text-sm font-mono tabular-nums' style={{color: 'var(--color-text-1)'}}>
+          {activity.distance.toFixed(1)} km
+        </p>
+        <p className='text-xs font-mono tabular-nums' style={{color: 'var(--color-text-2)'}}>
           {activity.avgPace > 0 ? `${formatPace(activity.avgPace)}/km` : ''}
           {activity.avgPace > 0 && activity.avgHr > 0 ? ' · ' : ''}
           {activity.avgHr > 0 ? `${Math.round(activity.avgHr)} bpm` : ''}
@@ -779,24 +914,29 @@ function RecentActivitiesCard({
   activities: ActivitySummary[] | undefined;
   isLoading: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const PAGE = 5;
+  const PAGE = 8;
   const all = activities ?? [];
-  const displayed = expanded ? all.slice(0, 15) : all.slice(0, PAGE);
+  const displayed = all.slice(0, PAGE);
 
   return (
-    <div className='bento-card p-5 flex flex-col h-full'>
-      <div className='flex items-center justify-between mb-3'>
-        <h2 className='text-sm font-medium text-white'>Recent Activities</h2>
-        <Link href='/activities' className='text-xs text-white/40 hover:text-white/65 transition-colors'>
+    <div className='surface-card overflow-hidden'>
+      <div className='flex items-center justify-between px-5 py-4' style={{borderBottom: '1px solid var(--color-border)'}}>
+        <h2 className='text-sm font-semibold' style={{color: 'var(--color-text-1)'}}>Recent Activities</h2>
+        <Link
+          href='/activities'
+          className='text-xs transition-colors'
+          style={{color: 'var(--color-text-2)'}}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-text-1)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-text-2)')}
+        >
           View all →
         </Link>
       </div>
 
       {isLoading ? (
-        <div className='space-y-2'>
+        <div className='px-4 py-2'>
           {Array.from({length: 5}).map((_, i) => (
-            <div key={i} className='flex items-center gap-3 py-2'>
+            <div key={i} className='flex items-center gap-3 py-3' style={{borderBottom: '1px solid var(--color-border)'}}>
               <Skeleton className='w-2 h-2 rounded-full' />
               <div className='flex-1 space-y-1.5'>
                 <Skeleton className='h-3 w-3/4' />
@@ -807,36 +947,25 @@ function RecentActivitiesCard({
           ))}
         </div>
       ) : all.length === 0 ? (
-        <div className='flex-1 flex items-center justify-center'>
-          <p className='text-xs text-white/25'>No activities yet</p>
+        <div className='flex items-center justify-center py-12'>
+          <p className='text-xs' style={{color: 'var(--color-text-3)'}}>No activities yet</p>
         </div>
       ) : (
-        <>
-          <motion.div className='space-y-0.5'>
-            <AnimatePresence initial={false}>
-              {displayed.map((a, i) => (
-                <motion.div
-                  key={a.id}
-                  initial={{opacity: 0, y: 6}}
-                  animate={{opacity: 1, y: 0}}
-                  exit={{opacity: 0, y: -4}}
-                  transition={{duration: 0.2, delay: i * 0.03}}
-                >
-                  <ActivityRow activity={a} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
-
-          {all.length > PAGE && (
-            <button
-              onClick={() => setExpanded((e) => !e)}
-              className='mt-2 w-full py-2 text-xs text-white/35 hover:text-white/60 transition-colors text-center cursor-pointer'
-            >
-              {expanded ? 'Show less' : `+${all.length - PAGE} more`}
-            </button>
-          )}
-        </>
+        <motion.div>
+          <AnimatePresence initial={false}>
+            {displayed.map((a, i) => (
+              <motion.div
+                key={a.id}
+                initial={{opacity: 0}}
+                animate={{opacity: 1}}
+                exit={{opacity: 0}}
+                transition={{duration: 0.2, delay: i * 0.02}}
+              >
+                <ActivityRow activity={a} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
       )}
     </div>
   );
@@ -859,7 +988,8 @@ export default function DashboardPage() {
   if (authLoading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <div className='w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin' />
+        <div className='w-8 h-8 rounded-full border-2 border-t-accent-blue animate-spin'
+          style={{borderColor: 'var(--color-surface-1)', borderTopColor: COLORS.blue}} />
       </div>
     );
   }
@@ -872,25 +1002,33 @@ export default function DashboardPage() {
     <>
       <AppHeader onRefresh={forceRefresh} />
 
-      <main className='pt-[72px] pb-20 md:pb-6 px-5 min-h-dvh'>
+      <main className='pt-[72px] pb-20 md:pb-8 px-5 min-h-dvh' style={{background: 'var(--color-base)'}}>
         <motion.div
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           transition={{duration: 0.4}}
           className='grid grid-cols-12 gap-4 max-w-[1400px] mx-auto'
         >
-          {/* Row 1 — Form Hero */}
+          {/* [1] Hero Stage — TSB */}
           <div className='col-span-12'>
             <FormHeroSlab
               fitnessData={fitnessData}
-              activities={activities}
               fitnessLoading={fitnessLoading}
-              activitiesLoading={activitiesLoading}
             />
           </div>
 
-          {/* Row 2 — Training Load (chart + CTL/ATL/TSB in header) */}
-          <div className='col-span-12 h-[240px]'>
+          {/* [2] Coach Workout Strip */}
+          <div className='col-span-12'>
+            <TodayWorkoutStrip />
+          </div>
+
+          {/* [3] Featured Last Run */}
+          <div className='col-span-12'>
+            <LastRunCard activities={activities} isLoading={activitiesLoading} />
+          </div>
+
+          {/* [4+5] Training Load + Zone Distribution */}
+          <div className='col-span-12 md:col-span-8 h-[260px]'>
             <TrainingLoadSlab
               data={fitnessData}
               currentCTL={currentCTL}
@@ -900,8 +1038,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Row 3 — Zone Distribution + Recent Activities */}
-          <div className='col-span-12 md:col-span-7 min-h-[360px]'>
+          <div className='col-span-12 md:col-span-4'>
             <HRZoneCard
               breakdownMap={breakdownMap}
               activities={activities}
@@ -910,7 +1047,8 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className='col-span-12 md:col-span-5 min-h-[360px]'>
+          {/* [6] Activity Feed */}
+          <div className='col-span-12'>
             <RecentActivitiesCard activities={activities} isLoading={activitiesLoading} />
           </div>
         </motion.div>
