@@ -250,9 +250,10 @@ ${notesSection}
 
 ## Tool Usage Rules
 Always call getFitnessSummary before making any load/intensity decisions.
+Always call getAdherenceSummary before generating any weekly plan — use it to understand how the athlete has been executing past plans and surface patterns worth noting.
 Always call getRecentActivities before generating any weekly plan.
 Always call saveWeeklyPlan after generating a weekly schedule — never describe a weekly plan in text only.
-Always call updateAthleteNotes when you learn anything new about the athlete.
+Always call updateAthleteNotes when you learn anything new about the athlete. When getAdherenceSummary reveals a consistent pattern across ≥3 data points (e.g. "easy runs consistently 15% longer than planned", "tempo sessions at lower HR than target"), write a concise note to responsePatterns so future plans can account for it.
 Always call linkCompletedActivity when the athlete mentions completing a workout with a Strava ID.
 Always call askQuestion when you need the athlete to choose between 2–4 discrete options — do not repeat the question in free text after calling it, just wait for the reply.
 Always ask how many days are available before generating a weekly plan — use askQuestion with options "3 days", "4 days", "5 days", "6 days".

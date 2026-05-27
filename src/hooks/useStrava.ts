@@ -344,6 +344,23 @@ export const useForceRefreshActivities = () => {
   };
 };
 
+import type {AdherenceData} from '@/app/api/coach/adherence/route';
+
+export const useAdherence = (activityId: string | undefined) => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  return useQuery<AdherenceData | null>({
+    queryKey: ['coach', 'adherence', athlete?.id, activityId],
+    queryFn: async () => {
+      const res = await fetch(`/api/coach/adherence?activityId=${activityId}&athleteId=${athlete!.id}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: isAuthenticated && !!athlete?.id && !!activityId,
+    staleTime: Infinity,
+    gcTime: ONE_DAY,
+  });
+};
+
 export type InjuryEntry = {bodyPart: string; severity: 'mild' | 'moderate' | 'severe'; resolved: boolean};
 
 export type AthleteNotesData = {

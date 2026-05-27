@@ -7,7 +7,7 @@ import {motion, type Variants} from 'framer-motion';
 import {
   AreaChart,
   Area,
-  LineChart,
+  ComposedChart,
   Line,
   XAxis,
   YAxis,
@@ -28,6 +28,7 @@ import {Skeleton} from '@/components/ui/skeleton';
 import {useSettings} from '@/contexts/SettingsContext';
 import AppHeader from '@/components/AppHeader';
 import type {ZoneSegment} from '@/components/RouteMapLeaflet';
+import PlanAdherencePanel from './PlanAdherencePanel';
 
 // Leaflet map is client-only (no SSR)
 const RouteMapLeaflet = dynamic(() => import('@/components/RouteMapLeaflet'), {ssr: false});
@@ -73,7 +74,7 @@ interface ChartPoint {
   lng?: number;
 }
 
-type TooltipPayload = Array<{payload?: ChartPoint; value?: unknown}>;
+type TooltipPayload = Array<{payload?: ChartPoint; value?: unknown; dataKey?: string}>;
 
 // ─── Tooltip content components (module-level so identity is stable) ──────────
 // recharts v3 cloneElement's these — they must be proper React components
@@ -101,48 +102,36 @@ function ElevTooltip({
   );
 }
 
-function HRTooltip({
+function PaceHRTooltip({
   active,
   payload,
   onHover,
+  color,
 }: {
   active?: boolean;
   payload?: TooltipPayload;
   onHover: (idx: number | null) => void;
+  color: string;
 }) {
   const activeIdx = active && payload?.length ? (payload[0]?.payload?.idx ?? null) : null;
   useEffect(() => { onHover(activeIdx); }, [activeIdx, onHover]);
   if (!active || !payload?.length) return null;
   const pt = payload[0]?.payload;
   if (!pt) return null;
+  const hrEntry = payload.find((p) => p.dataKey === 'hr');
+  const paceEntry = payload.find((p) => p.dataKey === 'pace');
+  const hr = hrEntry?.value != null ? Math.round(Number(hrEntry.value)) : null;
+  const pace = paceEntry?.value != null ? Number(paceEntry.value) : null;
+  if (hr == null && (pace == null || pace <= 0)) return null;
   return (
-    <div className="bento-card px-2.5 py-1.5 text-[11px]">
+    <div className="bento-card px-2.5 py-1.5 text-[11px] space-y-0.5">
       <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
-      <p style={{color: COLORS.red}} className="font-medium">{Math.round(Number(payload[0]?.value))} bpm</p>
-    </div>
-  );
-}
-
-function PaceTooltip({
-  active,
-  payload,
-  onHover,
-}: {
-  active?: boolean;
-  payload?: TooltipPayload;
-  onHover: (idx: number | null) => void;
-}) {
-  const activeIdx = active && payload?.length ? (payload[0]?.payload?.idx ?? null) : null;
-  useEffect(() => { onHover(activeIdx); }, [activeIdx, onHover]);
-  if (!active || !payload?.length) return null;
-  const pt = payload[0]?.payload;
-  if (!pt) return null;
-  const pace = Number(payload[0]?.value);
-  if (!pace || pace <= 0) return null;
-  return (
-    <div className="bento-card px-2.5 py-1.5 text-[11px]">
-      <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
-      <p className="text-white font-medium">{formatPace(pace)}/km</p>
+      {pace != null && pace > 0 && (
+        <p style={{color}} className="font-medium">{formatPace(pace)}/km</p>
+      )}
+      {hr != null && (
+        <p style={{color: COLORS.red}} className="font-medium">{hr} bpm</p>
+      )}
     </div>
   );
 }
@@ -189,60 +178,89 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
   );
 }
 
-function HRPanel({data, onHover, syncId}: Omit<ChartPanelProps, 'color'>) {
-  if (!data.some((p) => p.hr != null)) return null;
+function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
+  const hasHR = data.some((p) => p.hr != null);
+  const hasPace = data.some((p) => p.pace != null);
+  if (!hasHR && !hasPace) return null;
   return (
     <div>
-      <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1.5">Heart Rate</p>
-      <div className="h-[100px]">
+      <div className="flex items-center gap-3 mb-1.5">
+        {hasPace && (
+          <span className="flex items-center gap-1.5 text-[10px] text-white/30 uppercase tracking-wide">
+            <span className="w-3 h-[2px] rounded-full inline-block" style={{background: color}} />
+            Pace
+          </span>
+        )}
+        {hasHR && (
+          <span className="flex items-center gap-1.5 text-[10px] text-white/30 uppercase tracking-wide">
+            <span className="w-3 h-[2px] rounded-full inline-block" style={{background: COLORS.red}} />
+            HR
+          </span>
+        )}
+      </div>
+      <div className="h-[140px]">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart
+          <ComposedChart
             data={data}
             syncId={syncId}
-            margin={{top: 2, right: 4, left: -28, bottom: 0}}
+            margin={{top: 2, right: 36, left: -28, bottom: 0}}
             onMouseLeave={() => onHover(null)}
           >
             <defs>
-              <linearGradient id="gradHR" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={COLORS.red} stopOpacity={0.25} />
+              <linearGradient id="gradHRCombo" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={COLORS.red} stopOpacity={0.2} />
                 <stop offset="95%" stopColor={COLORS.red} stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
-            <YAxis tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}`} width={36} />
+            <YAxis
+              yAxisId="pace"
+              reversed
+              hide={!hasPace}
+              tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => (Number(v) > 0 ? formatPace(Number(v)) : '')}
+              width={40}
+            />
+            <YAxis
+              yAxisId="hr"
+              orientation="right"
+              hide={!hasHR}
+              tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `${v as number}`}
+              width={32}
+            />
             <RechartsTooltip
-              content={<HRTooltip onHover={onHover} />}
+              content={<PaceHRTooltip onHover={onHover} color={color} />}
               cursor={{stroke: 'rgba(255,255,255,0.08)'}}
             />
-            <Area type="monotone" dataKey="hr" stroke={COLORS.red} strokeWidth={1.5} fill="url(#gradHR)" dot={false} activeDot={{r: 3, fill: COLORS.red, strokeWidth: 0}} />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-function PacePanel({data, color, onHover, syncId}: ChartPanelProps) {
-  if (!data.some((p) => p.pace != null)) return null;
-  return (
-    <div>
-      <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1.5">Pace</p>
-      <div className="h-[100px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={data}
-            syncId={syncId}
-            margin={{top: 2, right: 4, left: -28, bottom: 0}}
-            onMouseLeave={() => onHover(null)}
-          >
-            <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
-            <YAxis tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => (Number(v) > 0 ? formatPace(Number(v)) : '')} reversed width={40} />
-            <RechartsTooltip
-              content={<PaceTooltip onHover={onHover} />}
-              cursor={{stroke: 'rgba(255,255,255,0.08)'}}
-            />
-            <Line type="monotone" dataKey="pace" stroke={color} strokeWidth={1.5} dot={false} activeDot={{r: 3, fill: color, strokeWidth: 0}} />
-          </LineChart>
+            {hasHR && (
+              <Area
+                yAxisId="hr"
+                type="monotone"
+                dataKey="hr"
+                stroke={COLORS.red}
+                strokeWidth={1.5}
+                fill="url(#gradHRCombo)"
+                dot={false}
+                activeDot={{r: 3, fill: COLORS.red, strokeWidth: 0}}
+              />
+            )}
+            {hasPace && (
+              <Line
+                yAxisId="pace"
+                type="monotone"
+                dataKey="pace"
+                stroke={color}
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={{r: 3, fill: color, strokeWidth: 0}}
+              />
+            )}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
     </div>
@@ -262,8 +280,7 @@ function StreamCharts({chartData, color, onHover}: StreamChartsProps) {
   return (
     <div className="space-y-5">
       <ElevationPanel data={chartData} color={color} onHover={onHover} syncId={syncId} />
-      <HRPanel data={chartData} onHover={onHover} syncId={syncId} />
-      <PacePanel data={chartData} color={color} onHover={onHover} syncId={syncId} />
+      <PaceHRPanel data={chartData} color={color} onHover={onHover} syncId={syncId} />
     </div>
   );
 }
@@ -634,6 +651,13 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   </div>
                 )}
               </motion.div>
+
+              {/* Plan Adherence */}
+              <PlanAdherencePanel
+                activityId={id}
+                actualDistanceKm={summary?.distance ?? (detail?.distance ?? 0) / 1000}
+                actualMovingTimeSecs={summary?.duration ?? detail?.moving_time ?? 0}
+              />
 
               {/* Weather */}
               <motion.div variants={cardVariant} className="bento-card p-5">

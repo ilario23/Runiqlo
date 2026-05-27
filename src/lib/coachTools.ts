@@ -250,6 +250,138 @@ export function getCoachTools(athleteId: number) {
       },
     }),
 
+    getAdherenceSummary: tool({
+      description:
+        "Analyse how well the athlete has been executing their planned workouts over the past N weeks. Returns per-workout-type adherence (distance %, duration %) and overall stats. Call this before generating a new weekly plan, or when the athlete asks about their consistency or progress.",
+      inputSchema: z.object({
+        weeks: z.number().default(4).describe('Number of past weeks to analyse (default 4)'),
+      }),
+      execute: async ({weeks}) => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - weeks * 7);
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+        const planRows = await db
+          .select()
+          .from(schema.weeklyPlan)
+          .where(
+            and(
+              eq(schema.weeklyPlan.athleteId, athleteId),
+              gte(schema.weeklyPlan.weekStart, cutoffStr),
+            ),
+          );
+
+        if (!planRows.length) return {message: 'No weekly plans found in this period.', weeks};
+
+        // Collect all linked activity IDs so we can bulk-fetch
+        type LinkedWorkout = {
+          activityId: number;
+          plannedDistanceKm: number | null;
+          plannedDurationMin: number | null;
+          workoutType: string;
+          weekStart: string;
+        };
+
+        const linked: LinkedWorkout[] = [];
+        let totalWorkouts = 0;
+        let completedWorkouts = 0;
+        let missedWorkouts = 0;
+
+        for (const row of planRows) {
+          const days = row.days as Array<{date: string; workouts: Array<{type: string; distanceKm?: number; durationMinutes?: number; completed?: boolean; linkedStravaActivityId?: number | null}>}>;
+          for (const day of days) {
+            for (const w of day.workouts) {
+              if (w.type === 'rest') continue;
+              totalWorkouts++;
+              if (w.completed && w.linkedStravaActivityId) {
+                completedWorkouts++;
+                linked.push({
+                  activityId: w.linkedStravaActivityId,
+                  plannedDistanceKm: w.distanceKm ?? null,
+                  plannedDurationMin: w.durationMinutes ?? null,
+                  workoutType: w.type,
+                  weekStart: row.weekStart,
+                });
+              } else if (w.completed) {
+                completedWorkouts++;
+              } else {
+                missedWorkouts++;
+              }
+            }
+          }
+        }
+
+        // Fetch actual activities for linked workouts
+        const activityIds = linked.map(l => l.activityId);
+        const actRows = activityIds.length > 0
+          ? await db
+              .select({id: schema.activities.id, data: schema.activities.data})
+              .from(schema.activities)
+              .where(
+                and(
+                  eq(schema.activities.athleteId, athleteId),
+                  sql`${schema.activities.id} = ANY(ARRAY[${sql.raw(activityIds.join(','))}]::bigint[])`,
+                ),
+              )
+          : [];
+
+        const actMap = new Map<number, {distanceKm: number; durationMin: number}>();
+        for (const row of actRows) {
+          const d = row.data as {distance?: number; moving_time?: number};
+          actMap.set(row.id, {
+            distanceKm: (d.distance ?? 0) / 1000,
+            durationMin: (d.moving_time ?? 0) / 60,
+          });
+        }
+
+        // Aggregate by workout type
+        type TypeStats = {count: number; distPcts: number[]; durPcts: number[]};
+        const byType: Record<string, TypeStats> = {};
+
+        for (const lw of linked) {
+          const actual = actMap.get(lw.activityId);
+          if (!actual) continue;
+
+          if (!byType[lw.workoutType]) byType[lw.workoutType] = {count: 0, distPcts: [], durPcts: []};
+          const ts = byType[lw.workoutType];
+          ts.count++;
+
+          if (lw.plannedDistanceKm && actual.distanceKm > 0) {
+            ts.distPcts.push(Math.round((actual.distanceKm / lw.plannedDistanceKm) * 100));
+          }
+          if (lw.plannedDurationMin && actual.durationMin > 0) {
+            ts.durPcts.push(Math.round((actual.durationMin / lw.plannedDurationMin) * 100));
+          }
+        }
+
+        const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : null;
+
+        const byWorkoutType: Record<string, {count: number; avgDistancePct: number | null; avgDurationPct: number | null}> = {};
+        for (const [type, ts] of Object.entries(byType)) {
+          byWorkoutType[type] = {
+            count: ts.count,
+            avgDistancePct: avg(ts.distPcts),
+            avgDurationPct: avg(ts.durPcts),
+          };
+        }
+
+        // Overall adherence: simple average of all scored pcts
+        const allPcts: number[] = Object.values(byType).flatMap(ts => [...ts.distPcts, ...ts.durPcts]);
+        const overallAdherencePct = avg(allPcts);
+
+        return {
+          period: {from: cutoffStr, to: new Date().toISOString().slice(0, 10)},
+          weeks,
+          totalWorkouts,
+          completedWorkouts,
+          missedWorkouts,
+          overallAdherencePct,
+          byWorkoutType,
+          linkedWithData: linked.length,
+        };
+      },
+    }),
+
     saveTrainingPlan: tool({
       description:
         "Save a new macro training plan. Deactivates any existing plan and creates the new one. Call this after generating a full periodized plan. You MUST provide weekSketches — one entry per week across the full block.",
