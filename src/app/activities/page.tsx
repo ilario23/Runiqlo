@@ -49,8 +49,8 @@ const containerVariant: Variants = {
   show: {transition: {staggerChildren: 0.04}},
 };
 const rowVariant: Variants = {
-  hidden: {opacity: 0, y: 10},
-  show: {opacity: 1, y: 0, transition: {duration: 0.25, ease: 'easeOut'}},
+  hidden: {opacity: 0},
+  show: {opacity: 1, transition: {duration: 0.25, ease: 'easeOut'}},
 };
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -86,7 +86,7 @@ function gradeColor(grade: number): string {
 function ConnectPrompt() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
-      <div className="bento-card p-10 max-w-sm w-full text-center space-y-5">
+      <div className="surface-card p-10 max-w-sm w-full text-center space-y-5">
         <h2 className="text-lg font-semibold text-white">Connect Strava</h2>
         <p className="text-sm text-white/40">Link your account to view your activities</p>
         <Link
@@ -109,7 +109,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
     <motion.div
       variants={rowVariant}
       onClick={onClick}
-      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group border border-transparent hover:border-white/[0.06]"
+      className="flex items-center gap-4 px-4 py-3.5 hover:bg-[var(--color-surface-1)] transition-colors cursor-pointer group border-b border-[var(--color-border)] last:border-0"
     >
       <div
         className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5"
@@ -187,7 +187,7 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
     <motion.div
       variants={rowVariant}
       onClick={onClick}
-      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/[0.04] transition-colors group border border-transparent hover:border-white/[0.06] cursor-pointer"
+      className="flex items-center gap-4 px-4 py-3.5 hover:bg-[var(--color-surface-1)] transition-colors group border-b border-[var(--color-border)] last:border-0 cursor-pointer"
     >
       <div
         className="flex-shrink-0 text-xs font-mono font-bold tabular-nums px-2 py-1 rounded-lg min-w-[46px] text-center"
@@ -326,7 +326,7 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
         </div>
       </div>
 
-      <div className="bento-card overflow-hidden">
+      <div className="surface-card overflow-hidden">
         <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-white/[0.05]">
           <div className="w-[46px]">
             <SortBtn label="Grade" active={segSortKey === 'grade'} asc={segSortAsc} onClick={() => handleSort('grade')} />
@@ -494,7 +494,7 @@ export default function ActivitiesPage() {
           </div>
 
           {/* Tab bar */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.05] w-fit">
+          <div className="flex items-center border-b border-[var(--color-border)]">
             {([
               {value: 'activities' as ActiveTab, label: 'Activities'},
               {value: 'segments' as ActiveTab, label: 'Segments'},
@@ -502,10 +502,10 @@ export default function ActivitiesPage() {
               <button
                 key={value}
                 onClick={() => switchTab(value)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                className={`px-4 pb-2.5 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
                   activeTab === value
-                    ? 'bg-white/[0.10] text-white'
-                    : 'text-white/40 hover:text-white/70'
+                    ? 'text-white border-[var(--color-accent)]'
+                    : 'text-white/40 hover:text-white/65 border-transparent'
                 }`}
               >
                 {label}
@@ -517,7 +517,7 @@ export default function ActivitiesPage() {
           {activeTab === 'activities' && (
             <>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.05]">
+                <div className="flex items-center border-b border-[var(--color-border)]">
                   {SPORT_TABS.map(({label, value}) => {
                     const active = sportFilter === value;
                     const color = value !== 'All' ? SPORT_COLORS[value] : undefined;
@@ -525,10 +525,10 @@ export default function ActivitiesPage() {
                       <button
                         key={value}
                         onClick={() => setSportFilter(value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                          active ? 'bg-white/[0.10] text-white' : 'text-white/40 hover:text-white/70'
+                        className={`px-3 pb-2 text-xs font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
+                          active ? 'text-white border-[var(--color-accent)]' : 'text-white/40 hover:text-white/65 border-transparent'
                         }`}
-                        style={active && color ? {color} : undefined}
+                        style={active && color ? {color, borderColor: color} : undefined}
                       >
                         {label}
                       </button>
@@ -540,7 +540,7 @@ export default function ActivitiesPage() {
                   <select
                     value={sortKey}
                     onChange={(e) => setSortKey(e.target.value as SortKey)}
-                    className="bg-white/[0.06] border border-white/[0.08] text-white/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-white/[0.09] transition-colors"
+                    className="bg-[var(--color-surface-1)] border border-[var(--color-border)] text-white/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-[var(--color-surface-2)] transition-colors"
                   >
                     {SORT_OPTIONS.map((o) => (
                       <option key={o.value} value={o.value} className="bg-[#111]">
@@ -551,7 +551,7 @@ export default function ActivitiesPage() {
                 </div>
               </div>
 
-              <div className="bento-card overflow-hidden">
+              <div className="surface-card overflow-hidden">
                 <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-white/[0.05]">
                   <div className="w-2 flex-shrink-0" />
                   <div className="flex-1 text-[10px] font-medium text-white/25 uppercase tracking-wide">Activity</div>

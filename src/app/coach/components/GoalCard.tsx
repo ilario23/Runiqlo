@@ -25,11 +25,11 @@ export function GoalCard({goal, currentPhase}: GoalCardProps) {
     : null;
 
   return (
-    <div className="rounded-2xl bg-white/[0.04] border border-white/[0.08] p-4">
+    <div className="surface-card p-4">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent-blue">
+          <div className="w-8 h-8 rounded-lg bg-[var(--color-accent-dim)] flex items-center justify-center flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--color-accent)]">
               <circle cx="12" cy="12" r="10" />
               <polyline points="12 6 12 12 16 14" />
             </svg>

@@ -102,7 +102,7 @@ export function CoachSplitLayout({
               onClick={() => setMobileTab(tab)}
               className={`flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
                 mobileTab === tab
-                  ? 'text-white border-b-2 border-accent-blue'
+                  ? 'text-white border-b-2 border-[var(--color-accent)]'
                   : 'text-white/35 hover:text-white/60'
               }`}
             >
@@ -152,7 +152,7 @@ export function CoachSplitLayout({
                         onClick={() => snapTo(mode)}
                         className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
                           activeMode === mode
-                            ? 'text-[#0a84ff] bg-[#0a84ff]/10'
+                            ? 'text-[var(--color-accent)] bg-[var(--color-accent-dim)]'
                             : 'text-white/30 hover:text-white/60 hover:bg-white/5'
                         }`}
                       >

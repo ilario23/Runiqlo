@@ -15,8 +15,8 @@ import AthleteNotesCard from '@/components/AthleteNotesCard';
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const cardVariant: Variants = {
-  hidden: {opacity: 0, y: 16},
-  show: {opacity: 1, y: 0, transition: {duration: 0.3, ease: 'easeOut'}},
+  hidden: {opacity: 0},
+  show: {opacity: 1, transition: {duration: 0.3, ease: 'easeOut'}},
 };
 const containerVariant: Variants = {
   show: {transition: {staggerChildren: 0.07}},
@@ -127,7 +127,7 @@ function GearItem({
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium text-white/80 truncate">{name}</p>
           {isPrimary && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-accent-blue/20 text-accent-blue font-medium flex-shrink-0">
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-accent-dim)] text-[var(--color-accent)] font-medium flex-shrink-0">
               Primary
             </span>
           )}
@@ -214,7 +214,7 @@ export default function ProfilePage() {
           <motion.div variants={containerVariant} initial="hidden" animate="show" className="space-y-4">
 
             {/* Athlete header */}
-            <motion.div variants={cardVariant} className="bento-card p-6">
+            <motion.div variants={cardVariant} className="surface-card p-6">
               <div className="flex items-center gap-5">
                 {athlete.profile_medium ? (
                   <div className="w-16 h-16 rounded-2xl overflow-hidden flex-shrink-0 ring-2 ring-white/[0.08]">
@@ -228,7 +228,7 @@ export default function ProfilePage() {
                     />
                   </div>
                 ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-accent-blue/20 flex items-center justify-center text-accent-blue font-bold text-xl flex-shrink-0">
+                  <div className="w-16 h-16 rounded-2xl bg-white/[0.08] flex items-center justify-center text-white/70 font-bold text-xl flex-shrink-0">
                     {athlete.firstname[0]}{athlete.lastname[0]}
                   </div>
                 )}
@@ -261,18 +261,18 @@ export default function ProfilePage() {
             </motion.div>
 
             {/* Unified Stats */}
-            <motion.div variants={cardVariant} className="bento-card p-6">
+            <motion.div variants={cardVariant} className="surface-card p-6">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide">Stats</h3>
-                <div className="flex items-center bg-white/[0.05] rounded-full p-0.5">
+                <div className="flex items-center border-b border-[var(--color-border)]">
                   {STATS_PERIODS.map(p => (
                     <button
                       key={p.key}
                       onClick={() => setStatsPeriod(p.key)}
-                      className={`cursor-pointer px-3.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200 ${
+                      className={`cursor-pointer px-3.5 pb-2 text-[11px] font-medium transition-all duration-200 border-b-2 -mb-px ${
                         statsPeriod === p.key
-                          ? 'bg-white/[0.15] text-white'
-                          : 'text-white/35 hover:text-white/60'
+                          ? 'text-white border-[var(--color-accent)]'
+                          : 'text-white/35 hover:text-white/60 border-transparent'
                       }`}
                     >
                       {p.short}
@@ -299,7 +299,7 @@ export default function ProfilePage() {
             </motion.div>
 
             {/* Gear */}
-            <motion.div variants={cardVariant} className="bento-card p-5">
+            <motion.div variants={cardVariant} className="surface-card p-5">
               <h3 className="text-xs font-medium text-white/55 uppercase tracking-wide mb-3">Gear</h3>
               {gearLoading ? (
                 <div className="space-y-2">

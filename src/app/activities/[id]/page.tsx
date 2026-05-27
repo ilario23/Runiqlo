@@ -36,8 +36,8 @@ const RouteMapLeaflet = dynamic(() => import('@/components/RouteMapLeaflet'), {s
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const cardVariant: Variants = {
-  hidden: {opacity: 0, y: 16},
-  show: {opacity: 1, y: 0, transition: {duration: 0.3, ease: 'easeOut'}},
+  hidden: {opacity: 0},
+  show: {opacity: 1, transition: {duration: 0.3, ease: 'easeOut'}},
 };
 const containerVariant: Variants = {
   show: {transition: {staggerChildren: 0.06}},
@@ -95,7 +95,7 @@ function ElevTooltip({
   const pt = payload[0]?.payload;
   if (!pt) return null;
   return (
-    <div className="bento-card px-2.5 py-1.5 text-[11px]">
+    <div className="surface-card px-2.5 py-1.5 text-[11px]">
       <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
       <p className="text-white font-medium">{Math.round(Number(payload[0]?.value))} m</p>
     </div>
@@ -124,7 +124,7 @@ function PaceHRTooltip({
   const pace = paceEntry?.value != null ? Number(paceEntry.value) : null;
   if (hr == null && (pace == null || pace <= 0)) return null;
   return (
-    <div className="bento-card px-2.5 py-1.5 text-[11px] space-y-0.5">
+    <div className="surface-card px-2.5 py-1.5 text-[11px] space-y-0.5">
       <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
       {pace != null && pace > 0 && (
         <p style={{color}} className="font-medium">{formatPace(pace)}/km</p>
@@ -471,7 +471,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
             <div className="col-span-12 lg:col-span-8 space-y-4">
 
               {/* Map */}
-              <motion.div variants={cardVariant} className="bento-card p-4">
+              <motion.div variants={cardVariant} className="surface-card p-4">
                 <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Route</h2>
                 {streamsLoading || detailLoading ? (
                   <Skeleton className="h-[300px] w-full" />
@@ -489,7 +489,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               </motion.div>
 
               {/* Charts */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
+              <motion.div variants={cardVariant} className="surface-card p-5">
                 <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Analysis</h2>
                 {streamsLoading ? (
                   <div className="space-y-5">
@@ -508,7 +508,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Laps */}
               {(detail?.laps?.length ?? 0) > 0 && (
-                <motion.div variants={cardVariant} className="bento-card p-5">
+                <motion.div variants={cardVariant} className="surface-card p-5">
                   <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Laps</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -544,7 +544,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Segment efforts */}
               {(detail?.segment_efforts?.length ?? 0) > 0 && (
-                <motion.div variants={cardVariant} className="bento-card p-5">
+                <motion.div variants={cardVariant} className="surface-card p-5">
                   <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">
                     Segments <span className="text-white/25 ml-1 normal-case">({detail!.segment_efforts.length})</span>
                   </h2>
@@ -585,7 +585,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Best efforts */}
               {(detail?.best_efforts?.length ?? 0) > 0 && (
-                <motion.div variants={cardVariant} className="bento-card p-5">
+                <motion.div variants={cardVariant} className="surface-card p-5">
                   <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Best Efforts</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -625,7 +625,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
             <div className="col-span-12 lg:col-span-4 space-y-4">
 
               {/* Key stats */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
+              <motion.div variants={cardVariant} className="surface-card p-5">
                 <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Stats</h2>
                 {detailLoading && !summary ? (
                   <div className="space-y-3">
@@ -643,7 +643,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       {label: 'Calories', value: detail?.calories ? `${detail.calories} kcal` : '—'},
                       {label: 'Device', value: detail?.device_name ?? '—'},
                     ].map(({label, value}) => (
-                      <div key={label} className="bento-card px-3 py-2.5">
+                      <div key={label} className="surface-raised px-3 py-2.5">
                         <p className="text-[10px] text-white/35 font-medium uppercase tracking-wide">{label}</p>
                         <p className="text-sm font-semibold text-white/85 mt-0.5 tabular-nums">{value}</p>
                       </div>
@@ -660,7 +660,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               />
 
               {/* Weather */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
+              <motion.div variants={cardVariant} className="surface-card p-5">
                 <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Weather at Start</h2>
                 {weatherLoading || detailLoading ? (
                   <div className="space-y-3">
@@ -688,17 +688,17 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                     </div>
                     {/* Sub-stats grid */}
                     <div className="grid grid-cols-2 gap-2">
-                      <div className="bento-card px-3 py-2">
+                      <div className="surface-raised px-3 py-2">
                         <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Wind</p>
                         <p className="text-sm font-semibold text-white/80 tabular-nums">
                           {weather.windSpeedKmh} km/h {windDirectionLabel(weather.windDirectionDeg)}
                         </p>
                       </div>
-                      <div className="bento-card px-3 py-2">
+                      <div className="surface-raised px-3 py-2">
                         <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Humidity</p>
                         <p className="text-sm font-semibold text-white/80 tabular-nums">{weather.humidityPct}%</p>
                       </div>
-                      <div className="bento-card px-3 py-2 col-span-2">
+                      <div className="surface-raised px-3 py-2 col-span-2">
                         <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Precipitation</p>
                         <p className="text-sm font-semibold text-white/80 tabular-nums">
                           {weather.precipitationMm > 0 ? `${weather.precipitationMm} mm` : 'None'}
@@ -710,7 +710,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               </motion.div>
 
               {/* HR Zone breakdown */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
+              <motion.div variants={cardVariant} className="surface-card p-5">
                 <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Zone Distribution</h2>
                 {streamsLoading ? (
                   <div className="space-y-3">

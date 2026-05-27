@@ -53,7 +53,7 @@ function CoachModelCard() {
   const selected = settings.coachModel ?? defaultForVendor;
 
   return (
-    <div className="bento-card p-5">
+    <div className="surface-card p-5">
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-medium text-white">Coach Model</p>
         {activeVendor && (
@@ -93,14 +93,14 @@ function CoachModelCard() {
                           ${disabled
                             ? 'opacity-30 cursor-not-allowed border-white/[0.05] bg-transparent'
                             : isSelected
-                              ? 'border-accent-blue/40 bg-accent-blue/[0.08] cursor-default'
+                              ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)] cursor-default'
                               : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.15] cursor-pointer'
                           }
                         `}
                       >
                         <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 transition-all ${
                           isSelected && !disabled
-                            ? 'border-accent-blue bg-accent-blue'
+                            ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
                             : 'border-white/20 bg-transparent'
                         }`} />
                         <span className={`flex-1 text-[12px] font-medium ${disabled ? 'text-white/30' : isSelected ? 'text-white' : 'text-white/70'}`}>
@@ -157,7 +157,7 @@ function HrZonesEditor() {
   const viewData = editing ? draft : settings;
 
   return (
-    <div className="bento-card p-5 space-y-5">
+    <div className="surface-card p-5 space-y-5">
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -205,7 +205,7 @@ function HrZonesEditor() {
           {label: 'Max HR', field: 'maxHr' as const, min: 100, max: 220},
           {label: 'Resting HR', field: 'restingHr' as const, min: 30, max: 100},
         ] as const).map(({label, field, min, max}) => (
-          <div key={field} className="bg-white/[0.04] border border-white/[0.06] rounded-xl p-3.5">
+          <div key={field} className="surface-raised rounded-xl p-3.5">
             <p className="text-[10px] text-white/35 uppercase tracking-wide mb-2">{label}</p>
             {editing ? (
               <div className="flex items-baseline gap-1.5">
@@ -213,7 +213,7 @@ function HrZonesEditor() {
                   type="number"
                   value={draft[field]}
                   onChange={e => setDraft(d => ({...d, [field]: Number(e.target.value)}))}
-                  className="w-16 bg-transparent border-b border-white/20 focus:border-accent-blue text-xl font-bold text-white tabular-nums focus:outline-none transition-colors pb-0.5"
+                  className="w-16 bg-transparent border-b border-white/20 focus:border-[var(--color-accent)] text-xl font-bold text-white tabular-nums focus:outline-none transition-colors pb-0.5"
                   min={min} max={max}
                 />
                 <span className="text-xs text-white/30">bpm</span>
@@ -237,7 +237,7 @@ function HrZonesEditor() {
           return (
             <div
               key={z}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/[0.03] transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--color-surface-1)] transition-colors"
             >
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: color}} />
               <span className="text-xs font-medium text-white/55 w-[110px] flex-shrink-0">
@@ -259,14 +259,14 @@ function HrZonesEditor() {
                     type="number"
                     value={lo}
                     onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
-                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/60 transition-colors"
+                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
                   />
                   <span className="text-[10px] text-white/25">–</span>
                   <input
                     type="number"
                     value={hi}
                     onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
-                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-accent-blue/60 transition-colors"
+                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
                   />
                   <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
                 </div>
@@ -321,7 +321,7 @@ function SettingsContent() {
           {/* ── Account ────────────────────────────────────────────────────── */}
           <section>
             <SectionLabel>Account</SectionLabel>
-            <div className="bento-card p-5">
+            <div className="surface-card p-5">
               {isAuthenticated && athlete ? (
                 <div className="space-y-4">
                   {/* Athlete row */}

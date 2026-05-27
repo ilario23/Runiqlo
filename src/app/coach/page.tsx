@@ -67,7 +67,7 @@ export default function CoachPage() {
 
   if (!athlete) {
     return (
-      <div className="min-h-screen bg-[#070708]">
+      <div className="min-h-screen bg-[var(--color-base)]">
         <AppHeader />
         <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
           <p className="text-white/50 text-sm">Connect Strava to use the coach</p>
@@ -80,7 +80,7 @@ export default function CoachPage() {
 
   if (goal === undefined) {
     return (
-      <div className="min-h-screen bg-[#070708]">
+      <div className="min-h-screen bg-[var(--color-base)]">
         <AppHeader />
         <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
           <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
@@ -90,7 +90,7 @@ export default function CoachPage() {
   }
 
   return (
-    <div className="flex flex-col h-dvh bg-[#070708]">
+    <div className="flex flex-col h-dvh bg-[var(--color-base)]">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden pt-14">
         <CoachSplitLayout
@@ -112,15 +112,15 @@ export default function CoachPage() {
                 <div className="p-5 space-y-4 max-w-4xl mx-auto">
                   {goal ? (
                     <>
-                      <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1 w-fit">
+                      <div className="flex items-center border-b border-[var(--color-border)]">
                         {(['week', 'plan'] as PlanTab[]).map(tab => (
                           <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                            className={`px-4 pb-2.5 text-sm font-medium transition-all cursor-pointer border-b-2 -mb-px ${
                               activeTab === tab
-                                ? 'bg-white/[0.10] text-white'
-                                : 'text-white/40 hover:text-white/70'
+                                ? 'text-white border-[var(--color-accent)]'
+                                : 'text-white/40 hover:text-white/65 border-transparent'
                             }`}
                           >
                             {tab === 'week' ? 'This Week' : 'Training Plan'}
@@ -169,10 +169,10 @@ function OnboardingWelcome() {
   };
 
   return (
-    <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-accent-blue/[0.08] via-white/[0.03] to-transparent p-8 mt-8">
+    <div className="surface-card bg-gradient-to-br from-[var(--color-accent)]/[0.06] via-transparent to-transparent p-8 mt-8">
       <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent-dim)] flex items-center justify-center flex-shrink-0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--color-accent)]" strokeWidth="1.5">
             <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
           </svg>
         </div>
@@ -201,7 +201,7 @@ function OnboardingWelcome() {
           <div className="mt-6 flex items-center gap-3">
             <button
               onClick={focusChat}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-blue text-white text-sm font-medium hover:bg-accent-blue/90 transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent)]/90 transition-colors cursor-pointer"
             >
               Start Setup
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
