@@ -39,6 +39,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Surface tiers ─────────────────────────────────────────────────────────── */
+
+/* Stage — hero instruments, focal data (TSB, Training Load) */
+.bento-card-stage {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-elevated), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
 /* Primary glass card — charts, zone breakdown */
 .bento-card {
   background: rgba(255, 255, 255, 0.05);
@@ -70,6 +82,27 @@ body {
   border-color: rgba(255, 255, 255, 0.11);
   box-shadow: 0 2px 8px rgba(0,0,0,0.5);
 }
+
+/* Recessed — support data, secondary context (CTL/ATL pills) */
+.bento-card-recessed {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-inner);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Animations ────────────────────────────────────────────────────────────── */
+
+@keyframes breath {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.75); }
+}
+
+.dot-breathe {
+  animation: breath 2s ease-in-out infinite;
+}
+
+/* ── Scrollbars ────────────────────────────────────────────────────────────── */
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }

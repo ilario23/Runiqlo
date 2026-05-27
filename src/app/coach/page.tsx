@@ -90,7 +90,7 @@ export default function CoachPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[#070708]">
+    <div className="flex flex-col h-dvh bg-[#070708]">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden pt-14">
         <CoachSplitLayout
@@ -102,53 +102,58 @@ export default function CoachPage() {
             />
           }
           rightPanel={
-            <div className="h-full overflow-y-auto">
-              <div className="p-5 space-y-4 max-w-4xl mx-auto">
-                {goal ? (
-                  <>
-                    <GoalCard goal={goal} currentPhase={currentPhase} />
+            <div className="h-full flex flex-col overflow-hidden">
+              {goal && (
+                <div className="flex-shrink-0 px-5 pt-5 max-w-4xl mx-auto w-full">
+                  <GoalCard goal={goal} currentPhase={currentPhase} />
+                </div>
+              )}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-5 space-y-4 max-w-4xl mx-auto">
+                  {goal ? (
+                    <>
+                      <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1 w-fit">
+                        {(['week', 'plan'] as PlanTab[]).map(tab => (
+                          <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                              activeTab === tab
+                                ? 'bg-white/[0.10] text-white'
+                                : 'text-white/40 hover:text-white/70'
+                            }`}
+                          >
+                            {tab === 'week' ? 'This Week' : 'Training Plan'}
+                          </button>
+                        ))}
+                      </div>
 
-                    <div className="flex items-center gap-1 bg-white/[0.04] border border-white/[0.06] rounded-xl p-1 w-fit">
-                      {(['week', 'plan'] as PlanTab[]).map(tab => (
-                        <button
-                          key={tab}
-                          onClick={() => setActiveTab(tab)}
-                          className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                            activeTab === tab
-                              ? 'bg-white/[0.10] text-white'
-                              : 'text-white/40 hover:text-white/70'
-                          }`}
-                        >
-                          {tab === 'week' ? 'This Week' : 'Training Plan'}
-                        </button>
-                      ))}
-                    </div>
-
-                    {activeTab === 'week' ? (
-                      <WeekPlan
-                        key={`week-${planKey}`}
-                        athleteId={athleteId}
-                        initialWeekStart={weekStart}
-                      />
-                    ) : (
-                      <PlanOverview
-                        key={`plan-${planKey}`}
-                        athleteId={athleteId}
-                        onWeekClick={ws => {
-                          setWeekStart(ws);
-                          setActiveTab('week');
-                        }}
-                        onPlanRestored={() => {
-                          fetchGoal();
-                          fetchPlan();
-                          setPlanKey(k => k + 1);
-                        }}
-                      />
-                    )}
-                  </>
-                ) : (
-                  <OnboardingWelcome />
-                )}
+                      {activeTab === 'week' ? (
+                        <WeekPlan
+                          key={`week-${planKey}`}
+                          athleteId={athleteId}
+                          initialWeekStart={weekStart}
+                        />
+                      ) : (
+                        <PlanOverview
+                          key={`plan-${planKey}`}
+                          athleteId={athleteId}
+                          onWeekClick={ws => {
+                            setWeekStart(ws);
+                            setActiveTab('week');
+                          }}
+                          onPlanRestored={() => {
+                            fetchGoal();
+                            fetchPlan();
+                            setPlanKey(k => k + 1);
+                          }}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <OnboardingWelcome />
+                  )}
+                </div>
               </div>
             </div>
           }
@@ -159,6 +164,10 @@ export default function CoachPage() {
 }
 
 function OnboardingWelcome() {
+  const focusChat = () => {
+    document.getElementById('coach-chat-input')?.focus();
+  };
+
   return (
     <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-br from-accent-blue/[0.08] via-white/[0.03] to-transparent p-8 mt-8">
       <div className="flex items-start gap-4">
@@ -189,9 +198,20 @@ function OnboardingWelcome() {
               </div>
             ))}
           </div>
-          <p className="text-xs text-white/30 mt-5">
-            Once setup is complete, your training plan and weekly schedule will appear right here.
-          </p>
+          <div className="mt-6 flex items-center gap-3">
+            <button
+              onClick={focusChat}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent-blue text-white text-sm font-medium hover:bg-accent-blue/90 transition-colors cursor-pointer"
+            >
+              Start Setup
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </button>
+            <p className="text-xs text-white/30">
+              Your plan appears here once setup is complete.
+            </p>
+          </div>
         </div>
       </div>
     </div>

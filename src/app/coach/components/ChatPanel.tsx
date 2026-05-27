@@ -554,6 +554,7 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
           <form onSubmit={handleSubmit} className="flex gap-2 items-end">
             <textarea
               ref={inputRef}
+              id="coach-chat-input"
               value={input}
               onChange={e => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}

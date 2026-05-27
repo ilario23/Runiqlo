@@ -4,14 +4,17 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {motion, type Variants} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
-import {useActivitiesPaginated, useForceRefreshActivities} from '@/hooks/useStrava';
+import {useActivitiesPaginated, useForceRefreshActivities, useAllSegments} from '@/hooks/useStrava';
 import {formatPace, formatDuration, SPORT_COLORS, COLORS} from '@/lib/activityModel';
 import type {ActivitySummary, ActivityType} from '@/lib/activityModel';
+import type {AggregatedSegment} from '@/lib/stravaCache';
 import {Skeleton} from '@/components/ui/skeleton';
 import AppHeader from '@/components/AppHeader';
 import Link from 'next/link';
 
 // ─── constants ────────────────────────────────────────────────────────────────
+
+type ActiveTab = 'activities' | 'segments';
 
 const SPORT_TABS: {label: string; value: ActivityType | 'All'}[] = [
   {label: 'All', value: 'All'},
@@ -32,6 +35,16 @@ const SORT_OPTIONS: {label: string; value: SortKey}[] = [
 
 const BATCH_SIZE = 30;
 
+const CLIMB_LABELS: Record<number, string> = {
+  1: 'Cat 4',
+  2: 'Cat 3',
+  3: 'Cat 2',
+  4: 'Cat 1',
+  5: 'HC',
+};
+
+type SegSortKey = 'grade' | 'distance' | 'efforts' | 'pr' | 'date';
+
 const containerVariant: Variants = {
   show: {transition: {staggerChildren: 0.04}},
 };
@@ -48,6 +61,26 @@ function fmtDate(iso: string) {
     day: 'numeric',
     year: 'numeric',
   });
+}
+
+function fmtTime(secs: number) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+function fmtSegDate(iso: string) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString(undefined, {month: 'short', day: 'numeric', year: 'numeric'});
+}
+
+function gradeColor(grade: number): string {
+  if (grade >= 15) return COLORS.red;
+  if (grade >= 8) return COLORS.orange;
+  if (grade >= 4) return COLORS.yellow;
+  return COLORS.green;
 }
 
 function ConnectPrompt() {
@@ -78,13 +111,10 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
       onClick={onClick}
       className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/[0.04] transition-colors cursor-pointer group border border-transparent hover:border-white/[0.06]"
     >
-      {/* Sport dot */}
       <div
         className="w-2 h-2 rounded-full flex-shrink-0 mt-0.5"
         style={{background: color}}
       />
-
-      {/* Name + date */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-white/85 truncate group-hover:text-white transition-colors">
           {activity.name}
@@ -93,8 +123,6 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
           {fmtDate(activity.date)} · {activity.type}
         </p>
       </div>
-
-      {/* Stats */}
       <div className="hidden sm:flex items-center gap-6 text-right flex-shrink-0">
         <div>
           <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
@@ -107,7 +135,6 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
             </p>
           )}
         </div>
-
         <div className="w-[56px]">
           {activity.elevationGain > 0 && (
             <>
@@ -119,7 +146,6 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
             </>
           )}
         </div>
-
         <div className="w-[52px]">
           {activity.avgHr > 0 && (
             <>
@@ -130,7 +156,6 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
             </>
           )}
         </div>
-
         <div className="w-[56px]">
           <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
             {formatDuration(activity.duration)}
@@ -138,8 +163,6 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
           <p className="text-[11px] text-white/45">time</p>
         </div>
       </div>
-
-      {/* Chevron */}
       <svg
         width="14"
         height="14"
@@ -155,6 +178,210 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
   );
 }
 
+// ─── Segment row ──────────────────────────────────────────────────────────────
+
+function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: () => void}) {
+  const gColor = gradeColor(segment.average_grade);
+
+  return (
+    <motion.div
+      variants={rowVariant}
+      onClick={onClick}
+      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/[0.04] transition-colors group border border-transparent hover:border-white/[0.06] cursor-pointer"
+    >
+      <div
+        className="flex-shrink-0 text-xs font-mono font-bold tabular-nums px-2 py-1 rounded-lg min-w-[46px] text-center"
+        style={{color: gColor, background: `${gColor}18`}}
+      >
+        {segment.average_grade.toFixed(1)}%
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium text-white/85 truncate group-hover:text-white transition-colors">
+            {segment.name}
+          </p>
+          {segment.starred && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-gold/15 text-gold flex-shrink-0">★</span>
+          )}
+          {segment.climb_category > 0 && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-white/[0.08] text-white/50 flex-shrink-0">
+              {CLIMB_LABELS[segment.climb_category] ?? `Cat ${segment.climb_category}`}
+            </span>
+          )}
+        </div>
+        <p className="text-[11px] text-white/45 mt-0.5">
+          {[segment.city, segment.state].filter(Boolean).join(', ')}
+        </p>
+      </div>
+      <div className="hidden sm:flex items-center gap-5 flex-shrink-0">
+        <div className="text-right w-[55px]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
+            {(segment.distance / 1000).toFixed(1)}
+            <span className="text-[11px] font-normal text-white/45 ml-0.5">km</span>
+          </p>
+          <p className="text-[11px] text-white/45">dist</p>
+        </div>
+        <div className="text-right w-[44px]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">{segment.effortCount}</p>
+          <p className="text-[11px] text-white/45">runs</p>
+        </div>
+        <div className="text-right w-[60px]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-gold">
+            {fmtTime(segment.prTime)}
+          </p>
+          <p className="text-[11px] text-white/45">PR</p>
+        </div>
+        <div className="text-right w-[90px]">
+          <p className="text-[11px] font-mono tabular-nums text-white/40">{fmtSegDate(segment.lastRunDate)}</p>
+          <p className="text-[11px] text-white/25">last run</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Sort button ──────────────────────────────────────────────────────────────
+
+function SortBtn({
+  label, active, asc, onClick,
+}: {label: string; active: boolean; asc: boolean; onClick: () => void}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`text-[10px] font-medium uppercase tracking-wide transition-colors flex items-center gap-1 ${
+        active ? 'text-white/60' : 'text-white/25 hover:text-white/40'
+      }`}
+    >
+      {label}
+      {active && <span className="text-[9px]">{asc ? '↑' : '↓'}</span>}
+    </button>
+  );
+}
+
+// ─── Segments tab (lazy — useAllSegments only fires when this mounts) ────────
+
+function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
+  const {data: segmentsData, isLoading} = useAllSegments();
+  const [segSortKey, setSegSortKey] = useState<SegSortKey>('efforts');
+  const [segSortAsc, setSegSortAsc] = useState(false);
+  const [starredOnly, setStarredOnly] = useState(false);
+
+  const sorted = useMemo(() => {
+    if (!segmentsData?.segments) return [];
+    let list = starredOnly ? segmentsData.segments.filter((s) => s.starred) : segmentsData.segments;
+    list = [...list].sort((a, b) => {
+      let va: number, vb: number;
+      switch (segSortKey) {
+        case 'grade':    va = a.average_grade; vb = b.average_grade; break;
+        case 'distance': va = a.distance;       vb = b.distance;      break;
+        case 'efforts':  va = a.effortCount;    vb = b.effortCount;   break;
+        case 'pr':       va = a.prTime;         vb = b.prTime;        break;
+        case 'date':     va = a.lastRunDate < b.lastRunDate ? -1 : a.lastRunDate > b.lastRunDate ? 1 : 0; return segSortAsc ? va : -va;
+        default:         va = 0; vb = 0;
+      }
+      return segSortAsc ? va - vb : vb - va;
+    });
+    return list;
+  }, [segmentsData, segSortKey, segSortAsc, starredOnly]);
+
+  const handleSort = (key: SegSortKey) => {
+    if (segSortKey === key) setSegSortAsc((v) => !v);
+    else { setSegSortKey(key); setSegSortAsc(key === 'pr'); }
+  };
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-sm text-white/50">
+          {segmentsData
+            ? `${sorted.length} segment${sorted.length !== 1 ? 's' : ''}`
+            : 'Loading…'}
+        </p>
+        <div className="flex items-center gap-3">
+          {segmentsData && segmentsData.activitiesWithDetails < segmentsData.totalActivities && (
+            <div className="flex items-center gap-2">
+              <div className="h-1 w-28 rounded-full bg-white/[0.08] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-accent-blue transition-all duration-500"
+                  style={{width: `${Math.round((segmentsData.activitiesWithDetails / segmentsData.totalActivities) * 100)}%`}}
+                />
+              </div>
+              <span className="text-[11px] text-white/45">
+                {segmentsData.activitiesWithDetails}/{segmentsData.totalActivities}
+              </span>
+            </div>
+          )}
+          {segmentsData && segmentsData.segments.some((s) => s.starred) && (
+            <button
+              onClick={() => setStarredOnly((v) => !v)}
+              className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+                starredOnly
+                  ? 'border-gold/40 bg-gold/10 text-gold'
+                  : 'border-white/10 bg-white/[0.04] text-white/40 hover:text-white/60'
+              }`}
+            >
+              ★ Starred only
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="bento-card overflow-hidden">
+        <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-white/[0.05]">
+          <div className="w-[46px]">
+            <SortBtn label="Grade" active={segSortKey === 'grade'} asc={segSortAsc} onClick={() => handleSort('grade')} />
+          </div>
+          <div className="flex-1 text-[10px] font-medium text-white/25 uppercase tracking-wide">Segment</div>
+          <div className="flex items-center gap-5">
+            <div className="w-[55px] text-right">
+              <SortBtn label="Dist" active={segSortKey === 'distance'} asc={segSortAsc} onClick={() => handleSort('distance')} />
+            </div>
+            <div className="w-[44px] text-right">
+              <SortBtn label="Runs" active={segSortKey === 'efforts'} asc={segSortAsc} onClick={() => handleSort('efforts')} />
+            </div>
+            <div className="w-[60px] text-right">
+              <SortBtn label="PR" active={segSortKey === 'pr'} asc={segSortAsc} onClick={() => handleSort('pr')} />
+            </div>
+            <div className="w-[90px] text-right">
+              <SortBtn label="Last run" active={segSortKey === 'date'} asc={segSortAsc} onClick={() => handleSort('date')} />
+            </div>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="p-4 space-y-2">
+            {Array.from({length: 8}).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 py-2">
+                <Skeleton className="h-7 w-[46px] rounded-lg" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3.5 w-2/3" />
+                  <Skeleton className="h-2.5 w-1/4" />
+                </div>
+                <Skeleton className="h-3 w-40 hidden sm:block" />
+              </div>
+            ))}
+          </div>
+        ) : sorted.length === 0 ? (
+          <div className="py-16 text-center">
+            <p className="text-sm text-white/25">No segments found</p>
+            <p className="text-xs text-white/20 mt-1">
+              {segmentsData && segmentsData.activitiesWithDetails === 0
+                ? 'Open an activity to load its segment data'
+                : 'No segments in your cached activities'}
+            </p>
+          </div>
+        ) : (
+          <motion.div variants={containerVariant} initial="hidden" animate="show" className="p-2">
+            {sorted.map((seg) => (
+              <SegmentRow key={seg.id} segment={seg} onClick={() => router.push(`/segments/${seg.id}`)} />
+            ))}
+          </motion.div>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function ActivitiesPage() {
@@ -163,10 +390,23 @@ export default function ActivitiesPage() {
   const {data: activities, isLoading, isFullyLoaded} = useActivitiesPaginated(BATCH_SIZE);
   const forceRefresh = useForceRefreshActivities();
 
+  const [activeTab, setActiveTab] = useState<ActiveTab>('activities');
   const [sportFilter, setSportFilter] = useState<ActivityType | 'All'>('All');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [visibleCount, setVisibleCount] = useState(BATCH_SIZE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Initialize tab from URL on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'segments') setActiveTab('segments');
+  }, []);
+
+  const switchTab = (tab: ActiveTab) => {
+    setActiveTab(tab);
+    const url = tab === 'segments' ? '/activities?tab=segments' : '/activities';
+    window.history.replaceState(null, '', url);
+  };
 
   const filtered = useMemo(() => {
     if (!activities) return [];
@@ -182,7 +422,6 @@ export default function ActivitiesPage() {
     return list;
   }, [activities, sportFilter, sortKey]);
 
-  // Reset visible count when filter/sort changes
   useEffect(() => {
     setVisibleCount(BATCH_SIZE);
   }, [sportFilter, sortKey]);
@@ -196,7 +435,6 @@ export default function ActivitiesPage() {
     setVisibleCount((n) => Math.min(n + BATCH_SIZE, filtered.length));
   }, [filtered.length]);
 
-  // Intersection observer — load next batch when sentinel enters viewport
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -234,140 +472,163 @@ export default function ActivitiesPage() {
           {/* Page title */}
           <div className="pt-2 pb-1">
             <h1 className="text-xl font-semibold tracking-tight text-white">Activities</h1>
-            <div className="flex items-center gap-3 mt-0.5">
-              <p className="text-sm text-white/50">
-                {activities
-                  ? isFullyLoaded
-                    ? `${activities.length} activities synced`
-                    : `${activities.length}+ activities`
-                  : 'Loading…'}
-              </p>
-              {activities && !isFullyLoaded && (
-                <div className="flex items-center gap-2">
-                  <div className="h-1 w-24 rounded-full bg-white/[0.08] overflow-hidden">
-                    <div className="h-full w-1/3 rounded-full bg-accent-blue animate-pulse" />
+            {activeTab === 'activities' && (
+              <div className="flex items-center gap-3 mt-0.5">
+                <p className="text-sm text-white/50">
+                  {activities
+                    ? isFullyLoaded
+                      ? `${activities.length} activities synced`
+                      : `${activities.length}+ activities`
+                    : 'Loading…'}
+                </p>
+                {activities && !isFullyLoaded && (
+                  <div className="flex items-center gap-2">
+                    <div className="h-1 w-24 rounded-full bg-white/[0.08] overflow-hidden">
+                      <div className="h-full w-1/3 rounded-full bg-accent-blue animate-pulse" />
+                    </div>
+                    <span className="text-[11px] text-white/45">syncing…</span>
                   </div>
-                  <span className="text-[11px] text-white/45">syncing…</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Tab bar */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.05] w-fit">
+            {([
+              {value: 'activities' as ActiveTab, label: 'Activities'},
+              {value: 'segments' as ActiveTab, label: 'Segments'},
+            ]).map(({value, label}) => (
+              <button
+                key={value}
+                onClick={() => switchTab(value)}
+                className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  activeTab === value
+                    ? 'bg-white/[0.10] text-white'
+                    : 'text-white/40 hover:text-white/70'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Activities tab ───────────────────────────────────────────── */}
+          {activeTab === 'activities' && (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.05]">
+                  {SPORT_TABS.map(({label, value}) => {
+                    const active = sportFilter === value;
+                    const color = value !== 'All' ? SPORT_COLORS[value] : undefined;
+                    return (
+                      <button
+                        key={value}
+                        onClick={() => setSportFilter(value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                          active ? 'bg-white/[0.10] text-white' : 'text-white/40 hover:text-white/70'
+                        }`}
+                        style={active && color ? {color} : undefined}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {/* Sport tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-xl bg-white/[0.05]">
-              {SPORT_TABS.map(({label, value}) => {
-                const active = sportFilter === value;
-                const color = value !== 'All' ? SPORT_COLORS[value] : undefined;
-                return (
-                  <button
-                    key={value}
-                    onClick={() => setSportFilter(value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                      active ? 'bg-white/[0.10] text-white' : 'text-white/40 hover:text-white/70'
-                    }`}
-                    style={active && color ? {color} : undefined}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/30">Sort:</span>
+                  <select
+                    value={sortKey}
+                    onChange={(e) => setSortKey(e.target.value as SortKey)}
+                    className="bg-white/[0.06] border border-white/[0.08] text-white/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-white/[0.09] transition-colors"
                   >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Sort select */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-white/30">Sort:</span>
-              <select
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value as SortKey)}
-                className="bg-white/[0.06] border border-white/[0.08] text-white/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-white/[0.09] transition-colors"
-              >
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value} className="bg-[#111]">
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Activity list */}
-          <div className="bento-card overflow-hidden">
-            {/* Column headers */}
-            <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-white/[0.05]">
-              <div className="w-2 flex-shrink-0" />
-              <div className="flex-1 text-[10px] font-medium text-white/25 uppercase tracking-wide">Activity</div>
-              <div className="flex items-center gap-6 text-right">
-                <div className="w-[72px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Distance</div>
-                <div className="w-[56px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Elev</div>
-                <div className="w-[52px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">HR</div>
-                <div className="w-[56px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Time</div>
+                    {SORT_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value} className="bg-[#111]">
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div className="w-[14px]" />
-            </div>
 
-            {isLoading ? (
-              <div className="p-4 space-y-2">
-                {Array.from({length: 10}).map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 py-2">
-                    <Skeleton className="w-2 h-2 rounded-full" />
-                    <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-3.5 w-2/3" />
-                      <Skeleton className="h-2.5 w-1/4" />
-                    </div>
-                    <Skeleton className="h-3 w-20 hidden sm:block" />
+              <div className="bento-card overflow-hidden">
+                <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-white/[0.05]">
+                  <div className="w-2 flex-shrink-0" />
+                  <div className="flex-1 text-[10px] font-medium text-white/25 uppercase tracking-wide">Activity</div>
+                  <div className="flex items-center gap-6 text-right">
+                    <div className="w-[72px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Distance</div>
+                    <div className="w-[56px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Elev</div>
+                    <div className="w-[52px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">HR</div>
+                    <div className="w-[56px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Time</div>
                   </div>
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="py-16 text-center">
-                <p className="text-sm text-white/25">No activities found</p>
-              </div>
-            ) : (
-              <motion.div
-                variants={containerVariant}
-                initial="hidden"
-                animate="show"
-                className="p-2"
-              >
-                {visibleActivities.map((a) => (
-                  <ActivityRow
-                    key={a.id}
-                    activity={a}
-                    onClick={() => router.push(`/activities/${a.id}`)}
-                  />
-                ))}
-              </motion.div>
-            )}
+                  <div className="w-[14px]" />
+                </div>
 
-            {/* Sentinel — triggers next batch load; hidden once all visible */}
-            {visibleCount < filtered.length && (
-              <div ref={sentinelRef} className="p-4 space-y-2">
-                {Array.from({length: 3}).map((_, i) => (
-                  <div key={i} className="flex items-center gap-4 py-2">
-                    <Skeleton className="w-2 h-2 rounded-full" />
-                    <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-3.5 w-2/3" />
-                      <Skeleton className="h-2.5 w-1/4" />
-                    </div>
-                    <Skeleton className="h-3 w-20 hidden sm:block" />
+                {isLoading ? (
+                  <div className="p-4 space-y-2">
+                    {Array.from({length: 10}).map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 py-2">
+                        <Skeleton className="w-2 h-2 rounded-full" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-3.5 w-2/3" />
+                          <Skeleton className="h-2.5 w-1/4" />
+                        </div>
+                        <Skeleton className="h-3 w-20 hidden sm:block" />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
+                ) : filtered.length === 0 ? (
+                  <div className="py-16 text-center">
+                    <p className="text-sm text-white/25">No activities found</p>
+                  </div>
+                ) : (
+                  <motion.div
+                    variants={containerVariant}
+                    initial="hidden"
+                    animate="show"
+                    className="p-2"
+                  >
+                    {visibleActivities.map((a) => (
+                      <ActivityRow
+                        key={a.id}
+                        activity={a}
+                        onClick={() => router.push(`/activities/${a.id}`)}
+                      />
+                    ))}
+                  </motion.div>
+                )}
 
-          {activities && filtered.length > 0 && (
-            <p className="text-center text-[11px] text-white/20">
-              {!isFullyLoaded
-                ? `Showing ${visibleActivities.length} activities…`
-                : visibleCount >= filtered.length
-                  ? `${filtered.length} ${sportFilter === 'All' ? '' : sportFilter + ' '}activit${filtered.length === 1 ? 'y' : 'ies'}`
-                  : `${visibleActivities.length} of ${filtered.length} ${sportFilter === 'All' ? '' : sportFilter + ' '}activities`
-              }
-            </p>
+                {visibleCount < filtered.length && (
+                  <div ref={sentinelRef} className="p-4 space-y-2">
+                    {Array.from({length: 3}).map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 py-2">
+                        <Skeleton className="w-2 h-2 rounded-full" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-3.5 w-2/3" />
+                          <Skeleton className="h-2.5 w-1/4" />
+                        </div>
+                        <Skeleton className="h-3 w-20 hidden sm:block" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {activities && filtered.length > 0 && (
+                <p className="text-center text-[11px] text-white/20">
+                  {!isFullyLoaded
+                    ? `Showing ${visibleActivities.length} activities…`
+                    : visibleCount >= filtered.length
+                      ? `${filtered.length} ${sportFilter === 'All' ? '' : sportFilter + ' '}activit${filtered.length === 1 ? 'y' : 'ies'}`
+                      : `${visibleActivities.length} of ${filtered.length} ${sportFilter === 'All' ? '' : sportFilter + ' '}activities`
+                  }
+                </p>
+              )}
+            </>
           )}
+
+          {/* ── Segments tab ─────────────────────────────────────────────── */}
+          {activeTab === 'segments' && <SegmentsTab router={router} />}
         </div>
       </main>
     </>

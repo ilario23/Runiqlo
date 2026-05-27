@@ -44,6 +44,7 @@ export function CoachSplitLayout({
   rightPanel: ReactNode;
 }) {
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const [mobileTab, setMobileTab] = useState<'chat' | 'plan'>('chat');
   const leftPanelRef = usePanelRef();
   const isAnimatingRef = useRef(false);
 
@@ -94,10 +95,24 @@ export function CoachSplitLayout({
   if (isMobile) {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="h-56 border-b border-white/[0.07] flex flex-col flex-shrink-0">
-          {leftPanel}
+        <div className="flex-shrink-0 flex border-b border-white/[0.07]">
+          {(['chat', 'plan'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setMobileTab(tab)}
+              className={`flex-1 py-2.5 text-sm font-medium transition-colors cursor-pointer ${
+                mobileTab === tab
+                  ? 'text-white border-b-2 border-accent-blue'
+                  : 'text-white/35 hover:text-white/60'
+              }`}
+            >
+              {tab === 'chat' ? 'Chat' : 'Plan'}
+            </button>
+          ))}
         </div>
-        <div className="flex-1 overflow-y-auto">{rightPanel}</div>
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {mobileTab === 'chat' ? leftPanel : rightPanel}
+        </div>
       </div>
     );
   }
