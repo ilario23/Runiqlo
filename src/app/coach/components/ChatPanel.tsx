@@ -36,17 +36,17 @@ function CommandPalette({query, onSelect}: {query: string; onSelect: (name: stri
   const filtered = COMMANDS.filter(c => c.name.startsWith(query.toLowerCase()));
   if (!filtered.length) return null;
   return (
-    <div className="absolute bottom-full left-0 mb-2 w-full bg-gray-900 border border-white/[0.12] rounded-2xl overflow-hidden shadow-2xl z-50">
-      <div className="px-3 py-1.5 border-b border-white/[0.06]">
+    <div className="absolute bottom-full left-0 mb-2 w-full border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-2xl z-50" style={{background: 'var(--color-surface-1)'}}>
+      <div className="px-3 py-1.5 border-b border-[var(--color-border)]">
         <span className="text-xs text-white/30 font-medium">Commands</span>
       </div>
       {filtered.map(cmd => (
         <button
           key={cmd.name}
           onClick={() => onSelect(cmd.name)}
-          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/[0.06] text-left transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-[var(--color-surface-2)] text-left transition-colors"
         >
-          <span className="text-sm font-mono text-accent-blue">/{cmd.name}</span>
+          <span className="text-sm font-mono text-[var(--color-accent)]">/{cmd.name}</span>
           <span className="text-xs text-white/30">{cmd.argsHint}</span>
           <span className="text-xs text-white/50 ml-auto truncate">{cmd.description}</span>
         </button>
@@ -63,17 +63,17 @@ function MentionDropdown({query, onSelect}: {query: string; onSelect: (example: 
   );
   if (!filtered.length) return null;
   return (
-    <div className="absolute bottom-full left-0 mb-2 w-72 bg-gray-900 border border-white/[0.12] rounded-2xl overflow-hidden shadow-2xl z-50">
-      <div className="px-3 py-1.5 border-b border-white/[0.06]">
+    <div className="absolute bottom-full left-0 mb-2 w-72 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-2xl z-50" style={{background: 'var(--color-surface-1)'}}>
+      <div className="px-3 py-1.5 border-b border-[var(--color-border)]">
         <span className="text-xs text-white/30 font-medium">References</span>
       </div>
       {filtered.map(m => (
         <button
           key={m.prefix}
           onClick={() => onSelect(m.example)}
-          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white/[0.06] text-left transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-[var(--color-surface-2)] text-left transition-colors"
         >
-          <span className="text-sm font-mono text-emerald-400">@{m.prefix}</span>
+          <span className="text-sm font-mono text-accent-green">@{m.prefix}</span>
           <span className="text-xs text-white/50">{m.description}</span>
         </button>
       ))}
@@ -96,7 +96,7 @@ function AskQuestionCard({
 }) {
   return (
     <div className="flex justify-start my-1">
-      <div className="max-w-[85%] rounded-2xl rounded-tl-md px-4 py-3 bg-white/[0.06] border border-white/[0.10] space-y-3">
+      <div className="max-w-[85%] rounded-2xl rounded-tl-md px-4 py-3 bg-[var(--color-surface-1)] border border-[var(--color-border)] space-y-3">
         <p className="text-sm text-white/90 leading-snug">{question}</p>
         <div className="flex flex-wrap gap-2">
           {options.map(opt => (
@@ -107,8 +107,8 @@ function AskQuestionCard({
               className={[
                 "px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors",
                 disabled
-                  ? "bg-white/[0.04] border-white/[0.08] text-white/30 cursor-not-allowed"
-                  : "bg-accent-blue/10 border-accent-blue/40 text-accent-blue hover:bg-accent-blue/20 hover:border-accent-blue/70 cursor-pointer",
+                  ? "bg-[var(--color-surface-0)] border-[var(--color-border)] text-white/30 cursor-not-allowed"
+                  : "bg-[var(--color-accent-dim)] border-[var(--color-accent)]/30 text-[var(--color-accent)] hover:bg-[var(--color-accent)]/15 hover:border-[var(--color-accent)]/50 cursor-pointer",
               ].join(" ")}
             >
               {opt.label}
@@ -124,7 +124,7 @@ function ToolCallBubble({name, status}: {name: string; status: 'running' | 'done
   const label = TOOL_LABELS[name] ?? name;
   return (
     <div className="flex justify-start my-1">
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-xs text-white/50">
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--color-surface-1)] border border-[var(--color-border)] text-xs text-white/50">
         {status === 'running' ? (
           <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
@@ -159,7 +159,7 @@ const markdownComponents: React.ComponentProps<typeof ReactMarkdown>['components
         const blocks = parseStructuredSteps(JSON.parse(raw));
         if (blocks) {
           return (
-            <div className="my-3 rounded-2xl border border-white/[0.09] bg-white/[0.03] p-3">
+            <div className="my-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-0)] p-3">
               <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-2">Session Breakdown</div>
               <StructuredWorkoutDisplay blocks={blocks} />
             </div>
@@ -169,12 +169,12 @@ const markdownComponents: React.ComponentProps<typeof ReactMarkdown>['components
         // fall through to default
       }
     }
-    return <pre className="bg-white/[0.06] rounded-lg px-3 py-2 text-xs font-mono text-white/80 my-2 overflow-x-auto">{children}</pre>;
+    return <pre className="bg-[var(--color-surface-1)] rounded-lg px-3 py-2 text-xs font-mono text-white/80 my-2 overflow-x-auto">{children}</pre>;
   },
   code: ({children, className}) => {
     const isBlock = className?.includes('language-');
     return isBlock
-      ? <code className="block bg-white/[0.06] rounded-lg px-3 py-2 text-xs font-mono text-white/80 my-2 overflow-x-auto">{children}</code>
+      ? <code className="block bg-[var(--color-surface-1)] rounded-lg px-3 py-2 text-xs font-mono text-white/80 my-2 overflow-x-auto">{children}</code>
       : <code className="bg-white/[0.10] rounded px-1 py-0.5 text-xs font-mono text-white/80">{children}</code>;
   },
   hr: () => <hr className="border-white/[0.10] my-2" />,
@@ -188,8 +188,8 @@ function MessageBubble({role, content}: {role: 'user' | 'assistant'; content: st
   return (
     <div className={`flex ${role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
       {role === 'assistant' && (
-        <div className="w-7 h-7 rounded-full bg-accent-blue/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
+        <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5" style={{background: 'var(--color-accent-dim)', color: 'var(--color-accent)'}}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
             <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
           </svg>
         </div>
@@ -197,8 +197,8 @@ function MessageBubble({role, content}: {role: 'user' | 'assistant'; content: st
       <div
         className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           role === 'user'
-            ? 'bg-accent-blue text-white rounded-tr-md'
-            : 'bg-white/[0.06] border border-white/[0.08] text-white/90 rounded-tl-md'
+            ? 'bg-[var(--color-accent)] text-white rounded-tr-md'
+            : 'bg-[var(--color-surface-1)] border border-[var(--color-border)] text-white/90 rounded-tl-md'
         }`}
       >
         {role === 'assistant' ? (
@@ -417,8 +417,8 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {!hasMessages && (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-accent-blue/15 flex items-center justify-center">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{background: 'var(--color-accent-dim)', color: 'var(--color-accent)'}}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </div>
@@ -431,7 +431,7 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
                 <button
                   key={s}
                   onClick={() => doSend(s)}
-                  className="text-xs text-white/50 hover:text-white/80 bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] rounded-xl px-3 py-2 transition-colors text-left"
+                  className="text-xs text-white/50 hover:text-white/80 bg-[var(--color-surface-0)] hover:bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-xl px-3 py-2 transition-colors text-left"
                 >
                   {s}
                 </button>
@@ -442,7 +442,7 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
                 <button
                   key={cmd}
                   onClick={() => { setInput(cmd + ' '); setShowCommands(false); inputRef.current?.focus(); }}
-                  className="text-xs font-mono text-accent-blue/60 hover:text-accent-blue bg-accent-blue/[0.06] hover:bg-accent-blue/[0.12] border border-accent-blue/20 rounded-lg px-2 py-1 transition-colors"
+                  className="text-xs font-mono text-[var(--color-accent)]/60 hover:text-[var(--color-accent)] bg-[var(--color-accent-dim)] hover:bg-[var(--color-accent)]/12 border border-[var(--color-accent)]/20 rounded-lg px-2 py-1 transition-colors"
                 >
                   {cmd}
                 </button>
@@ -497,12 +497,12 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
 
         {isLoading && !messages.some((m, i) => m.role === 'assistant' && i === messages.length - 1) && (
           <div className="flex justify-start gap-2">
-            <div className="w-7 h-7 rounded-full bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{background: 'var(--color-accent-dim)', color: 'var(--color-accent)'}}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
               </svg>
             </div>
-            <div className="bg-white/[0.06] border border-white/[0.08] rounded-2xl rounded-tl-md px-4 py-3">
+            <div className="bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-2xl rounded-tl-md px-4 py-3">
               <div className="flex items-center gap-1.5">
                 <motion.span className="w-1.5 h-1.5 rounded-full bg-white/40" animate={{opacity: [0.3, 1, 0.3]}} transition={{duration: 1.2, repeat: Infinity, delay: 0}} />
                 <motion.span className="w-1.5 h-1.5 rounded-full bg-white/40" animate={{opacity: [0.3, 1, 0.3]}} transition={{duration: 1.2, repeat: Infinity, delay: 0.2}} />
@@ -524,7 +524,7 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
       </div>
 
       {/* Input area */}
-      <div className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-white/[0.07]">
+      <div className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-[var(--color-border)]">
         <div className="relative">
           <AnimatePresence>
             {showCommands && (
@@ -561,13 +561,14 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
               placeholder="Ask your coach… or type / for commands, @ for references"
               rows={1}
               disabled={resolving}
-              className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-accent-blue/50 resize-none disabled:opacity-50 max-h-32 overflow-y-auto"
+              className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[var(--color-accent)]/50 resize-none disabled:opacity-50 max-h-32 overflow-y-auto"
               style={{fieldSizing: 'content' as React.CSSProperties['fieldSizing']}}
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="w-10 h-10 rounded-xl bg-accent-blue flex items-center justify-center hover:bg-accent-blue/90 transition-colors disabled:opacity-40 flex-shrink-0"
+              className="w-10 h-10 rounded-xl flex items-center justify-center transition-colors disabled:opacity-40 flex-shrink-0 hover:opacity-90"
+              style={{background: 'var(--color-accent)'}}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <line x1="22" y1="2" x2="11" y2="13" />
@@ -618,10 +619,10 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
   return (
     <div className="flex flex-col h-full relative">
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-white/[0.07]">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-accent-blue/20 flex items-center justify-center flex-shrink-0">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent-blue" strokeWidth="1.5">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{background: 'var(--color-accent-dim)', color: 'var(--color-accent)'}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
             </svg>
           </div>
@@ -633,7 +634,7 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
           <button
             onClick={newSession}
             title="New conversation"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface-1)] text-white/40 hover:text-white/70 transition-colors"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19" />
@@ -644,7 +645,7 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
           <button
             onClick={() => setShowHistory(true)}
             title="Conversation history"
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.08] text-white/40 hover:text-white/70 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface-1)] text-white/40 hover:text-white/70 transition-colors"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
               <circle cx="12" cy="12" r="10" />

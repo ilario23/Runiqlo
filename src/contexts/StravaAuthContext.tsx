@@ -34,11 +34,19 @@ export const StravaAuthProvider = ({children}: {children: ReactNode}) => {
   const [tokens, setTokens] = useState<StravaTokens | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load stored tokens on mount
+  // Load stored tokens on mount (or auto-login in dev mode)
   useEffect(() => {
-    const stored = getStoredTokens();
-    if (stored) {
-      setTokens(stored);
+    const devId = process.env.NEXT_PUBLIC_DEV_ATHLETE_ID;
+    if (devId) {
+      setTokens({
+        access_token: 'broker',
+        refresh_token: 'broker',
+        expires_at: 0,
+        athlete: {id: Number(devId), username: 'dev', firstname: 'Dev', lastname: '', city: '', state: '', country: '', sex: '', profile_medium: '', profile: ''},
+      });
+    } else {
+      const stored = getStoredTokens();
+      if (stored) setTokens(stored);
     }
     setIsLoading(false);
   }, []);

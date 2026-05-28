@@ -130,12 +130,12 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
   };
 
   if (plan === undefined) {
-    return <div className="h-40 rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />;
+    return <div className="h-40 rounded-2xl bg-[var(--color-surface-0)] border border-[var(--color-border)] animate-pulse" />;
   }
 
   if (!plan) {
     return (
-      <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-8 text-center">
+      <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-0)] p-8 text-center">
         <div className="text-3xl mb-3">🗺️</div>
         <p className="text-sm text-white/40 mb-1">No training plan yet</p>
         <p className="text-xs text-white/25">Ask the coach to create your periodized training plan</p>
@@ -171,7 +171,7 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
         {phases.map((p, i) => {
           const cfg = PHASE_COLORS[p.phase] ?? PHASE_COLORS.base;
           return (
-            <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${cfg.border}/30 bg-white/[0.04]`}>
+            <div key={i} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border ${cfg.border}/30 bg-[var(--color-surface-1)]`}>
               <div className={`w-2 h-2 rounded-full ${cfg.bg}`} />
               <span className={`text-xs font-medium ${cfg.text}`}>{cfg.label}</span>
               <span className="text-xs text-white/30">{p.weekCount}wk</span>
@@ -220,15 +220,15 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
             <div className="text-xs text-white/30">Weekly volume (km)</div>
             <div className="flex items-center gap-3 text-xs text-white/25">
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm bg-white/30" /> actual</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm bg-accent-blue/50" /> planned</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm bg-[var(--color-accent)]/40" /> planned</span>
             </div>
           </div>
 
           {/* Tooltip */}
           {tooltip.visible && (
             <div
-              className="fixed z-50 pointer-events-none px-2.5 py-1.5 rounded-lg bg-neutral-900/95 border border-white/10 text-xs shadow-xl"
-              style={{left: tooltip.x + 12, top: tooltip.y - 40}}
+              className="fixed z-50 pointer-events-none px-2.5 py-1.5 rounded-lg border text-xs shadow-xl"
+              style={{background: 'var(--color-surface-0)', borderColor: 'var(--color-border)', left: tooltip.x + 12, top: tooltip.y - 40}}
             >
               <div className={`font-semibold ${PHASE_COLORS[tooltip.phase]?.text ?? 'text-white'}`}>
                 Wk {tooltip.weekNumber} · {PHASE_COLORS[tooltip.phase]?.label ?? tooltip.phase}
@@ -303,11 +303,11 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
       {sketches.length > 0 && (
         <div className="mb-6">
           <div className="text-xs text-white/30 mb-2">Block overview — all weeks</div>
-          <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+          <div className="rounded-xl border border-[var(--color-border)] overflow-hidden">
             <div className="max-h-72 overflow-y-auto">
               <table className="w-full text-xs">
-                <thead className="sticky top-0 bg-neutral-950/90 backdrop-blur-sm">
-                  <tr className="border-b border-white/[0.06]">
+                <thead className="sticky top-0" style={{background: 'var(--color-surface-0)'}}>
+                  <tr className="border-b border-[var(--color-border)]">
                     <th className="text-left px-3 py-2 text-white/30 font-medium w-12">Wk</th>
                     <th className="text-left px-3 py-2 text-white/30 font-medium">Phase</th>
                     <th className="text-left px-3 py-2 text-white/30 font-medium hidden sm:table-cell">Date</th>
@@ -329,7 +329,7 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
                     return (
                       <tr
                         key={s.weekNumber}
-                        className={`border-b border-white/[0.04] transition-colors cursor-pointer ${isCurrent ? 'bg-white/[0.05]' : 'hover:bg-white/[0.03]'}`}
+                        className={`border-b border-[var(--color-border)] transition-colors cursor-pointer ${isCurrent ? 'bg-[var(--color-surface-1)]' : 'hover:bg-[var(--color-surface-1)]/50'}`}
                         onClick={() => !isEditing && onWeekClick?.(s.weekStart)}
                       >
                         <td className="px-3 py-2 font-medium text-white/70 tabular-nums">
@@ -380,7 +380,7 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
                         <td className="px-3 py-2 hidden md:table-cell">
                           <div className="flex gap-1 flex-wrap">
                             {(s.keyWorkoutTypes as WorkoutType[]).slice(0, 3).map(w => (
-                              <span key={w} className="px-1.5 py-0.5 rounded bg-white/[0.06] text-white/40">
+                              <span key={w} className="px-1.5 py-0.5 rounded bg-[var(--color-surface-1)] text-white/40">
                                 {WORKOUT_ICONS[w] ?? w.slice(0, 2).toUpperCase()}
                               </span>
                             ))}
@@ -405,13 +405,13 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
           return (
             <div
               key={i}
-              className={`rounded-2xl border p-4 ${isCurrentPhase ? `border-${cfg.border.split('-')[1]}-500/40 bg-white/[0.06]` : 'border-white/[0.06] bg-white/[0.02]'}`}
+              className={`rounded-2xl border p-4 ${isCurrentPhase ? `${cfg.border}/40 bg-[var(--color-surface-1)]` : 'border-[var(--color-border)] bg-[var(--color-surface-0)]'}`}
             >
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-bold uppercase tracking-wider ${cfg.text}`}>{cfg.label}</span>
                   {isCurrentPhase && (
-                    <span className="text-xs bg-white/10 text-white/60 px-2 py-0.5 rounded-full">Current</span>
+                    <span className="text-xs bg-[var(--color-surface-2)] text-white/60 px-2 py-0.5 rounded-full">Current</span>
                   )}
                 </div>
                 <span className="text-xs text-white/30">{p.weekCount} weeks · {p.startDate} → {p.endDate}</span>
@@ -423,7 +423,7 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
                 </div>
                 <div className="flex gap-1 flex-wrap justify-end">
                   {p.keyWorkouts.slice(0, 3).map(w => (
-                    <span key={w} className="text-xs bg-white/[0.06] text-white/50 px-2 py-0.5 rounded-full">{w}</span>
+                    <span key={w} className="text-xs bg-[var(--color-surface-1)] text-white/50 px-2 py-0.5 rounded-full">{w}</span>
                   ))}
                 </div>
               </div>
@@ -472,7 +472,7 @@ function PastPlansSection({
   const loading = allPlans === null;
 
   return (
-    <div className="border-t border-white/[0.06] pt-6">
+    <div className="border-t border-[var(--color-border)] pt-6">
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between text-left group mb-3"
@@ -487,7 +487,7 @@ function PastPlansSection({
             Past training plans
           </span>
           {!loading && pastPlans.length > 0 && (
-            <span className="text-[10px] bg-white/[0.06] text-white/30 px-1.5 py-0.5 rounded-full tabular-nums">
+            <span className="text-[10px] bg-[var(--color-surface-1)] text-white/30 px-1.5 py-0.5 rounded-full tabular-nums">
               {pastPlans.length}
             </span>
           )}
@@ -525,7 +525,7 @@ function PastPlansSection({
               return (
                 <div
                   key={p.id}
-                  className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3 flex items-start gap-3"
+                  className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-0)] p-3 flex items-start gap-3"
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -544,7 +544,7 @@ function PastPlansSection({
                     <button
                       onClick={() => onRestore(p.id)}
                       disabled={isRestoring || isDeleting}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.06] hover:bg-white/[0.10] text-white/50 hover:text-white/80 border border-white/[0.08] transition-colors disabled:opacity-40"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-white/50 hover:text-white/80 border border-[var(--color-border)] transition-colors disabled:opacity-40"
                     >
                       {isRestoring ? (
                         <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

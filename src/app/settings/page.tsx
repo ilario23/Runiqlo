@@ -25,9 +25,9 @@ interface ProviderConfig {
 }
 
 const TIER_BADGE: Record<string, string> = {
-  powerful: 'text-accent-blue bg-accent-blue/10',
+  powerful: 'text-[var(--color-accent)] bg-[var(--color-accent-dim)]',
   balanced: 'text-accent-green bg-accent-green/10',
-  fast:     'text-yellow-400 bg-yellow-400/10',
+  fast:     'text-accent-yellow bg-accent-yellow/10',
 };
 
 // ─── Coach Model card ─────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ function CoachModelCard() {
       <div className="flex items-center justify-between mb-4">
         <p className="text-sm font-medium text-white">Coach Model</p>
         {activeVendor && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-white/35 font-medium capitalize">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--color-surface-1)] text-white/35 font-medium capitalize">
             {activeVendor}
           </span>
         )}
@@ -91,10 +91,10 @@ function CoachModelCard() {
                         className={`
                           w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all
                           ${disabled
-                            ? 'opacity-30 cursor-not-allowed border-white/[0.05] bg-transparent'
+                            ? 'opacity-30 cursor-not-allowed border-[var(--color-border)] bg-transparent'
                             : isSelected
                               ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)] cursor-default'
-                              : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.15] cursor-pointer'
+                              : 'border-[var(--color-border)] bg-[var(--color-surface-0)] hover:bg-[var(--color-surface-1)] hover:border-white/[0.12] cursor-pointer'
                           }
                         `}
                       >
@@ -126,7 +126,7 @@ function CoachModelCard() {
 
 function SectionLabel({children}: {children: React.ReactNode}) {
   return (
-    <h2 className="text-[10px] font-semibold text-white/25 uppercase tracking-widest mb-3 px-1">
+    <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.12em] mb-3.5">
       {children}
     </h2>
   );
@@ -180,7 +180,8 @@ function HrZonesEditor() {
             </button>
             <button
               onClick={save}
-              className="text-xs bg-accent-blue text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-accent-blue/85 transition-colors"
+              className="text-xs text-white font-semibold px-3 py-1.5 rounded-lg hover:opacity-85 transition-opacity"
+              style={{background: 'var(--color-accent)'}}
             >
               Save
             </button>
@@ -188,7 +189,7 @@ function HrZonesEditor() {
         ) : (
           <button
             onClick={startEdit}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 bg-white/[0.05] hover:bg-white/[0.09] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
+            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -243,7 +244,7 @@ function HrZonesEditor() {
               <span className="text-xs font-medium text-white/55 w-[110px] flex-shrink-0">
                 Z{z} · {ZONE_NAMES[z]}
               </span>
-              <div className="flex-1 h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+              <div className="flex-1 h-1.5 rounded-full bg-[var(--color-surface-1)] overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-300"
                   style={{
@@ -259,14 +260,14 @@ function HrZonesEditor() {
                     type="number"
                     value={lo}
                     onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
-                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+                    className="w-14 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/50 transition-colors"
                   />
                   <span className="text-[10px] text-white/25">–</span>
                   <input
                     type="number"
                     value={hi}
                     onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
-                    className="w-14 bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/60 transition-colors"
+                    className="w-14 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/50 transition-colors"
                   />
                   <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
                 </div>
@@ -302,7 +303,7 @@ function SettingsContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
       </div>
     );
   }
@@ -311,11 +312,11 @@ function SettingsContent() {
     <>
       <AppHeader />
       <main className="min-h-screen pt-[72px] pb-10 px-5">
-        <div className="max-w-[600px] mx-auto space-y-7">
+        <div className="max-w-[600px] mx-auto space-y-8">
 
           {/* Page title */}
-          <div className="pt-2 pb-1">
-            <h1 className="text-xl font-semibold tracking-tight text-white">Settings</h1>
+          <div className="pt-8 pb-1">
+            <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
           </div>
 
           {/* ── Account ────────────────────────────────────────────────────── */}
@@ -336,7 +337,7 @@ function SettingsContent() {
                         unoptimized
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-xl bg-brand/15 flex items-center justify-center text-brand font-bold text-sm flex-shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--color-accent-dim)] flex items-center justify-center text-[var(--color-accent)] font-bold text-sm flex-shrink-0">
                         {athlete.firstname[0]}{athlete.lastname[0]}
                       </div>
                     )}
@@ -351,7 +352,7 @@ function SettingsContent() {
                     </span>
                   </div>
 
-                  <div className="h-px bg-white/[0.06]" />
+                  <div className="h-px bg-[var(--color-border)]" />
 
                   {/* Actions */}
                   <div className="flex items-center justify-between gap-4">
@@ -421,7 +422,7 @@ export default function SettingsPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-screen">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
         </div>
       }
     >

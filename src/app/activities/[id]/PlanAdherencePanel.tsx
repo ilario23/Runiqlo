@@ -10,8 +10,8 @@ import type {StreamPoint, UserSettings} from '@/lib/activityModel';
 import type {WorkoutBlock, WorkoutType} from '@/lib/coachTypes';
 
 const cardVariant: Variants = {
-  hidden: {opacity: 0, y: 16},
-  show: {opacity: 1, y: 0, transition: {duration: 0.3, ease: 'easeOut'}},
+  hidden: {opacity: 0},
+  show: {opacity: 1, transition: {duration: 0.3, ease: 'easeOut'}},
 };
 
 const TYPE_LABEL: Record<WorkoutType, string> = {
@@ -237,7 +237,7 @@ export default function PlanAdherencePanel({activityId, actualDistanceKm, actual
 
   if (adherenceLoading) {
     return (
-      <motion.div variants={cardVariant} className="bento-card p-5">
+      <motion.div variants={cardVariant} className="surface-card p-5">
         <Skeleton className="h-32 w-full" />
       </motion.div>
     );
@@ -317,7 +317,7 @@ export default function PlanAdherencePanel({activityId, actualDistanceKm, actual
   const fmtWeekStart = new Date(weekStart + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
 
   return (
-    <motion.div variants={cardVariant} className="bento-card p-5">
+    <motion.div variants={cardVariant} className="surface-card p-5">
       <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Plan Adherence</h2>
 
       {/* Workout type pill */}

@@ -149,14 +149,14 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                 onClick={handleExport}
                 disabled={exporting}
                 title="Export to calendar (.ics)"
-                className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors disabled:opacity-40"
+                className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors disabled:opacity-40"
               >
                 <Download style={{width: '12px', height: '12px'}} />
               </button>
               <a
                 href={`webcal://${typeof window !== 'undefined' ? window.location.host : ''}/api/coach/week/ics?athleteId=${athleteId}&mode=subscribe`}
                 title="Subscribe to training calendar"
-                className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors"
+                className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
               >
                 <CalendarDays style={{width: '12px', height: '12px'}} />
               </a>
@@ -164,7 +164,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           )}
           <button
             onClick={prevWeek}
-            className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="15 18 9 12 15 6" />
@@ -172,7 +172,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           </button>
           <button
             onClick={nextWeek}
-            className="w-7 h-7 rounded-lg bg-white/[0.06] hover:bg-white/[0.10] flex items-center justify-center transition-colors"
+            className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="9 18 15 12 9 6" />
@@ -183,15 +183,15 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
 
       {/* Coach notes */}
       {plan?.coachNotes && (
-        <div className="mb-3 rounded-xl bg-accent-blue/10 border border-accent-blue/20 px-3 py-2 text-xs text-white/70 leading-relaxed">
-          <span className="text-accent-blue font-medium">Coach: </span>{plan.coachNotes}
+        <div className="mb-3 rounded-xl border-l-2 border-[var(--color-accent)] bg-[var(--color-accent-dim)] px-3 py-2 text-xs text-white/70 leading-relaxed">
+          <span className="text-[var(--color-accent)] font-semibold">Coach · </span>{plan.coachNotes}
         </div>
       )}
 
       {loading ? (
         <div className="grid grid-cols-7 gap-2">
           {Array.from({length: 7}).map((_, i) => (
-            <div key={i} className="rounded-xl bg-white/[0.04] border border-white/[0.06] p-2 min-h-[100px] animate-pulse" />
+            <div key={i} className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] p-2 min-h-[100px] animate-pulse" />
           ))}
         </div>
       ) : plan ? (
@@ -207,13 +207,13 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                   key={date}
                   className={`rounded-xl border p-2 min-h-[100px] transition-colors ${
                     isToday
-                      ? 'border-white/20 bg-white/[0.06]'
-                      : 'border-white/[0.06] bg-white/[0.02]'
+                      ? 'border-[var(--color-accent)]/50 bg-[var(--color-accent-dim)]'
+                      : 'border-[var(--color-border)] bg-[var(--color-surface-0)]'
                   }`}
                 >
                   <div className={`text-xs font-medium mb-2 ${isToday ? 'text-white' : 'text-white/40'}`}>
                     {DAY_NAMES[i]}
-                    {isToday && <span className="ml-1 text-accent-blue">·</span>}
+                    {isToday && <span className="ml-1" style={{color: 'var(--color-accent)'}}>·</span>}
                   </div>
                   {workouts.length === 0 ? (
                     <div className="text-xs text-white/20 text-center pt-2">Rest</div>
@@ -282,7 +282,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           )}
         </>
       ) : (
-        <div className="rounded-2xl border border-dashed border-white/[0.08] bg-white/[0.02] p-6 text-center">
+        <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">
           <CalendarDays className="w-8 h-8 text-white/20 mx-auto mb-2" />
           <p className="text-sm text-white/40 mb-1">No plan for this week yet</p>
           <p className="text-xs text-white/25">Ask the coach to generate your weekly schedule</p>
@@ -425,7 +425,7 @@ function WorkoutDetailPanel({
       {/* Header row */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-white/[0.06] ${cfg.iconColor} flex-shrink-0`}>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--color-surface-1)] ${cfg.iconColor} flex-shrink-0`}>
             <WorkoutIcon className="w-4.5 h-4.5" style={{width: '18px', height: '18px'}} />
           </div>
           <div>
@@ -444,7 +444,7 @@ function WorkoutDetailPanel({
         </div>
         <button
           onClick={onClose}
-          className="w-6 h-6 rounded-full bg-white/[0.08] hover:bg-white/[0.14] flex items-center justify-center transition-colors flex-shrink-0"
+          className="w-6 h-6 rounded-full bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors flex-shrink-0"
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -469,10 +469,10 @@ function WorkoutDetailPanel({
           {structuredBlocks ? (
             <StructuredWorkoutDisplay blocks={structuredBlocks} />
           ) : (
-            <div className="rounded-xl bg-white/[0.04] border border-white/[0.06] overflow-hidden">
+            <div className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] overflow-hidden">
               {phases.map((phase, idx) => (
-                <div key={idx} className={`flex gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-white/[0.05]' : ''}`}>
-                  <span className="w-5 h-5 rounded-full bg-white/[0.08] flex items-center justify-center text-[10px] font-semibold text-white/40 flex-shrink-0 mt-0.5">
+                <div key={idx} className={`flex gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
+                  <span className="w-5 h-5 rounded-full bg-[var(--color-surface-1)] flex items-center justify-center text-[10px] font-semibold text-white/40 flex-shrink-0 mt-0.5">
                     {idx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -648,10 +648,10 @@ function WorkoutDetailPanel({
                         disabled={c.alreadyLinked}
                         className={`w-full text-left rounded-xl border px-3 py-2 transition-all ${
                           c.alreadyLinked
-                            ? 'border-white/[0.06] bg-white/[0.02] opacity-50 cursor-not-allowed'
+                            ? 'border-[var(--color-border)] bg-[var(--color-surface-0)] opacity-50 cursor-not-allowed'
                             : c.isBestMatch
                               ? 'border-accent-green/40 bg-accent-green/10 hover:bg-accent-green/15'
-                              : 'border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/15'
+                              : 'border-[var(--color-border)] bg-[var(--color-surface-0)] hover:bg-[var(--color-surface-1)] hover:border-[var(--color-border)]'
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
@@ -663,7 +663,7 @@ function WorkoutDetailPanel({
                                 <span className="text-[9px] uppercase tracking-wider text-accent-green font-bold bg-accent-green/15 px-1.5 py-0.5 rounded">Best match</span>
                               )}
                               {c.alreadyLinked && (
-                                <span className="text-[9px] uppercase tracking-wider text-white/40 font-medium bg-white/[0.06] px-1.5 py-0.5 rounded">Already linked</span>
+                                <span className="text-[9px] uppercase tracking-wider text-white/40 font-medium bg-[var(--color-surface-1)] px-1.5 py-0.5 rounded">Already linked</span>
                               )}
                             </div>
                             <div className="text-xs text-white/50 mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -702,7 +702,7 @@ function WorkoutDetailPanel({
                         onMarkDone(Number(activityIdInput));
                       }
                     }}
-                    className="flex-1 bg-white/[0.06] border border-white/[0.10] rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-accent-blue/60 font-mono"
+                    className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[var(--color-accent)]/50 font-mono"
                     autoFocus
                   />
                   <button

@@ -3,14 +3,14 @@
 import {useState, useEffect, useCallback} from 'react';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import AppHeader from '@/components/AppHeader';
-import {GoalCard} from './components/GoalCard';
+import {GoalBanner} from './components/GoalBanner';
+import {CoachBar} from './components/CoachBar';
 import {ChatPanel} from './components/ChatPanel';
 import {WeekPlan} from './components/WeekPlan';
 import {PlanOverview} from './components/PlanOverview';
-import {CoachSplitLayout} from './components/CoachSplitLayout';
 import type {Goal, TrainingPlan} from '@/lib/coachTypes';
 
-type PlanTab = 'week' | 'plan';
+type PlanView = 'week' | 'plan';
 
 const ONBOARDING_MESSAGE = "Hi! I'd like to set up my training plan with you. Walk me through it.";
 
@@ -18,7 +18,7 @@ export default function CoachPage() {
   const {athlete} = useStravaAuth();
   const [goal, setGoal] = useState<Goal | null | undefined>(undefined);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
-  const [activeTab, setActiveTab] = useState<PlanTab>('week');
+  const [view, setView] = useState<PlanView>('week');
   const [weekStart, setWeekStart] = useState<string | undefined>(undefined);
   const [planKey, setPlanKey] = useState(0);
 
@@ -28,8 +28,7 @@ export default function CoachPage() {
     if (!athleteIdMaybe) return;
     try {
       const res = await fetch(`/api/coach/goal?athleteId=${athleteIdMaybe}`);
-      const data = await res.json();
-      setGoal(data);
+      setGoal(await res.json());
     } catch {
       setGoal(null);
     }
@@ -39,8 +38,7 @@ export default function CoachPage() {
     if (!athleteIdMaybe) return;
     try {
       const res = await fetch(`/api/coach/plan?athleteId=${athleteIdMaybe}`);
-      const data = await res.json();
-      setPlan(data);
+      setPlan(await res.json());
     } catch {
       setPlan(null);
     }
@@ -51,7 +49,6 @@ export default function CoachPage() {
     fetchPlan();
   }, [fetchGoal, fetchPlan]);
 
-  // After every coach turn, re-check goal + plan so the right panel reflects new state.
   const handleCoachTurnFinished = useCallback(() => {
     fetchGoal();
     fetchPlan();
@@ -62,15 +59,27 @@ export default function CoachPage() {
     ? (plan.phases as Array<{phase: string}>)[plan.currentPhaseIndex]?.phase
     : undefined;
 
-  // Auto-send the onboarding prompt only when we know goal is null (not undefined/loading).
-  const initialMessage = goal === null ? ONBOARDING_MESSAGE : undefined;
-
+  // ── Not connected ────────────────────────────────────────────────────────────
   if (!athlete) {
     return (
-      <div className="min-h-screen bg-[var(--color-base)]">
+      <div className="min-h-screen" style={{background: 'var(--color-base)'}}>
         <AppHeader />
         <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
-          <p className="text-white/50 text-sm">Connect Strava to use the coach</p>
+          <p style={{color: 'var(--color-text-3)'}} className="text-sm">
+            Connect Strava to use the coach
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Loading goal ─────────────────────────────────────────────────────────────
+  if (goal === undefined) {
+    return (
+      <div className="min-h-screen" style={{background: 'var(--color-base)'}}>
+        <AppHeader />
+        <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
+          <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
         </div>
       </div>
     );
@@ -78,142 +87,105 @@ export default function CoachPage() {
 
   const athleteId = athlete.id;
 
-  if (goal === undefined) {
+  // ── Onboarding — no goal set yet ─────────────────────────────────────────────
+  // Chat fills the full screen so the athlete can set up their plan immediately.
+  if (goal === null) {
     return (
-      <div className="min-h-screen bg-[var(--color-base)]">
+      <div className="flex flex-col h-dvh" style={{background: 'var(--color-base)'}}>
         <AppHeader />
-        <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
-          <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+
+        {/* Onboarding banner */}
+        <div
+          className="flex-shrink-0 flex items-center gap-3 px-5 pt-14 border-b border-[var(--color-border)]"
+          style={{height: 'calc(40px + 56px)', background: 'var(--color-surface-0)'}}
+        >
+          <div
+            className="w-1.5 h-1.5 rounded-full animate-pulse"
+            style={{background: 'var(--color-accent)'}}
+          />
+          <span className="text-xs font-semibold text-white">Setting up your plan</span>
+          <span className="text-[10px] text-white/30 ml-1">Answer a few questions to get started</span>
+        </div>
+
+        {/* Full-screen chat */}
+        <div className="flex-1 overflow-hidden">
+          <ChatPanel
+            athleteId={athleteId}
+            initialMessage={ONBOARDING_MESSAGE}
+            onPlanSaved={handleCoachTurnFinished}
+          />
         </div>
       </div>
     );
   }
 
+  // ── Main layout — plan + coach bar ───────────────────────────────────────────
   return (
-    <div className="flex flex-col h-dvh bg-[var(--color-base)]">
+    <div className="flex flex-col h-dvh" style={{background: 'var(--color-base)'}}>
       <AppHeader />
-      <div className="flex flex-1 overflow-hidden pt-14">
-        <CoachSplitLayout
-          leftPanel={
-            <ChatPanel
-              athleteId={athleteId}
-              initialMessage={initialMessage}
-              onPlanSaved={handleCoachTurnFinished}
-            />
-          }
-          rightPanel={
-            <div className="h-full flex flex-col overflow-hidden">
-              {goal && (
-                <div className="flex-shrink-0 px-5 pt-5 max-w-4xl mx-auto w-full">
-                  <GoalCard goal={goal} currentPhase={currentPhase} />
-                </div>
-              )}
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-5 space-y-4 max-w-4xl mx-auto">
-                  {goal ? (
-                    <>
-                      <div className="flex items-center border-b border-[var(--color-border)]">
-                        {(['week', 'plan'] as PlanTab[]).map(tab => (
-                          <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-4 pb-2.5 text-sm font-medium transition-all cursor-pointer border-b-2 -mb-px ${
-                              activeTab === tab
-                                ? 'text-white border-[var(--color-accent)]'
-                                : 'text-white/40 hover:text-white/65 border-transparent'
-                            }`}
-                          >
-                            {tab === 'week' ? 'This Week' : 'Training Plan'}
-                          </button>
-                        ))}
-                      </div>
 
-                      {activeTab === 'week' ? (
-                        <WeekPlan
-                          key={`week-${planKey}`}
-                          athleteId={athleteId}
-                          initialWeekStart={weekStart}
-                        />
-                      ) : (
-                        <PlanOverview
-                          key={`plan-${planKey}`}
-                          athleteId={athleteId}
-                          onWeekClick={ws => {
-                            setWeekStart(ws);
-                            setActiveTab('week');
-                          }}
-                          onPlanRestored={() => {
-                            fetchGoal();
-                            fetchPlan();
-                            setPlanKey(k => k + 1);
-                          }}
-                        />
-                      )}
-                    </>
-                  ) : (
-                    <OnboardingWelcome />
-                  )}
-                </div>
-              </div>
-            </div>
-          }
-        />
-      </div>
-    </div>
-  );
-}
+      {/* Body: everything below the fixed header */}
+      <div className="flex flex-col flex-1 min-h-0 pt-14">
 
-function OnboardingWelcome() {
-  const focusChat = () => {
-    document.getElementById('coach-chat-input')?.focus();
-  };
+        {/* Goal banner — slim info rail */}
+        <GoalBanner goal={goal} currentPhase={currentPhase} />
 
-  return (
-    <div className="surface-card bg-gradient-to-br from-[var(--color-accent)]/[0.06] via-transparent to-transparent p-8 mt-8">
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-[var(--color-accent-dim)] flex items-center justify-center flex-shrink-0">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--color-accent)]" strokeWidth="1.5">
-            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
-          </svg>
-        </div>
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold text-white">Setting up your training plan</h2>
-          <p className="text-sm text-white/60 mt-1 leading-relaxed">
-            The coach is asking you a few questions in the chat to understand your goal, schedule, and history.
-            Your answers are saved as memory and used to build every plan.
-          </p>
-          <div className="mt-4 space-y-2">
-            {[
-              'Goal & target race',
-              'Experience level',
-              'Preferred long run day',
-              'Gym access',
-              'Injury history',
-            ].map(item => (
-              <div key={item} className="flex items-center gap-2 text-xs text-white/40">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                </svg>
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-          <div className="mt-6 flex items-center gap-3">
+        {/* View toggle — week / full plan */}
+        <div
+          className="flex-shrink-0 flex items-center border-b border-[var(--color-border)]"
+          style={{background: 'var(--color-base)', paddingLeft: '20px'}}
+        >
+          {([
+            {v: 'week' as PlanView, label: 'This Week'},
+            {v: 'plan' as PlanView, label: 'Training Plan'},
+          ]).map(({v, label}) => (
             <button
-              onClick={focusChat}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--color-accent)] text-white text-sm font-medium hover:bg-[var(--color-accent)]/90 transition-colors cursor-pointer"
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-4 pb-2.5 pt-2.5 text-xs font-semibold uppercase tracking-wide transition-colors border-b-2 -mb-px cursor-pointer ${
+                view === v
+                  ? 'text-white border-[var(--color-accent)]'
+                  : 'text-white/35 hover:text-white/60 border-transparent'
+              }`}
             >
-              Start Setup
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+              {label}
             </button>
-            <p className="text-xs text-white/30">
-              Your plan appears here once setup is complete.
-            </p>
-          </div>
+          ))}
         </div>
+
+        {/* Scrollable plan content */}
+        <main className="flex-1 overflow-y-auto pb-14 md:pb-[52px]">
+          <div className="max-w-[1100px] mx-auto px-5 py-5">
+            {view === 'week' ? (
+              <WeekPlan
+                key={`week-${planKey}`}
+                athleteId={athleteId}
+                initialWeekStart={weekStart}
+              />
+            ) : (
+              <PlanOverview
+                key={`plan-${planKey}`}
+                athleteId={athleteId}
+                onWeekClick={(ws) => {
+                  setWeekStart(ws);
+                  setView('week');
+                }}
+                onPlanRestored={() => {
+                  fetchGoal();
+                  fetchPlan();
+                  setPlanKey(k => k + 1);
+                }}
+              />
+            )}
+          </div>
+        </main>
       </div>
+
+      {/* Coach command bar — fixed bottom, with slide-up chat overlay */}
+      <CoachBar
+        athleteId={athleteId}
+        onPlanSaved={handleCoachTurnFinished}
+      />
     </div>
   );
 }

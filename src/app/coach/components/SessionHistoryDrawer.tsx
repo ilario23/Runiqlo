@@ -59,26 +59,26 @@ export function SessionHistoryDrawer({
   return (
     <motion.div
       className="absolute inset-0 z-20 flex flex-col bg-[#070708]"
-      initial={{opacity: 0, x: -16}}
-      animate={{opacity: 1, x: 0}}
-      exit={{opacity: 0, x: -16}}
+      initial={{opacity: 0}}
+      animate={{opacity: 1}}
+      exit={{opacity: 0}}
       transition={{duration: 0.16, ease: 'easeOut'}}
     >
       {/* Header */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-white/[0.07] flex items-center gap-2">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-[var(--color-border)] flex items-center gap-2">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-white/40" strokeWidth="1.5">
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
         <span className="text-sm font-semibold text-white flex-1">Conversations</span>
         {sessions && (
-          <span className="text-xs bg-white/[0.08] text-white/40 px-1.5 py-0.5 rounded-full tabular-nums">
+          <span className="text-xs bg-[var(--color-surface-1)] text-white/40 px-1.5 py-0.5 rounded-full tabular-nums">
             {sessions.length}
           </span>
         )}
         <button
           onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/[0.08] text-white/40 hover:text-white/70 transition-colors ml-1"
+          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface-1)] text-white/40 hover:text-white/70 transition-colors ml-1"
           title="Close"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -115,8 +115,8 @@ export function SessionHistoryDrawer({
                   className={[
                     'group relative rounded-xl border transition-colors',
                     isActive
-                      ? 'bg-accent-blue/[0.12] border-accent-blue/30'
-                      : 'hover:bg-white/[0.05] border-transparent',
+                      ? 'bg-[var(--color-accent-dim)] border-[var(--color-accent)]/30'
+                      : 'hover:bg-[var(--color-surface-1)] border-transparent',
                   ].join(' ')}
                 >
                   <button
@@ -133,7 +133,7 @@ export function SessionHistoryDrawer({
                     </div>
                     <p className="text-sm text-white/70 leading-snug line-clamp-2">{session.preview}</p>
                     {isActive && (
-                      <span className="text-[10px] text-accent-blue/60 mt-1 block">Current session</span>
+                      <span className="text-[10px] text-[var(--color-accent)] mt-1 block">Current session</span>
                     )}
                   </button>
                   <button

@@ -553,7 +553,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       const prColors: Record<number, string> = {1: COLORS.gold, 2: '#9CA3AF', 3: '#CD7C32'};
                       const prColor = se.pr_rank ? prColors[se.pr_rank] : undefined;
                       return (
-                        <Link key={se.id} href={`/segments/${se.segment.id}`} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-white/[0.05] transition-colors group">
+                        <Link key={se.id} href={`/segments/${se.segment.id}`} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-[var(--color-surface-1)] transition-colors group">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm text-white/75 truncate group-hover:text-white/90 transition-colors">{se.name}</p>

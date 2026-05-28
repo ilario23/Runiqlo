@@ -71,13 +71,13 @@ function StepRow({step, nested}: {step: WorkoutStep; nested?: boolean}) {
 
 function RepeatContainer({block}: {block: RepeatBlock}) {
   return (
-    <div className="rounded-xl border border-white/[0.09] bg-white/[0.03] overflow-hidden relative">
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-0)] overflow-hidden relative">
       <div className="absolute top-2 right-2 z-10">
-        <span className="text-[10px] font-bold text-white/50 bg-white/[0.09] border border-white/[0.10] px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-bold text-white/50 bg-[var(--color-surface-2)] border border-[var(--color-border)] px-2 py-0.5 rounded-full">
           ×{block.repeatCount}
         </span>
       </div>
-      <div className="divide-y divide-white/[0.06]">
+      <div className="divide-y divide-[var(--color-border)]">
         {block.steps.map((step, i) => {
           const sty = STEP_STYLE[step.stepType] ?? STEP_STYLE.training;
           return (
