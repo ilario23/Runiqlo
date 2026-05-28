@@ -3,11 +3,11 @@
 import {useState, useEffect, useRef} from 'react';
 import type {TrainingPlan, TrainingPhase, WeekSketch, WorkoutType, GoalType} from '@/lib/coachTypes';
 
-const PHASE_COLORS: Record<string, {bg: string; border: string; text: string; label: string; hex: string}> = {
-  base:  {bg: 'bg-accent-blue/40',   border: 'border-accent-blue',   text: 'text-accent-blue',   label: 'Base',  hex: 'rgba(96,165,250,0.65)'},
-  build: {bg: 'bg-accent-yellow/40', border: 'border-accent-yellow', text: 'text-accent-yellow', label: 'Build', hex: 'rgba(251,191,36,0.65)'},
-  peak:  {bg: 'bg-accent-red/40',    border: 'border-accent-red',    text: 'text-accent-red',    label: 'Peak',  hex: 'rgba(248,113,113,0.65)'},
-  taper: {bg: 'bg-accent-green/40',  border: 'border-accent-green',  text: 'text-accent-green',  label: 'Taper', hex: 'rgba(74,222,128,0.65)'},
+const PHASE_COLORS: Record<string, {bg: string; activeBg: string; border: string; text: string; label: string; hex: string}> = {
+  base:  {bg: 'bg-accent-blue/25',   activeBg: 'bg-accent-blue/55',   border: 'border-accent-blue',   text: 'text-accent-blue',   label: 'Base',  hex: 'rgba(96,165,250,1)'},
+  build: {bg: 'bg-accent-yellow/25', activeBg: 'bg-accent-yellow/55', border: 'border-accent-yellow', text: 'text-accent-yellow', label: 'Build', hex: 'rgba(251,191,36,1)'},
+  peak:  {bg: 'bg-accent-red/25',    activeBg: 'bg-accent-red/55',    border: 'border-accent-red',    text: 'text-accent-red',    label: 'Peak',  hex: 'rgba(248,113,113,1)'},
+  taper: {bg: 'bg-accent-green/25',  activeBg: 'bg-accent-green/55',  border: 'border-accent-green',  text: 'text-accent-green',  label: 'Taper', hex: 'rgba(74,222,128,1)'},
 };
 
 const WORKOUT_ICONS: Record<string, string> = {
@@ -189,20 +189,32 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
             const cfg = PHASE_COLORS[seg.phase] ?? PHASE_COLORS.base;
             const widthPct = (seg.weekCount / totalWeeks) * 100;
             const isCurrent = currentWeekOffset >= seg.weekOffset && currentWeekOffset < seg.weekOffset + seg.weekCount;
+            const progress = isCurrent
+              ? Math.min(1, Math.max(0, (currentWeekOffset - seg.weekOffset) / seg.weekCount))
+              : 0;
             return (
               <div
                 key={i}
-                className={`relative flex items-center justify-center ${cfg.bg} ${isCurrent ? `ring-2 ring-inset ${cfg.border}` : ''} cursor-pointer hover:opacity-90 transition-opacity`}
+                className={`relative flex items-center justify-center cursor-pointer overflow-hidden transition-opacity ${cfg.bg} ${!isCurrent ? 'opacity-35 hover:opacity-55' : ''}`}
                 style={{width: `${widthPct}%`}}
                 title={`${cfg.label}: ${seg.startDate} → ${seg.endDate}`}
                 onClick={() => onWeekClick?.(seg.startDate)}
               >
-                <span className={`text-xs font-bold uppercase tracking-wide ${cfg.text} select-none`}>
+                {isCurrent && (
+                  <div
+                    className="absolute inset-y-0 left-0 pointer-events-none"
+                    style={{width: `${progress * 100}%`, background: cfg.hex.replace('1)', '0.38)')}}
+                  />
+                )}
+                {isCurrent && (
+                  <div
+                    className="absolute top-0 bottom-0 w-px pointer-events-none"
+                    style={{left: `${progress * 100}%`, background: cfg.hex}}
+                  />
+                )}
+                <span className={`relative z-10 text-xs font-bold uppercase tracking-wide ${cfg.text} select-none`}>
                   {seg.weekCount > 2 ? cfg.label : ''}
                 </span>
-                {isCurrent && (
-                  <div className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${cfg.text.replace('text-', 'bg-')}`} />
-                )}
               </div>
             );
           })}
