@@ -297,7 +297,7 @@ function FormHeroSlab({
         {/* Left — TSB hero number */}
         <div className='flex-shrink-0'>
           <p className='metric-label mb-3'>Form · TSB</p>
-          {fitnessLoading || tsb === undefined ? (
+          {fitnessLoading && tsb === undefined ? (
             <div className='flex items-baseline gap-4'>
               <Skeleton className='h-20 w-32' />
               <div className='space-y-1.5'>
@@ -330,7 +330,7 @@ function FormHeroSlab({
         </div>
 
         {/* Middle — 14-day TSB trend */}
-        {tsbHistory.length >= 2 && !fitnessLoading && (
+        {tsbHistory.length >= 2 && (
           <div className='hidden sm:flex flex-1 flex-col justify-center gap-2 min-w-0 max-w-[180px]'>
             <p className='metric-label'>14d trend</p>
             <div className='h-12 w-full'>
@@ -347,7 +347,7 @@ function FormHeroSlab({
             value={ctl}
             prev={prev7?.ctl}
             color={COLORS.blue}
-            isLoading={fitnessLoading}
+            isLoading={fitnessLoading && ctl === undefined}
             info='Chronic Training Load — 42-day EWMA. Higher = more fit. Builds slowly over weeks.'
           />
           <StatPill
@@ -356,7 +356,7 @@ function FormHeroSlab({
             value={atl}
             prev={prev7?.atl}
             color={COLORS.orange}
-            isLoading={fitnessLoading}
+            isLoading={fitnessLoading && atl === undefined}
             info='Acute Training Load — 7-day EWMA. Spikes after hard weeks, drops quickly with rest.'
           />
         </div>

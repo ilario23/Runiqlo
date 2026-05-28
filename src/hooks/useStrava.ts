@@ -41,6 +41,18 @@ import {computeZoneBreakdown} from '@/lib/zoneCompute';
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
 
+const FITNESS_LS_PREFIX = 'fitness-data-v1';
+const readLocalFitness = (athleteId: number): FitnessDataPoint[] | undefined => {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const raw = localStorage.getItem(`${FITNESS_LS_PREFIX}:${athleteId}`);
+    return raw ? (JSON.parse(raw) as FitnessDataPoint[]) : undefined;
+  } catch { return undefined; }
+};
+const writeLocalFitness = (athleteId: number, data: FitnessDataPoint[]) => {
+  try { localStorage.setItem(`${FITNESS_LS_PREFIX}:${athleteId}`, JSON.stringify(data)); } catch { /* noop */ }
+};
+
 const getDashboardAfterDate = (): string => {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 400);
@@ -175,8 +187,13 @@ export const useFitnessData = () => {
 
   return useQuery<FitnessDataPoint[]>({
     queryKey: ['dashboard', 'fitness', athlete?.id],
-    queryFn: () => cachedCalcFitnessData(athlete!.id, activities!, settings),
+    queryFn: async () => {
+      const result = await cachedCalcFitnessData(athlete!.id, activities!, settings);
+      writeLocalFitness(athlete!.id, result);
+      return result;
+    },
     enabled: isAuthenticated && !!athlete?.id && !!activities && activities.length > 0,
+    placeholderData: athlete?.id ? readLocalFitness(athlete.id) : undefined,
     staleTime: ONE_HOUR,
     gcTime: ONE_DAY,
     refetchOnWindowFocus: false,
