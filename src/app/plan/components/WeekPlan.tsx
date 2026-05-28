@@ -8,7 +8,7 @@ import type {WeeklyPlan, PlannedDay, PlannedWorkout, WorkoutType} from '@/lib/co
 import {COLORS} from '@/lib/activityModel';
 import {useSettings} from '@/contexts/SettingsContext';
 import {parseStructuredSteps} from '@/lib/workoutUtils';
-import {StructuredWorkoutDisplay} from './StructuredWorkoutDisplay';
+import {StructuredWorkoutDisplay} from '@/components/StructuredWorkoutDisplay';
 import {convertSession, type ConvertibleSport} from '@/lib/trimpConversion';
 
 function getMonday(date: Date = new Date()): string {
@@ -189,14 +189,14 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
       )}
 
       {loading ? (
-        <div className="grid grid-cols-7 gap-2">
+        <div className="flex flex-col gap-2 md:grid md:grid-cols-7">
           {Array.from({length: 7}).map((_, i) => (
-            <div key={i} className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] p-2 min-h-[100px] animate-pulse" />
+            <div key={i} className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] p-2 min-h-12 md:min-h-[100px] animate-pulse" />
           ))}
         </div>
       ) : plan ? (
         <>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="flex flex-col gap-2 md:grid md:grid-cols-7">
             {days.map((day, i) => {
               const date = addDays(weekStart, i);
               const isToday = date === today;
@@ -205,33 +205,35 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
               return (
                 <div
                   key={date}
-                  className={`rounded-xl border p-2 min-h-[100px] transition-colors ${
+                  className={`rounded-xl border p-2 md:min-h-[100px] transition-colors ${
                     isToday
                       ? 'border-[var(--color-accent)]/50 bg-[var(--color-accent-dim)]'
                       : 'border-[var(--color-border)] bg-[var(--color-surface-0)]'
                   }`}
                 >
-                  <div className={`text-xs font-medium mb-2 ${isToday ? 'text-white' : 'text-white/40'}`}>
-                    {DAY_NAMES[i]}
-                    {isToday && <span className="ml-1" style={{color: 'var(--color-accent)'}}>·</span>}
-                  </div>
-                  {workouts.length === 0 ? (
-                    <div className="text-xs text-white/20 text-center pt-2">Rest</div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {workouts.map((w, wi) => (
-                        <WorkoutCard
-                          key={wi}
-                          workout={w}
-                          date={date}
-                          isToday={isToday}
-                          compact
-                          selected={selected?.date === date && selected?.workoutIndex === wi}
-                          onClick={() => handleWorkoutClick(i, wi, w)}
-                        />
-                      ))}
+                  <div className="flex items-center gap-3 md:block">
+                    <div className={`text-xs font-medium w-8 flex-shrink-0 md:w-auto md:mb-2 ${isToday ? 'text-white' : 'text-white/40'}`}>
+                      {DAY_NAMES[i]}
+                      {isToday && <span className="ml-1" style={{color: 'var(--color-accent)'}}>·</span>}
                     </div>
-                  )}
+                    {workouts.length === 0 ? (
+                      <div className="text-xs text-white/20 md:text-center md:pt-2">Rest</div>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5 md:block md:space-y-1.5">
+                        {workouts.map((w, wi) => (
+                          <WorkoutCard
+                            key={wi}
+                            workout={w}
+                            date={date}
+                            isToday={isToday}
+                            compact
+                            selected={selected?.date === date && selected?.workoutIndex === wi}
+                            onClick={() => handleWorkoutClick(i, wi, w)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}

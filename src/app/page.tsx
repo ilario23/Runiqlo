@@ -422,7 +422,7 @@ function TodayWorkoutStrip() {
       transition={{duration: 0.3}}
     >
       <Link
-        href='/coach'
+        href='/plan'
         className='surface-card flex items-center gap-4 px-5 py-3.5 group transition-colors hover:border-[var(--color-accent)]/30'
         style={{borderLeftWidth: '2px', borderLeftColor: 'var(--color-accent)'}}
       >

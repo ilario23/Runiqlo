@@ -416,7 +416,7 @@ export default function PlanAdherencePanel({activityId, actualDistanceKm, actual
       </div>
 
       <div className="mt-2.5">
-        <Link href="/coach" className="text-[11px] text-white/30 hover:text-white/60 transition-colors">
+        <Link href={`/plan?week=${weekStart}`} className="text-[11px] text-white/30 hover:text-white/60 transition-colors">
           Week of {fmtWeekStart} →
         </Link>
       </div>

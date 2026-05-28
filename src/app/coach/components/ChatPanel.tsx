@@ -11,7 +11,7 @@ import {COMMANDS, findCommand} from '../lib/chatCommands';
 import {MENTION_DEFS, resolveAtMentions} from '../lib/atMentions';
 import {SessionHistoryDrawer} from './SessionHistoryDrawer';
 import {parseStructuredSteps} from '@/lib/workoutUtils';
-import {StructuredWorkoutDisplay} from './StructuredWorkoutDisplay';
+import {StructuredWorkoutDisplay} from '@/components/StructuredWorkoutDisplay';
 
 const TOOL_LABELS: Record<string, string> = {
   getFitnessSummary: 'Checking fitness metrics',
@@ -223,11 +223,12 @@ interface ChatInnerProps {
   /** Captured at mount and never changes within a single ChatInner lifetime. */
   sessionId: string | null | undefined;
   initialMessage?: string;
+  prefillInput?: string;
   onPlanSaved?: () => void;
   onSessionResolved?: (id: string | null) => void;
 }
 
-function ChatInner({athleteId, sessionId: sessionIdProp, initialMessage, onPlanSaved, onSessionResolved}: ChatInnerProps) {
+function ChatInner({athleteId, sessionId: sessionIdProp, initialMessage, prefillInput, onPlanSaved, onSessionResolved}: ChatInnerProps) {
   const [sessionId] = useState(sessionIdProp);
   const [historyMessages, setHistoryMessages] = useState<UIMessage[] | undefined>(undefined);
 
@@ -261,6 +262,7 @@ function ChatInner({athleteId, sessionId: sessionIdProp, initialMessage, onPlanS
       sessionId={sessionId}
       historyMessages={historyMessages}
       initialMessage={initialMessage}
+      prefillInput={prefillInput}
       onPlanSaved={onPlanSaved}
     />
   );
@@ -273,10 +275,11 @@ interface ChatContentProps {
   sessionId: string | null | undefined;
   historyMessages: UIMessage[];
   initialMessage?: string;
+  prefillInput?: string;
   onPlanSaved?: () => void;
 }
 
-function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onPlanSaved}: ChatContentProps) {
+function ChatContent({athleteId, sessionId, historyMessages, initialMessage, prefillInput, onPlanSaved}: ChatContentProps) {
   const {settings} = useSettings();
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -319,6 +322,14 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
       sendMessage({text: initialMessage});
     }
   }, [initialMessage, historyMessages.length, messages.length, sendMessage]);
+
+  const prefillSet = useRef(false);
+  useEffect(() => {
+    if (prefillInput && !prefillSet.current) {
+      prefillSet.current = true;
+      setInput(prefillInput);
+    }
+  }, [prefillInput]);
 
   const handleInputChange = useCallback((value: string) => {
     setInput(value);
@@ -588,10 +599,11 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, onP
 interface ChatPanelProps {
   athleteId: number;
   initialMessage?: string;
+  prefillInput?: string;
   onPlanSaved?: () => void;
 }
 
-export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelProps) {
+export function ChatPanel({athleteId, initialMessage, prefillInput, onPlanSaved}: ChatPanelProps) {
   // undefined = auto-resolve latest; string | null = specific session
   const [resolvedSessionId, setResolvedSessionId] = useState<string | null | undefined>(undefined);
   // desiredSessionId drives which session ChatInner loads (same type)
@@ -673,6 +685,7 @@ export function ChatPanel({athleteId, initialMessage, onPlanSaved}: ChatPanelPro
         athleteId={athleteId}
         sessionId={desiredSessionId}
         initialMessage={initialMessage}
+        prefillInput={prefillInput}
         onPlanSaved={onPlanSaved}
         onSessionResolved={(id) => {
           // Only update if we haven't switched to a specific session yet
