@@ -18,6 +18,7 @@ import type {StravaDetailedActivity, StravaAthleteStats, StravaAthleteZones, Str
 import type {ActivitySummary, StreamPoint, UserSettings} from './activityModel';
 import {computeZoneBreakdown, hashZoneSettings} from './zoneCompute';
 import type {ZoneBreakdown} from './zoneCompute';
+import {computeDecoupling} from './aerobicDecoupling';
 import {calcFitnessData, appendFitnessData, hashTrainingSettings} from '@/utils/trainingLoad';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
 import {
@@ -45,6 +46,8 @@ import {
   dbSyncAthleteProfile,
   dbGetActivityWeather,
   dbSyncActivityWeather,
+  dbSyncSegmentEfforts,
+  dbGetSegmentEffortsByAthlete,
 } from './dbSync';
 import type {CachedActivity} from './cacheTypes';
 import type {ActivityWeatherData} from './weather';
@@ -190,7 +193,35 @@ export const cachedGetActivityDetail = async (
   if (cached && isFresh(cached.fetchedAt, STALE.activityDetail)) return cached.data;
 
   const detail = await fetchActivityDetail(activityId);
-  await dbSyncActivityDetail({id: activityId, athleteId, data: detail, fetchedAt: Date.now()});
+  const fetchedAt = Date.now();
+  await dbSyncActivityDetail({id: activityId, athleteId, data: detail, fetchedAt});
+  if (detail.segment_efforts?.length) {
+    void dbSyncSegmentEfforts(
+      detail.segment_efforts.map((e) => ({
+        id: e.id,
+        athleteId,
+        activityId,
+        segmentId: e.segment.id,
+        segmentName: e.segment.name,
+        elapsedTime: e.elapsed_time,
+        movingTime: e.moving_time,
+        startDateLocal: e.start_date_local,
+        distance: e.distance,
+        averageHeartrate: e.average_heartrate,
+        prRank: e.pr_rank,
+        segmentDistance: e.segment.distance,
+        averageGrade: e.segment.average_grade,
+        maximumGrade: e.segment.maximum_grade,
+        elevationHigh: e.segment.elevation_high,
+        elevationLow: e.segment.elevation_low,
+        city: e.segment.city ?? '',
+        state: e.segment.state ?? '',
+        climbCategory: e.segment.climb_category,
+        starred: e.segment.starred,
+        syncedAt: fetchedAt,
+      })),
+    );
+  }
   return detail;
 };
 
@@ -306,7 +337,8 @@ export const cachedGetZoneBreakdown = async (
 
   const stream = await cachedGetActivityStreams(athleteId, activityId);
   const breakdown = computeZoneBreakdown(stream, zones);
-  await dbSyncZoneBreakdown({activityId, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, computedAt: Date.now()});
+  const decouplingPct = computeDecoupling(stream);
+  await dbSyncZoneBreakdown({activityId, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, decouplingPct, computedAt: Date.now()});
   return breakdown;
 };
 
@@ -352,7 +384,10 @@ const batchGetZoneBreakdownsInternal = async (
 
   for (const id of activityIds) {
     const cached = cachedMap.get(id);
-    if (cached && cached.hrHash === currentHash) {
+    // Treat null decouplingPct as a miss: rows computed before the decoupling feature
+    // need one recompute so the value gets stored. Stream is loaded from DB cache so this
+    // is CPU-only — no Strava API calls.
+    if (cached && cached.hrHash === currentHash && cached.decouplingPct !== null) {
       results.set(id, {zones: cached.zones, hrHash: cached.hrHash});
     } else {
       missingIds.push(id);
@@ -376,7 +411,8 @@ const batchGetZoneBreakdownsInternal = async (
           ? transformStreams(cachedStream.data)
           : await cachedGetActivityStreams(athleteId, id);
         const breakdown = computeZoneBreakdown(stream, zones);
-        dbSyncZoneBreakdown({activityId: id, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, computedAt: Date.now()});
+        const decouplingPct = computeDecoupling(stream);
+        dbSyncZoneBreakdown({activityId: id, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, decouplingPct, computedAt: Date.now()});
         return {id, breakdown};
       }),
     );
@@ -471,64 +507,39 @@ export interface AggregatedSegment {
   lastRunDate: string;
 }
 
-export const cachedGetAllSegments = async (
-  athleteId: number,
-): Promise<{segments: AggregatedSegment[]; activitiesWithDetails: number; totalActivities: number}> => {
-  const allActivities = await dbGetActivities(athleteId);
-  const totalActivities = allActivities?.length ?? 0;
-
-  if (!allActivities || allActivities.length === 0) {
-    return {segments: [], activitiesWithDetails: 0, totalActivities: 0};
-  }
-
-  const ids = allActivities.map((a) => a.id);
-  const details = await dbGetActivityDetailsBulk(athleteId, ids);
-  const activitiesWithDetails = details.length;
-
-  // Fire-and-forget: fetch any missing activity details in the background.
-  // The useAllSegments hook polls every 2 s until activitiesWithDetails === totalActivities.
-  const cachedIds = new Set(details.map((d) => d.id));
-  const uncachedIds = ids.filter((id) => !cachedIds.has(id));
-  fetchMissingActivityDetails(athleteId, uncachedIds);
+export const cachedGetAllSegments = async (athleteId: number): Promise<AggregatedSegment[]> => {
+  const efforts = await dbGetSegmentEffortsByAthlete(athleteId);
+  if (!efforts || efforts.length === 0) return [];
 
   const map = new Map<number, AggregatedSegment>();
-
-  for (const detail of details) {
-    const efforts = detail.data.segment_efforts ?? [];
-    const actDate = detail.data.start_date_local?.slice(0, 10) ?? '';
-    for (const effort of efforts) {
-      const seg = effort.segment;
-      const existing = map.get(seg.id);
-      if (!existing) {
-        map.set(seg.id, {
-          id: seg.id,
-          name: seg.name,
-          distance: seg.distance,
-          average_grade: seg.average_grade,
-          maximum_grade: seg.maximum_grade,
-          elevation_high: seg.elevation_high,
-          elevation_low: seg.elevation_low,
-          city: seg.city,
-          state: seg.state,
-          climb_category: seg.climb_category,
-          starred: seg.starred,
-          effortCount: 1,
-          prTime: effort.elapsed_time,
-          lastRunDate: actDate,
-        });
-      } else {
-        existing.effortCount += 1;
-        if (effort.elapsed_time < existing.prTime) existing.prTime = effort.elapsed_time;
-        if (actDate > existing.lastRunDate) existing.lastRunDate = actDate;
-      }
+  for (const e of efforts) {
+    const existing = map.get(e.segmentId);
+    if (!existing) {
+      map.set(e.segmentId, {
+        id: e.segmentId,
+        name: e.segmentName,
+        distance: e.segmentDistance,
+        average_grade: e.averageGrade,
+        maximum_grade: e.maximumGrade,
+        elevation_high: e.elevationHigh,
+        elevation_low: e.elevationLow,
+        city: e.city,
+        state: e.state,
+        climb_category: e.climbCategory,
+        starred: e.starred,
+        effortCount: 1,
+        prTime: e.elapsedTime,
+        lastRunDate: e.startDateLocal.slice(0, 10),
+      });
+    } else {
+      existing.effortCount += 1;
+      if (e.elapsedTime < existing.prTime) existing.prTime = e.elapsedTime;
+      const d = e.startDateLocal.slice(0, 10);
+      if (d > existing.lastRunDate) existing.lastRunDate = d;
     }
   }
 
-  return {
-    segments: Array.from(map.values()),
-    activitiesWithDetails,
-    totalActivities,
-  };
+  return Array.from(map.values());
 };
 
 // ---- Segment detail (from Strava API) ----

@@ -261,14 +261,14 @@ function SortBtn({
 // ─── Segments tab (lazy — useAllSegments only fires when this mounts) ────────
 
 function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
-  const {data: segmentsData, isLoading} = useAllSegments();
+  const {data: segments, isLoading} = useAllSegments();
   const [segSortKey, setSegSortKey] = useState<SegSortKey>('efforts');
   const [segSortAsc, setSegSortAsc] = useState(false);
   const [starredOnly, setStarredOnly] = useState(false);
 
   const sorted = useMemo(() => {
-    if (!segmentsData?.segments) return [];
-    let list = starredOnly ? segmentsData.segments.filter((s) => s.starred) : segmentsData.segments;
+    if (!segments) return [];
+    let list = starredOnly ? segments.filter((s) => s.starred) : segments;
     list = [...list].sort((a, b) => {
       let va: number, vb: number;
       switch (segSortKey) {
@@ -282,7 +282,7 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
       return segSortAsc ? va - vb : vb - va;
     });
     return list;
-  }, [segmentsData, segSortKey, segSortAsc, starredOnly]);
+  }, [segments, segSortKey, segSortAsc, starredOnly]);
 
   const handleSort = (key: SegSortKey) => {
     if (segSortKey === key) setSegSortAsc((v) => !v);
@@ -293,25 +293,12 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
     <>
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-sm text-white/50">
-          {segmentsData
+          {segments
             ? `${sorted.length} segment${sorted.length !== 1 ? 's' : ''}`
             : 'Loading…'}
         </p>
         <div className="flex items-center gap-3">
-          {segmentsData && segmentsData.activitiesWithDetails < segmentsData.totalActivities && (
-            <div className="flex items-center gap-2">
-              <div className="h-1 w-28 rounded-full bg-white/[0.08] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-accent-blue transition-all duration-500"
-                  style={{width: `${Math.round((segmentsData.activitiesWithDetails / segmentsData.totalActivities) * 100)}%`}}
-                />
-              </div>
-              <span className="text-[11px] text-white/45">
-                {segmentsData.activitiesWithDetails}/{segmentsData.totalActivities}
-              </span>
-            </div>
-          )}
-          {segmentsData && segmentsData.segments.some((s) => s.starred) && (
+          {segments && segments.some((s) => s.starred) && (
             <button
               onClick={() => setStarredOnly((v) => !v)}
               className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
@@ -364,11 +351,7 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
         ) : sorted.length === 0 ? (
           <div className="py-16 text-center">
             <p className="text-sm text-white/25">No segments found</p>
-            <p className="text-xs text-white/20 mt-1">
-              {segmentsData && segmentsData.activitiesWithDetails === 0
-                ? 'Open an activity to load its segment data'
-                : 'No segments in your cached activities'}
-            </p>
+            <p className="text-xs text-white/20 mt-1">Open an activity to load its segment data</p>
           </div>
         ) : (
           <motion.div variants={containerVariant} initial="hidden" animate="show" className="p-2">

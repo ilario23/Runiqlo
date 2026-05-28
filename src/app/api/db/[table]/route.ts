@@ -54,7 +54,9 @@ type TableName =
   | 'dashboard-cache'
   | 'best-efforts-cache'
   | 'user-settings'
-  | 'activity-weather';
+  | 'activity-weather'
+  | 'gear-thresholds'
+  | 'segment-efforts';
 
 const VALID_TABLES = new Set<TableName>([
   'activities',
@@ -68,6 +70,8 @@ const VALID_TABLES = new Set<TableName>([
   'best-efforts-cache',
   'user-settings',
   'activity-weather',
+  'gear-thresholds',
+  'segment-efforts',
 ]);
 
 // ---- GET ----
@@ -224,6 +228,13 @@ export async function GET(
         return NextResponse.json(rows);
       }
 
+      case 'gear-thresholds': {
+        const t = schema.gearThresholds;
+        if (!athleteId) return NextResponse.json({error: 'athleteId required'}, {status: 400});
+        const rows = await db.select().from(t).where(eq(t.athleteId, athleteId));
+        return NextResponse.json(rows);
+      }
+
       case 'dashboard-cache': {
         const t = schema.dashboardCache;
         if (pk) {
@@ -256,6 +267,17 @@ export async function GET(
         if (!pk) return NextResponse.json({error: 'pk required'}, {status: 400});
         const rows = await db.select().from(t).where(eq(t.activityId, Number(pk)));
         return NextResponse.json(rows[0] ?? null);
+      }
+
+      case 'segment-efforts': {
+        const t = schema.segmentEfforts;
+        if (!athleteId) return NextResponse.json({error: 'athleteId required'}, {status: 400});
+        const rows = await db
+          .select()
+          .from(t)
+          .where(eq(t.athleteId, athleteId))
+          .orderBy(desc(t.startDateLocal));
+        return NextResponse.json(rows);
       }
 
       default:
@@ -392,13 +414,13 @@ export async function POST(
       }
 
       case 'zone-breakdowns': {
-        const r = body as {activityId: number; athleteId: number; hrHash: string; zones: unknown; computedAt: number};
+        const r = body as {activityId: number; athleteId: number; hrHash: string; zones: unknown; decouplingPct?: number | null; computedAt: number};
         await db
           .insert(schema.zoneBreakdowns)
-          .values({activityId: r.activityId, athleteId: r.athleteId, hrHash: r.hrHash, zones: r.zones, computedAt: r.computedAt})
+          .values({activityId: r.activityId, athleteId: r.athleteId, hrHash: r.hrHash, zones: r.zones, decouplingPct: r.decouplingPct ?? null, computedAt: r.computedAt})
           .onConflictDoUpdate({
             target: schema.zoneBreakdowns.activityId,
-            set: {hrHash: sql`excluded.settings_hash`, zones: sql`excluded.zones`, computedAt: sql`excluded.computed_at`},
+            set: {hrHash: sql`excluded.settings_hash`, zones: sql`excluded.zones`, decouplingPct: sql`excluded.decoupling_pct`, computedAt: sql`excluded.computed_at`},
           });
         return NextResponse.json({ok: true});
       }
@@ -449,6 +471,54 @@ export async function POST(
             set: {data: sql`excluded.data`, fetchedAt: sql`excluded.fetched_at`},
           });
         return NextResponse.json({ok: true});
+      }
+
+      case 'segment-efforts': {
+        const records = (Array.isArray(body) ? body : [body]) as Array<{
+          id: number; athleteId: number; activityId: number; segmentId: number;
+          segmentName: string; elapsedTime: number; movingTime: number; startDateLocal: string;
+          distance: number; averageHeartrate?: number; prRank: number | null;
+          segmentDistance: number; averageGrade: number; maximumGrade: number;
+          elevationHigh: number; elevationLow: number; city: string; state: string;
+          climbCategory: number; starred: boolean; syncedAt: number;
+        }>;
+        if (records.length === 0) return NextResponse.json({ok: true});
+        await db
+          .insert(schema.segmentEfforts)
+          .values(records.map((r) => ({
+            id: r.id,
+            athleteId: r.athleteId,
+            activityId: r.activityId,
+            segmentId: r.segmentId,
+            segmentName: r.segmentName,
+            elapsedTime: r.elapsedTime,
+            movingTime: r.movingTime,
+            startDateLocal: r.startDateLocal,
+            distance: r.distance,
+            averageHeartrate: r.averageHeartrate ?? null,
+            prRank: r.prRank ?? null,
+            segmentDistance: r.segmentDistance,
+            averageGrade: r.averageGrade,
+            maximumGrade: r.maximumGrade,
+            elevationHigh: r.elevationHigh,
+            elevationLow: r.elevationLow,
+            city: r.city ?? '',
+            state: r.state ?? '',
+            climbCategory: r.climbCategory ?? 0,
+            starred: r.starred ?? false,
+            syncedAt: r.syncedAt,
+          })))
+          .onConflictDoUpdate({
+            target: schema.segmentEfforts.id,
+            set: {
+              elapsedTime: sql`excluded.elapsed_time`,
+              movingTime: sql`excluded.moving_time`,
+              prRank: sql`excluded.pr_rank`,
+              starred: sql`excluded.starred`,
+              syncedAt: sql`excluded.synced_at`,
+            },
+          });
+        return NextResponse.json({ok: true, count: records.length});
       }
 
       default:

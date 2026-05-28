@@ -36,6 +36,20 @@
       "when": 1779828354210,
       "tag": "0004_familiar_jane_foster",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1780009108454,
+      "tag": "0005_cold_echo",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780009917240,
+      "tag": "0006_early_starfox",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,23 @@
+CREATE TABLE "segment_efforts" (
+	"id" bigint PRIMARY KEY NOT NULL,
+	"athlete_id" bigint NOT NULL,
+	"activity_id" bigint NOT NULL,
+	"segment_id" bigint NOT NULL,
+	"segment_name" text NOT NULL,
+	"elapsed_time" integer NOT NULL,
+	"moving_time" integer NOT NULL,
+	"start_date_local" text NOT NULL,
+	"distance" real NOT NULL,
+	"average_heartrate" real,
+	"pr_rank" integer,
+	"segment_distance" real NOT NULL,
+	"average_grade" real NOT NULL,
+	"maximum_grade" real NOT NULL,
+	"elevation_high" real NOT NULL,
+	"elevation_low" real NOT NULL,
+	"city" text DEFAULT '' NOT NULL,
+	"state" text DEFAULT '' NOT NULL,
+	"climb_category" integer DEFAULT 0 NOT NULL,
+	"starred" boolean DEFAULT false NOT NULL,
+	"synced_at" bigint NOT NULL
+);

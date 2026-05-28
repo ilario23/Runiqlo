@@ -49,6 +49,7 @@ export const zoneBreakdowns = pgTable('zone_breakdowns', {
   athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
   hrHash: text('settings_hash').notNull(),
   zones: jsonb('zones').notNull(),
+  decouplingPct: real('decoupling_pct'),
   computedAt: bigint('computed_at', {mode: 'number'}).notNull(),
 });
 
@@ -147,9 +148,40 @@ export const athleteNotes = pgTable('athlete_notes', {
   lastUpdatedAt: bigint('last_updated_at', {mode: 'number'}).notNull(),
 });
 
+export const gearThresholds = pgTable('gear_thresholds', {
+  gearId: text('gear_id').primaryKey(), // Strava gear ID e.g. "g123456"
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  thresholdMeters: integer('threshold_meters').notNull(),
+  updatedAt: bigint('updated_at', {mode: 'number'}).notNull(),
+});
+
 export const activityWeather = pgTable('activity_weather', {
   activityId: bigint('activity_id', {mode: 'number'}).primaryKey(),
   athleteId: bigint('athlete_id', {mode: 'number'}).notNull().default(0),
   data: jsonb('data').notNull(), // ActivityWeatherData
   fetchedAt: bigint('fetched_at', {mode: 'number'}).notNull(),
+});
+
+export const segmentEfforts = pgTable('segment_efforts', {
+  id: bigint('id', {mode: 'number'}).primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  activityId: bigint('activity_id', {mode: 'number'}).notNull(),
+  segmentId: bigint('segment_id', {mode: 'number'}).notNull(),
+  segmentName: text('segment_name').notNull(),
+  elapsedTime: integer('elapsed_time').notNull(),
+  movingTime: integer('moving_time').notNull(),
+  startDateLocal: text('start_date_local').notNull(),
+  distance: real('distance').notNull(),
+  averageHeartrate: real('average_heartrate'),
+  prRank: integer('pr_rank'),
+  segmentDistance: real('segment_distance').notNull(),
+  averageGrade: real('average_grade').notNull(),
+  maximumGrade: real('maximum_grade').notNull(),
+  elevationHigh: real('elevation_high').notNull(),
+  elevationLow: real('elevation_low').notNull(),
+  city: text('city').notNull().default(''),
+  state: text('state').notNull().default(''),
+  climbCategory: integer('climb_category').notNull().default(0),
+  starred: boolean('starred').notNull().default(false),
+  syncedAt: bigint('synced_at', {mode: 'number'}).notNull(),
 });

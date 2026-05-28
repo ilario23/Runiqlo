@@ -58,6 +58,7 @@ export interface CachedZoneBreakdown {
   athleteId: number;
   hrHash: string;
   zones: Record<number, {time: number; distance: number}>;
+  decouplingPct: number | null;
   computedAt: number;
 }
 
@@ -71,6 +72,30 @@ export interface CachedActivityWeather {
   athleteId: number;
   data: ActivityWeatherData;
   fetchedAt: number;
+}
+
+export interface CachedSegmentEffort {
+  id: number;
+  athleteId: number;
+  activityId: number;
+  segmentId: number;
+  segmentName: string;
+  elapsedTime: number;
+  movingTime: number;
+  startDateLocal: string;
+  distance: number;
+  averageHeartrate?: number;
+  prRank: number | null;
+  segmentDistance: number;
+  averageGrade: number;
+  maximumGrade: number;
+  elevationHigh: number;
+  elevationLow: number;
+  city: string;
+  state: string;
+  climbCategory: number;
+  starred: boolean;
+  syncedAt: number;
 }
 
 export interface CachedDashboardCache {

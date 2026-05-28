@@ -9,8 +9,12 @@ import {
   AreaChart,
   Area,
   XAxis,
+  YAxis,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
+  ScatterChart,
+  Scatter,
+  ReferenceLine,
 } from 'recharts';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {
@@ -867,6 +871,168 @@ function HRZoneCard({
   );
 }
 
+// ── Decoupling Trend Chart ──
+
+type DecouplingPoint = {
+  activityId: number;
+  date: string;
+  name: string;
+  durationMins: number;
+  decouplingPct: number;
+};
+
+function DecouplingTooltip({active, payload}: {active?: boolean; payload?: Array<{payload?: DecouplingPoint}>}) {
+  if (!active || !payload?.length) return null;
+  const pt = payload[0]?.payload;
+  if (!pt) return null;
+  const color = pt.decouplingPct < 5 ? '#4ade80' : pt.decouplingPct < 8 ? '#f59e0b' : '#ef4444';
+  return (
+    <div className='surface-card px-3 py-2 text-xs space-y-0.5 min-w-[160px]'>
+      <p style={{color: 'var(--color-text-3)'}}>{new Date(pt.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</p>
+      <p className='font-medium truncate' style={{color: 'var(--color-text-1)'}}>{pt.name}</p>
+      <p className='font-mono' style={{color}}>{pt.decouplingPct > 0 ? '+' : ''}{pt.decouplingPct}% decoupling</p>
+      <p style={{color: 'var(--color-text-3)'}}>{pt.durationMins} min</p>
+    </div>
+  );
+}
+
+function DecouplingTrendCard({breakdownsReady}: {breakdownsReady: boolean}) {
+  const {athlete} = useStravaAuth();
+  const defaultTo = new Date().toISOString().slice(0, 10);
+  const defaultFrom = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 84);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const [from, setFrom] = useState(defaultFrom);
+  const [to, setTo] = useState(defaultTo);
+  const [points, setPoints] = useState<DecouplingPoint[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!athlete?.id) return;
+    setLoading(true);
+    fetch(`/api/decoupling?athleteId=${athlete.id}&from=${from}&to=${to}`)
+      .then((r) => r.json())
+      .then((data: DecouplingPoint[]) => setPoints(data))
+      .catch(() => setPoints([]))
+      .finally(() => setLoading(false));
+  // breakdownsReady is a dep so we refetch once zone breakdowns finish writing to DB
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [athlete?.id, from, to, breakdownsReady]);
+
+  const chartData = (points ?? []).map((p) => ({
+    ...p,
+    dateMs: new Date(p.date).getTime(),
+    dotColor: p.decouplingPct < 5 ? '#4ade80' : p.decouplingPct < 8 ? '#f59e0b' : '#ef4444',
+  }));
+
+  return (
+    <div className='surface-card p-5'>
+      <div className='flex items-start justify-between mb-4 gap-3 flex-wrap'>
+        <div>
+          <h2 className='text-sm font-semibold' style={{color: 'var(--color-text-1)'}}>Aerobic Decoupling</h2>
+          <p className='text-xs mt-0.5' style={{color: 'var(--color-text-2)'}}>Long runs ≥ 45 min · Pa:Hr ratio</p>
+        </div>
+        <div className='flex items-center gap-2 text-xs flex-wrap'>
+          <div className='flex items-center gap-1.5'>
+            <span className='w-2 h-2 rounded-full' style={{background: '#4ade80'}} />
+            <span style={{color: 'var(--color-text-2)'}}>{'<5% coupled'}</span>
+          </div>
+          <div className='flex items-center gap-1.5'>
+            <span className='w-2 h-2 rounded-full' style={{background: '#f59e0b'}} />
+            <span style={{color: 'var(--color-text-2)'}}>{'5–8%'}</span>
+          </div>
+          <div className='flex items-center gap-1.5'>
+            <span className='w-2 h-2 rounded-full' style={{background: '#ef4444'}} />
+            <span style={{color: 'var(--color-text-2)'}}>{'>8% decoupled'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Date range pickers */}
+      <div className='flex items-center gap-3 mb-4 text-xs'>
+        <label className='flex items-center gap-1.5' style={{color: 'var(--color-text-2)'}}>
+          From
+          <input
+            type='date'
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className='px-2 py-1 rounded-lg text-xs font-mono'
+            style={{
+              background: 'var(--color-surface-1)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-1)',
+            }}
+          />
+        </label>
+        <label className='flex items-center gap-1.5' style={{color: 'var(--color-text-2)'}}>
+          To
+          <input
+            type='date'
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className='px-2 py-1 rounded-lg text-xs font-mono'
+            style={{
+              background: 'var(--color-surface-1)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-1)',
+            }}
+          />
+        </label>
+      </div>
+
+      {loading ? (
+        <Skeleton className='h-[180px] w-full' />
+      ) : !points || points.length === 0 ? (
+        <div className='h-[180px] flex items-center justify-center'>
+          <p className='text-xs' style={{color: 'var(--color-text-3)'}}>
+            {!points ? 'Loading…' : 'No long runs with HR data in this range'}
+          </p>
+        </div>
+      ) : (
+        <div className='h-[180px]'>
+          <ResponsiveContainer width='100%' height='100%'>
+            <ScatterChart margin={{top: 4, right: 8, left: -20, bottom: 0}}>
+              <XAxis
+                dataKey='dateMs'
+                type='number'
+                domain={['dataMin', 'dataMax']}
+                scale='time'
+                tickFormatter={(v) => new Date(v as number).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+                tick={{fill: 'var(--color-text-3)', fontSize: 9}}
+                axisLine={false}
+                tickLine={false}
+                tickCount={5}
+              />
+              <YAxis
+                dataKey='decouplingPct'
+                type='number'
+                tick={{fill: 'var(--color-text-3)', fontSize: 9}}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v) => `${v as number}%`}
+                domain={['auto', 'auto']}
+              />
+              <ReferenceLine y={5} stroke='rgba(255,255,255,0.08)' strokeDasharray='3 3' />
+              <ReferenceLine y={8} stroke='rgba(255,255,255,0.06)' strokeDasharray='3 3' />
+              <RechartsTooltip content={<DecouplingTooltip />} cursor={{strokeDasharray: '3 3', stroke: 'var(--color-border)'}} />
+              <Scatter
+                data={chartData}
+                shape={(props: {cx?: number; cy?: number; payload?: {dotColor: string}}) => {
+                  const {cx = 0, cy = 0, payload} = props;
+                  return <circle cx={cx} cy={cy} r={5} fill={payload?.dotColor ?? '#4ade80'} opacity={0.85} />;
+                }}
+              />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Recent Activities (index rail) ──
 
 function ActivityRow({activity}: {activity: ActivitySummary}) {
@@ -979,7 +1145,7 @@ export default function DashboardPage() {
 
   const {data: activities, isLoading: activitiesLoading} = useDashboardActivities();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
-  const {data: breakdownMap, isLoading: zonesLoading, progress} = usePerActivityZoneBreakdowns(4);
+  const {data: breakdownMap, isLoading: zonesLoading, progress} = usePerActivityZoneBreakdowns(12);
 
   const currentTSB = fitnessData?.[fitnessData.length - 1]?.tsb;
   const currentCTL = fitnessData?.[fitnessData.length - 1]?.ctl;
@@ -1047,7 +1213,12 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* [6] Activity Feed */}
+          {/* [6] Aerobic Decoupling Trend */}
+          <div className='col-span-12'>
+            <DecouplingTrendCard breakdownsReady={!zonesLoading && !!breakdownMap} />
+          </div>
+
+          {/* [7] Activity Feed */}
           <div className='col-span-12'>
             <RecentActivitiesCard activities={activities} isLoading={activitiesLoading} />
           </div>

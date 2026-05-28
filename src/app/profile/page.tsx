@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useState, useEffect} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {motion, type Variants} from 'framer-motion';
@@ -8,7 +8,7 @@ import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useAthleteStats, useAthleteGear} from '@/hooks/useStrava';
 import {COLORS} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
-import type {StravaActivityTotal, StravaAthleteStats} from '@/lib/strava';
+import type {StravaActivityTotal, StravaAthleteStats, StravaSummaryGear} from '@/lib/strava';
 import AppHeader from '@/components/AppHeader';
 import AthleteNotesCard from '@/components/AthleteNotesCard';
 
@@ -101,46 +101,182 @@ function SportStats({
   );
 }
 
+// ─── Gear thresholds hook ─────────────────────────────────────────────────────
+
+function useGearThresholds(athleteId: number | undefined) {
+  const [thresholds, setThresholds] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    if (!athleteId) return;
+    fetch(`/api/db/gear-thresholds?athleteId=${athleteId}`)
+      .then((r) => r.ok ? r.json() : [])
+      .then((rows: Array<{gearId: string; thresholdMeters: number}>) => {
+        const map: Record<string, number> = {};
+        for (const row of rows) map[row.gearId] = row.thresholdMeters;
+        setThresholds(map);
+      })
+      .catch(() => {});
+  }, [athleteId]);
+
+  const saveThreshold = async (gearId: string, thresholdKm: number | null) => {
+    if (!athleteId) return;
+    const res = await fetch(`/api/gear/${gearId}`, {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({athleteId, thresholdKm}),
+    });
+    if (res.ok) {
+      setThresholds((prev) => {
+        if (thresholdKm === null) {
+          const next = {...prev};
+          delete next[gearId];
+          return next;
+        }
+        return {...prev, [gearId]: Math.round(thresholdKm * 1000)};
+      });
+    }
+  };
+
+  return {thresholds, saveThreshold};
+}
+
 // ─── Gear item ────────────────────────────────────────────────────────────────
 
 function GearItem({
-  name,
-  distanceM,
+  gear,
   isPrimary,
   isRetired,
   icon,
+  thresholdMeters,
+  onSaveThreshold,
+  avgWeeklyMeters,
 }: {
-  name: string;
-  distanceM: number;
+  gear: StravaSummaryGear;
   isPrimary: boolean;
   isRetired: boolean;
   icon: React.ReactNode;
+  thresholdMeters: number | undefined;
+  onSaveThreshold: (thresholdKm: number | null) => void;
+  avgWeeklyMeters: number;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [inputVal, setInputVal] = useState('');
+
+  const pct = thresholdMeters && thresholdMeters > 0
+    ? Math.round((gear.distance / thresholdMeters) * 100)
+    : null;
+
+  const barColor = pct == null
+    ? 'var(--color-accent)'
+    : pct >= 100 ? '#ef4444'
+    : pct >= 80 ? '#f59e0b'
+    : '#4ade80';
+
+  const estimatedRetirement = (() => {
+    if (!thresholdMeters || avgWeeklyMeters <= 0) return null;
+    const remaining = thresholdMeters - gear.distance;
+    if (remaining <= 0) return 'Overdue';
+    const weeksLeft = remaining / avgWeeklyMeters;
+    const d = new Date();
+    d.setDate(d.getDate() + Math.round(weeksLeft * 7));
+    return d.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+  })();
+
+  const handleSave = () => {
+    const km = parseFloat(inputVal);
+    if (!isNaN(km) && km > 0) {
+      onSaveThreshold(km);
+    }
+    setEditing(false);
+  };
+
   return (
-    <div className={`flex items-center gap-3 py-2.5 px-3 rounded-xl transition-colors ${
-      isRetired ? 'opacity-35' : 'hover:bg-[var(--color-surface-1)]'
-    }`}>
-      <div className="w-9 h-9 rounded-xl bg-[var(--color-surface-1)] flex items-center justify-center flex-shrink-0 text-white/40">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-white/80 truncate">{name}</p>
-          {isPrimary && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-accent-dim)] text-[var(--color-accent)] font-medium flex-shrink-0">
-              Primary
-            </span>
-          )}
-          {isRetired && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-surface-1)] text-white/25 flex-shrink-0">
-              Retired
-            </span>
-          )}
+    <div className={`py-3 px-3 rounded-xl transition-colors ${isRetired ? 'opacity-35' : ''}`}>
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-[var(--color-surface-1)] flex items-center justify-center flex-shrink-0 text-white/40">
+          {icon}
         </div>
-        <p className="text-[11px] text-white/35 mt-0.5 font-mono tabular-nums">
-          {fmtKm(distanceM)} km
-        </p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-medium text-white/80 truncate">{gear.name}</p>
+            {isPrimary && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-accent-dim)] text-[var(--color-accent)] font-medium flex-shrink-0">
+                Primary
+              </span>
+            )}
+            {isRetired && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-surface-1)] text-white/25 flex-shrink-0">
+                Retired
+              </span>
+            )}
+            {pct !== null && pct >= 80 && (
+              <span
+                className="text-[10px] px-1.5 py-0.5 rounded-md font-medium flex-shrink-0"
+                style={{background: `${barColor}20`, color: barColor}}
+              >
+                {pct >= 100 ? 'Replace' : 'Nearing limit'}
+              </span>
+            )}
+          </div>
+          <p className="text-[11px] text-white/35 mt-0.5 font-mono tabular-nums">
+            {fmtKm(gear.distance)} km
+            {thresholdMeters ? ` / ${fmtKm(thresholdMeters)} km limit` : ''}
+          </p>
+        </div>
+        {/* Threshold edit button */}
+        {!isRetired && (
+          <button
+            onClick={() => { setEditing(true); setInputVal(thresholdMeters ? String(Math.round(thresholdMeters / 1000)) : ''); }}
+            className="text-[10px] text-white/25 hover:text-white/55 transition-colors flex-shrink-0 cursor-pointer"
+          >
+            {thresholdMeters ? 'Edit limit' : 'Set limit'}
+          </button>
+        )}
       </div>
+
+      {/* Inline threshold editor */}
+      {editing && (
+        <div className="flex items-center gap-2 mt-2 ml-12">
+          <input
+            type="number"
+            value={inputVal}
+            onChange={(e) => setInputVal(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setEditing(false); }}
+            placeholder="km limit (e.g. 800)"
+            autoFocus
+            className="flex-1 px-2.5 py-1.5 rounded-lg text-xs font-mono"
+            style={{
+              background: 'var(--color-surface-1)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text-1)',
+            }}
+          />
+          <button onClick={handleSave} className="text-xs px-2.5 py-1.5 rounded-lg font-medium cursor-pointer" style={{background: 'var(--color-accent)', color: '#fff'}}>
+            Save
+          </button>
+          <button onClick={() => setEditing(false)} className="text-xs text-white/35 hover:text-white/60 cursor-pointer transition-colors">
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {/* Progress bar */}
+      {pct !== null && !isRetired && (
+        <div className="mt-2 ml-12">
+          <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-500"
+              style={{width: `${Math.min(pct, 100)}%`, background: barColor}}
+            />
+          </div>
+          <div className="flex items-center justify-between mt-1">
+            <span className="text-[10px] font-mono tabular-nums" style={{color: barColor}}>{pct}% used</span>
+            {estimatedRetirement && (
+              <span className="text-[10px] text-white/25">Est. retire {estimatedRetirement}</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -164,7 +300,10 @@ export default function ProfilePage() {
   const {isAuthenticated, isLoading: authLoading, athlete} = useStravaAuth();
   const {data: stats, isLoading: statsLoading} = useAthleteStats();
   const {data: gear, isLoading: gearLoading} = useAthleteGear();
+  const {thresholds, saveThreshold} = useGearThresholds(athlete?.id);
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('ytd');
+
+  const avgWeeklyMeters = (stats?.recent_run_totals?.distance ?? 0) / 4;
 
   if (authLoading) {
     return (
@@ -346,11 +485,13 @@ export default function ProfilePage() {
                       {[...gear.bikes].sort((a, b) => b.distance - a.distance).map(bike => (
                         <GearItem
                           key={bike.id}
-                          name={bike.name}
-                          distanceM={bike.distance}
+                          gear={bike}
                           isPrimary={bike.primary}
                           isRetired={retiredIds.has(bike.id)}
                           icon={<BikeIcon />}
+                          thresholdMeters={thresholds[bike.id]}
+                          onSaveThreshold={(km) => saveThreshold(bike.id, km)}
+                          avgWeeklyMeters={avgWeeklyMeters}
                         />
                       ))}
                     </div>
@@ -361,11 +502,13 @@ export default function ProfilePage() {
                       {[...gear.shoes].sort((a, b) => b.distance - a.distance).map(shoe => (
                         <GearItem
                           key={shoe.id}
-                          name={shoe.name}
-                          distanceM={shoe.distance}
+                          gear={shoe}
                           isPrimary={shoe.primary}
                           isRetired={retiredIds.has(shoe.id)}
                           icon={<ShoeIcon />}
+                          thresholdMeters={thresholds[shoe.id]}
+                          onSaveThreshold={(km) => saveThreshold(shoe.id, km)}
+                          avgWeeklyMeters={avgWeeklyMeters}
                         />
                       ))}
                     </div>

@@ -12,6 +12,7 @@ import type {
   CachedZoneBreakdown,
   CachedDashboardCache,
   CachedActivityWeather,
+  CachedSegmentEffort,
 } from './cacheTypes';
 import type {ActivityWeatherData} from './weather';
 import {dbFetch} from './dbClient';
@@ -203,6 +204,14 @@ export const dbSyncActivityWeather = (
   data: ActivityWeatherData,
 ): Promise<void> =>
   postToDb('activity-weather', {activityId, athleteId, data, fetchedAt: Date.now()});
+
+// ---- Segment Efforts ----
+
+export const dbSyncSegmentEfforts = (records: CachedSegmentEffort[]): Promise<void> =>
+  records.length > 0 ? postToDb('segment-efforts', records) : Promise.resolve();
+
+export const dbGetSegmentEffortsByAthlete = (athleteId: number): Promise<CachedSegmentEffort[] | null> =>
+  getFromDb<CachedSegmentEffort[]>(`segment-efforts?athleteId=${athleteId}`);
 
 // ---- Dashboard Cache ----
 

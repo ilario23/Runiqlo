@@ -2,7 +2,7 @@ import {tool} from 'ai';
 import {z} from 'zod';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
-import {eq, and, desc, gte, sql} from 'drizzle-orm';
+import {eq, and, desc, gte, isNotNull, sql} from 'drizzle-orm';
 import {transformActivity} from './strava';
 import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from './weather';
 import {invalidateCoachPromptCache} from './coachContext';
@@ -900,6 +900,148 @@ export function getCoachTools(athleteId: number) {
         await db.update(schema.weeklyPlan).set({days}).where(eq(schema.weeklyPlan.id, rows[0].id));
 
         return {success: true, message: `Linked Strava activity ${stravaActivityId} to ${workouts[workoutIndex].type} on ${date}.`};
+      },
+    }),
+
+    getDecouplingTrend: tool({
+      description:
+        "Get aerobic decoupling data for recent long runs (≥45 min). Decoupling measures HR drift vs pace — lower is better (<5% = well coupled, 5–8% = acceptable, >8% = decoupled). Use to assess aerobic base quality and easy-run pacing.",
+      inputSchema: z.object({
+        limit: z.number().default(10).describe('Number of recent long runs to return (default 10)'),
+      }),
+      execute: async ({limit}) => {
+        const MIN_DURATION_SECS = 45 * 60;
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 90);
+        const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+        const zbRows = await db
+          .select({activityId: schema.zoneBreakdowns.activityId, decouplingPct: schema.zoneBreakdowns.decouplingPct})
+          .from(schema.zoneBreakdowns)
+          .where(
+            and(
+              eq(schema.zoneBreakdowns.athleteId, athleteId),
+              isNotNull(schema.zoneBreakdowns.decouplingPct),
+            ),
+          );
+
+        if (zbRows.length === 0) return {runs: [], message: 'No decoupling data yet — data populates as activities are viewed.'};
+
+        const actIds = zbRows.map((r) => r.activityId);
+        const decoupMap = new Map(zbRows.map((r) => [r.activityId, r.decouplingPct as number]));
+
+        const actRows = await db
+          .select({id: schema.activities.id, date: schema.activities.date, data: schema.activities.data})
+          .from(schema.activities)
+          .where(
+            and(
+              eq(schema.activities.athleteId, athleteId),
+              gte(schema.activities.date, cutoffStr),
+              sql`${schema.activities.id} = ANY(ARRAY[${sql.raw(actIds.join(','))}]::bigint[])`,
+            ),
+          )
+          .orderBy(desc(schema.activities.date))
+          .limit(limit * 3);
+
+        const runs = actRows
+          .filter((r) => {
+            const d = r.data as {sport_type?: string; type?: string; moving_time?: number};
+            const sport = d.sport_type ?? d.type ?? '';
+            return sport.toLowerCase().includes('run') && (d.moving_time ?? 0) >= MIN_DURATION_SECS;
+          })
+          .slice(0, limit)
+          .map((r) => {
+            const d = r.data as {name?: string; moving_time?: number};
+            const pct = decoupMap.get(Number(r.id)) ?? 0;
+            return {
+              activityId: Number(r.id),
+              name: d.name ?? 'Run',
+              date: r.date,
+              durationMins: Math.round((d.moving_time ?? 0) / 60),
+              decouplingPct: pct,
+              assessment: pct < 5 ? 'well coupled' : pct < 8 ? 'mild decoupling' : 'high decoupling',
+            };
+          });
+
+        const avg = runs.length > 0
+          ? Number((runs.reduce((s, r) => s + r.decouplingPct, 0) / runs.length).toFixed(1))
+          : null;
+
+        return {
+          runs,
+          avgDecouplingPct: avg,
+          summary: avg == null ? 'No data' : avg < 5 ? 'Strong aerobic base — runs well coupled' : avg < 8 ? 'Moderate aerobic efficiency' : 'Elevated decoupling — consider more easy aerobic volume',
+        };
+      },
+    }),
+
+    getGearStatus: tool({
+      description:
+        "Get the athlete's gear (shoes and bikes) with mileage, retirement thresholds, and wear percentage. Use when planning long runs or discussing injury prevention.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const gearRows = await db
+          .select()
+          .from(schema.athleteGear)
+          .where(eq(schema.athleteGear.athleteId, athleteId))
+          .limit(1);
+
+        if (!gearRows[0]) return {gear: [], message: 'No gear synced. Gear syncs from Strava on next login.'};
+
+        const thresholdRows = await db
+          .select()
+          .from(schema.gearThresholds)
+          .where(eq(schema.gearThresholds.athleteId, athleteId));
+        const threshMap = new Map(thresholdRows.map((t) => [t.gearId, t.thresholdMeters]));
+
+        const statsRows = await db
+          .select()
+          .from(schema.athleteStats)
+          .where(eq(schema.athleteStats.athleteId, athleteId))
+          .limit(1);
+        const recentRunM = (statsRows[0]?.data as {recent_run_totals?: {distance?: number}} | undefined)?.recent_run_totals?.distance ?? 0;
+        const avgWeeklyMeters = recentRunM / 4;
+
+        const allGear = [
+          ...(gearRows[0].bikes as Array<{id: string; name: string; distance: number; primary: boolean}>).map((g) => ({...g, type: 'bike' as const})),
+          ...(gearRows[0].shoes as Array<{id: string; name: string; distance: number; primary: boolean}>).map((g) => ({...g, type: 'shoe' as const})),
+        ];
+
+        const retiredIds = new Set(gearRows[0].retiredGearIds as string[]);
+
+        const gear = allGear
+          .filter((g) => !retiredIds.has(g.id))
+          .map((g) => {
+            const threshold = threshMap.get(g.id) ?? null;
+            const distanceKm = Number((g.distance / 1000).toFixed(0));
+            const thresholdKm = threshold ? Number((threshold / 1000).toFixed(0)) : null;
+            const pctUsed = threshold && threshold > 0 ? Number(((g.distance / threshold) * 100).toFixed(0)) : null;
+            let estimatedRetirementDate: string | null = null;
+            if (threshold && avgWeeklyMeters > 0) {
+              const remainingMeters = threshold - g.distance;
+              if (remainingMeters > 0) {
+                const weeksLeft = remainingMeters / avgWeeklyMeters;
+                const retireDate = new Date();
+                retireDate.setDate(retireDate.getDate() + Math.round(weeksLeft * 7));
+                estimatedRetirementDate = retireDate.toISOString().slice(0, 10);
+              } else {
+                estimatedRetirementDate = 'overdue';
+              }
+            }
+            return {
+              gearId: g.id,
+              name: g.name,
+              type: g.type,
+              primary: g.primary,
+              distanceKm,
+              thresholdKm,
+              pctUsed,
+              estimatedRetirementDate,
+              status: pctUsed == null ? 'no threshold set' : pctUsed >= 100 ? 'overdue for retirement' : pctUsed >= 80 ? 'nearing retirement' : 'ok',
+            };
+          });
+
+        return {gear};
       },
     }),
 

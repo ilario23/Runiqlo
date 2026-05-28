@@ -21,6 +21,7 @@ import {
   useActivityStreams,
   useActivityZoneBreakdown,
   useActivityWeather,
+  useActivityDecoupling,
 } from '@/hooks/useStrava';
 import {windDirectionLabel} from '@/lib/weather';
 import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, getZoneForHr, SPORT_COLORS, COLORS} from '@/lib/activityModel';
@@ -336,6 +337,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   const {data: streams, isLoading: streamsLoading} = useActivityStreams(id);
   const {data: zoneBreakdown} = useActivityZoneBreakdown(id);
   const {data: weather, isLoading: weatherLoading} = useActivityWeather(id);
+  const {data: decouplingPct} = useActivityDecoupling(id);
 
   // Hover index into chartData → drives the map dot
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -648,6 +650,43 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                         <p className="text-sm font-semibold text-white/85 mt-0.5 tabular-nums">{value}</p>
                       </div>
                     ))}
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Aerobic Decoupling */}
+              <motion.div variants={cardVariant} className="surface-card p-5">
+                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Aerobic Decoupling</h2>
+                {streamsLoading ? (
+                  <div className="h-10 flex items-center">
+                    <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/50 animate-spin" />
+                  </div>
+                ) : decouplingPct === null || decouplingPct === undefined ? (
+                  <p className="text-sm text-white/25">n/a — run too short or no HR data</p>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="text-2xl font-bold font-mono tabular-nums"
+                      style={{
+                        color: decouplingPct < 5
+                          ? 'var(--accent-green, #4ade80)'
+                          : decouplingPct < 8
+                          ? '#f59e0b'
+                          : '#ef4444',
+                      }}
+                    >
+                      {decouplingPct > 0 ? '+' : ''}{decouplingPct}%
+                    </span>
+                    <div>
+                      <p className="text-xs text-white/50">
+                        {decouplingPct < 5
+                          ? 'Well coupled — strong aerobic base'
+                          : decouplingPct < 8
+                          ? 'Mild decoupling — acceptable'
+                          : 'High decoupling — HR drifted vs pace'}
+                      </p>
+                      <p className="text-[10px] text-white/25 mt-0.5">Pa:Hr ratio, first vs second half</p>
+                    </div>
                   </div>
                 )}
               </motion.div>

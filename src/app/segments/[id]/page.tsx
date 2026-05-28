@@ -173,7 +173,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
   const {data: efforts = [], isLoading: effortsLoading} = useSegmentEfforts(isNaN(segmentId) ? undefined : segmentId);
 
   const aggregated = useMemo(
-    () => allSegmentsData?.segments.find((s) => s.id === segmentId) ?? null,
+    () => allSegmentsData?.find((s) => s.id === segmentId) ?? null,
     [allSegmentsData, segmentId],
   );
 

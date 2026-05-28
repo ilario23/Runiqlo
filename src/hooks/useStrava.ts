@@ -37,6 +37,7 @@ import type {
 } from '@/lib/strava';
 import {fetchStarredSegments} from '@/lib/strava';
 import {computeZoneBreakdown} from '@/lib/zoneCompute';
+import {computeDecoupling} from '@/lib/aerobicDecoupling';
 
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -295,19 +296,13 @@ export const useStarredSegments = () => {
 
 export const useAllSegments = () => {
   const {isAuthenticated, athlete} = useStravaAuth();
-  return useQuery<{segments: AggregatedSegment[]; activitiesWithDetails: number; totalActivities: number}>({
+  return useQuery<AggregatedSegment[]>({
     queryKey: ['strava', 'segments', 'all', athlete?.id],
     queryFn: () => cachedGetAllSegments(athlete!.id),
     enabled: isAuthenticated && !!athlete?.id,
     staleTime: ONE_HOUR,
     gcTime: ONE_DAY,
     refetchOnWindowFocus: false,
-    // Poll every 2 s while background detail-fetching is in progress.
-    refetchInterval: (query) => {
-      const data = query.state.data;
-      if (!data || data.activitiesWithDetails >= data.totalActivities) return false;
-      return 2000;
-    },
   });
 };
 
@@ -344,6 +339,21 @@ export const useActivityZoneBreakdown = (activityId: string | undefined) => {
     queryFn: () => {
       if (!streams || streams.length === 0) return null;
       return computeZoneBreakdown(streams, settings.zones);
+    },
+    enabled: !!activityId && !!streams && streams.length > 0,
+    staleTime: Infinity,
+    gcTime: ONE_DAY,
+  });
+};
+
+export const useActivityDecoupling = (activityId: string | undefined) => {
+  const {data: streams} = useActivityStreams(activityId);
+
+  return useQuery<number | null>({
+    queryKey: ['strava', 'decoupling', activityId],
+    queryFn: () => {
+      if (!streams || streams.length === 0) return null;
+      return computeDecoupling(streams);
     },
     enabled: !!activityId && !!streams && streams.length > 0,
     staleTime: Infinity,
