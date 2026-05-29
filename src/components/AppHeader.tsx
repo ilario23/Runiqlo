@@ -103,6 +103,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
               <Link
                 key={href}
                 href={href}
+                aria-current={active ? 'page' : undefined}
                 className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold tracking-wide uppercase transition-colors cursor-pointer relative ${
                   active ? 'text-white' : 'hover:text-white/70'
                 }`}
@@ -111,7 +112,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
                   borderBottom: active ? '2px solid #fc4c02' : '2px solid transparent',
                 }}
               >
-                <span style={{color: active ? 'rgba(255,255,255,0.7)' : 'var(--color-text-3)'}}>{icon}</span>
+                <span style={{color: active ? 'rgba(255,255,255,0.7)' : 'var(--color-text-2)'}}>{icon}</span>
                 <span>{label}</span>
               </Link>
             );
@@ -187,7 +188,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
 
       {/* ── Mobile bottom tab bar ─────────────────────────────────────────────── */}
       <nav
-        className='md:hidden fixed bottom-0 left-0 right-0 z-50 grid grid-cols-4 backdrop-blur-xl bg-black/85'
+        className='md:hidden fixed bottom-0 left-0 right-0 z-50 grid grid-cols-5 backdrop-blur-xl bg-black/85'
         style={{
           height: 'calc(56px + env(safe-area-inset-bottom))',
           paddingBottom: 'env(safe-area-inset-bottom)',
@@ -200,6 +201,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
             <Link
               key={href}
               href={href}
+              aria-current={active ? 'page' : undefined}
               className={`relative flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${
                 active ? 'text-white' : 'text-white/40 hover:text-white/65'
               }`}
@@ -212,6 +214,29 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
             </Link>
           );
         })}
+        {/* Profile tab — visible on mobile only */}
+        <Link
+          href='/profile'
+          aria-current={pathname === '/profile' ? 'page' : undefined}
+          className={`relative flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${
+            pathname === '/profile' ? 'text-white' : 'text-white/40 hover:text-white/65'
+          }`}
+        >
+          {athlete?.profile_medium ? (
+            <span className={`w-[15px] h-[15px] rounded-full overflow-hidden flex-shrink-0 ${pathname === '/profile' ? 'ring-1 ring-white/70' : 'ring-1 ring-white/20'}`}>
+              <img src={athlete.profile_medium} alt="" className="w-full h-full object-cover" />
+            </span>
+          ) : (
+            <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+              <path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2' />
+              <circle cx='12' cy='7' r='4' />
+            </svg>
+          )}
+          <span className='text-[10px] font-medium'>Profile</span>
+          {pathname === '/profile' && (
+            <span className='absolute bottom-2.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand' />
+          )}
+        </Link>
       </nav>
     </>
   );

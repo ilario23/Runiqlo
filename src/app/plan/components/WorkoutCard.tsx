@@ -35,8 +35,11 @@ export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClic
 
   return (
     <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
       className={`rounded-xl border px-3 py-2.5 ${cfg.color} ${workout.completed ? 'opacity-80' : ''} transition-all ${onClick ? 'cursor-pointer hover:brightness-110 active:scale-[0.98]' : ''} ${selected ? 'ring-2 ring-white/30' : ''}`}
       onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
     >
       <div className="flex items-start gap-2">
         <cfg.icon className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />

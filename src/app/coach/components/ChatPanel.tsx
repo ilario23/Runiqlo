@@ -331,6 +331,13 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, pre
     }
   }, [prefillInput]);
 
+  // Reset textarea height when input is cleared programmatically (after send)
+  useEffect(() => {
+    if (!input && inputRef.current) {
+      inputRef.current.style.height = 'auto';
+    }
+  }, [input]);
+
   const handleInputChange = useCallback((value: string) => {
     setInput(value);
 
@@ -569,11 +576,15 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, pre
               value={input}
               onChange={e => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
+              onInput={e => {
+                const t = e.currentTarget;
+                t.style.height = 'auto';
+                t.style.height = Math.min(t.scrollHeight, 128) + 'px';
+              }}
               placeholder="Ask your coach… or type / for commands, @ for references"
               rows={1}
               disabled={resolving}
               className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-2xl px-4 py-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-[var(--color-accent)]/50 resize-none disabled:opacity-50 max-h-32 overflow-y-auto"
-              style={{fieldSizing: 'content' as React.CSSProperties['fieldSizing']}}
             />
             <button
               type="submit"
@@ -587,7 +598,7 @@ function ChatContent({athleteId, sessionId, historyMessages, initialMessage, pre
               </svg>
             </button>
           </form>
-          <p className="text-xs text-white/20 mt-1.5 text-center">Enter to send · Shift+Enter for new line · / commands · @ references</p>
+          <p className="hidden md:block text-xs text-white/20 mt-1.5 text-center">Enter to send · Shift+Enter for new line · / commands · @ references</p>
         </div>
       </div>
     </>

@@ -44,7 +44,7 @@ export function GoalBanner({goal, currentPhase}: GoalBannerProps) {
         {GOAL_LABELS[goal.goalType] ?? goal.goalType}
       </span>
       {goal.targetEventName && (
-        <span className="text-xs text-white/35 truncate max-w-[180px] hidden sm:block">
+        <span className="text-xs text-white/35 truncate max-w-[120px]">
           — {goal.targetEventName}
         </span>
       )}
