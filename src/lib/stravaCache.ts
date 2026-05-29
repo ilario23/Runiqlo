@@ -337,7 +337,7 @@ export const cachedGetZoneBreakdown = async (
 
   const stream = await cachedGetActivityStreams(athleteId, activityId);
   const breakdown = computeZoneBreakdown(stream, zones);
-  const decouplingPct = computeDecoupling(stream);
+  const decouplingPct = computeDecoupling(stream).value;
   await dbSyncZoneBreakdown({activityId, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, decouplingPct, computedAt: Date.now()});
   return breakdown;
 };
@@ -411,7 +411,7 @@ const batchGetZoneBreakdownsInternal = async (
           ? transformStreams(cachedStream.data)
           : await cachedGetActivityStreams(athleteId, id);
         const breakdown = computeZoneBreakdown(stream, zones);
-        const decouplingPct = computeDecoupling(stream);
+        const decouplingPct = computeDecoupling(stream).value;
         dbSyncZoneBreakdown({activityId: id, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, decouplingPct, computedAt: Date.now()});
         return {id, breakdown};
       }),

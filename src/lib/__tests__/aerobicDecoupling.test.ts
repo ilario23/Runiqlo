@@ -28,16 +28,20 @@ function makeStream(
 }
 
 describe('computeDecoupling', () => {
-  it('returns null for streams shorter than 45 min', () => {
+  it('returns too_short for streams shorter than 45 min', () => {
     const short = makeStream([
       {time: 0,    velocity: 3, heartrate: 140},
       {time: 2640, velocity: 3, heartrate: 140}, // 44 min
     ]);
-    expect(computeDecoupling(short)).toBeNull();
+    const r = computeDecoupling(short);
+    expect(r.value).toBeNull();
+    expect(r.reason).toBe('too_short');
   });
 
-  it('returns null for an empty stream', () => {
-    expect(computeDecoupling([])).toBeNull();
+  it('returns no_hr for an empty stream', () => {
+    const r = computeDecoupling([]);
+    expect(r.value).toBeNull();
+    expect(r.reason).toBe('no_hr');
   });
 
   it('returns ~0% for a perfectly steady flat run (no drift)', () => {
@@ -47,9 +51,10 @@ describe('computeDecoupling', () => {
       velocity: 3.5,
       heartrate: 150,
     }));
-    const result = computeDecoupling(makeStream(pts));
-    expect(result).not.toBeNull();
-    expect(Math.abs(result!)).toBeLessThan(0.5);
+    const r = computeDecoupling(makeStream(pts));
+    expect(r.value).not.toBeNull();
+    expect(r.reason).toBe('ok');
+    expect(Math.abs(r.value!)).toBeLessThan(0.5);
   });
 
   it('returns positive % when HR rises in second half (decoupled)', () => {
@@ -58,87 +63,98 @@ describe('computeDecoupling', () => {
     // decoupling ≈ (0.025 − 0.021875) / 0.025 × 100 = 12.5%
     const first  = Array.from({length: 50}, (_, i) => ({time: i * 36,        velocity: 3.5, heartrate: 140}));
     const second = Array.from({length: 50}, (_, i) => ({time: (50 + i) * 36, velocity: 3.5, heartrate: 160}));
-    const result = computeDecoupling(makeStream([...first, ...second]));
-    expect(result).not.toBeNull();
-    expect(result!).toBeGreaterThan(0);
-    expect(result!).toBeCloseTo(12.5, 0);
+    const r = computeDecoupling(makeStream([...first, ...second]));
+    expect(r.value).not.toBeNull();
+    expect(r.reason).toBe('ok');
+    expect(r.value!).toBeGreaterThan(0);
+    expect(r.value!).toBeCloseTo(12.5, 0);
   });
 
   it('returns negative % when HR drops in second half (improving efficiency)', () => {
     const first  = Array.from({length: 50}, (_, i) => ({time: i * 36,        velocity: 3.5, heartrate: 160}));
     const second = Array.from({length: 50}, (_, i) => ({time: (50 + i) * 36, velocity: 3.5, heartrate: 140}));
-    const result = computeDecoupling(makeStream([...first, ...second]));
-    expect(result).not.toBeNull();
-    expect(result!).toBeLessThan(0);
+    const r = computeDecoupling(makeStream([...first, ...second]));
+    expect(r.value).not.toBeNull();
+    expect(r.value!).toBeLessThan(0);
   });
 
-  it('returns null when there is no HR data', () => {
+  it('returns no_hr when there is no HR data', () => {
     const pts = Array.from({length: 100}, (_, i) => ({
       time: i * 36,
       velocity: 3.5,
       heartrate: 0,
     }));
-    expect(computeDecoupling(makeStream(pts))).toBeNull();
+    const r = computeDecoupling(makeStream(pts));
+    expect(r.value).toBeNull();
+    expect(r.reason).toBe('no_hr');
   });
 
-  // ── Grade-Adjusted Pace (GAP) ────────────────────────────────────────────────
+  // ── Grade-Adjusted Pace (GAP) & terrain asymmetry ───────────────────────────
 
-  it('normalises terrain: uphill first half then flat second half at equal effort → ~0% decoupling', () => {
-    // An athlete runs at constant perceived effort throughout:
-    //   - First half : 10% grade, velocity = 3.5 m/s  (high actual speed)
-    //   - Second half: flat,      velocity = 3.5 / 1.33 ≈ 2.632 m/s (same GAP effort)
-    // HR stays constant at 140 bpm in both halves.
+  it('returns asymmetric for strongly asymmetric terrain (uphill first, descent second)', () => {
+    // Classic problem case: long climb out, fast descent back.
+    // avgGrade(first half) >> 0 and avgGrade(second half) << 0 → asymmetry detected.
+    const STEP   = 36;
+    const GRADE  = 0.10;
+    const VEL    = 3.5;
+    const ALT_UP = VEL * STEP * GRADE;
+
+    const peakAlt = (50 - 1) * ALT_UP;
+    const first  = Array.from({length: 50}, (_, i) => ({
+      time: i * STEP, velocity: VEL, heartrate: 140, altitude: i * ALT_UP,
+    }));
+    const second = Array.from({length: 50}, (_, i) => ({
+      time: (50 + i) * STEP, velocity: VEL * 1.2, heartrate: 140,
+      altitude: peakAlt - i * ALT_UP,
+    }));
+
+    const r = computeDecoupling(makeStream([...first, ...second]));
+    expect(r.value).toBeNull();
+    expect(r.reason).toBe('asymmetric');
+  });
+
+  it('returns ~0% for symmetric rolling terrain at constant effort', () => {
+    // Both halves have the same proportion of uphills and downhills.
+    // Constant velocity and HR → no cardiac drift → decoupling ≈ 0%.
     //
-    // Without GAP the raw Pa:Hr ratios would differ (3.5/140 ≠ 2.632/140).
-    // With GAP both halves have the same adjusted velocity → decoupling ≈ 0%.
+    // Altitude follows a sine wave with period 20 points so each 50-point
+    // half contains 2.5 identical cycles → avgGrade ≈ 0 in both halves.
+    const AMP    = 15;
+    const PERIOD = 20;
+    const STEP   = 36;
 
-    const STEP  = 36;               // seconds per point
-    const GRADE = 0.10;             // 10%
-    const VEL   = 3.5;              // m/s, uphill
-    const GAP_F = 1 + GRADE * 100 * 0.033; // ≈ 1.33
-    const VEL_FLAT = VEL / GAP_F;   // ≈ 2.632 — same GAP on flat
-    const ALT_STEP = VEL * STEP * GRADE; // metres gained per uphill point
-
-    const first  = Array.from({length: 50}, (_, i) => ({
+    const pts = Array.from({length: 100}, (_, i) => ({
       time:      i * STEP,
-      velocity:  VEL,
-      heartrate: 140,
-      altitude:  i * ALT_STEP,
-    }));
-    const peakAlt = (50 - 1) * ALT_STEP;
-    const second = Array.from({length: 50}, (_, i) => ({
-      time:      (50 + i) * STEP,
-      velocity:  VEL_FLAT,
-      heartrate: 140,
-      altitude:  peakAlt, // flat
+      velocity:  3.5,
+      heartrate: 150,
+      altitude:  AMP * Math.sin((2 * Math.PI * i) / PERIOD),
     }));
 
-    const result = computeDecoupling(makeStream([...first, ...second]));
-    expect(result).not.toBeNull();
-    // Grade-adjusted both halves produce the same efficiency ratio → near zero
-    expect(Math.abs(result!)).toBeLessThan(3);
+    const r = computeDecoupling(makeStream(pts));
+    expect(r.value).not.toBeNull();
+    expect(r.reason).toBe('ok');
+    expect(Math.abs(r.value!)).toBeLessThan(3);
   });
 
-  it('still detects true cardiac drift on a hilly route', () => {
-    // Same uphill/flat split, but HR rises in the second (flat) half — genuine drift.
-    const STEP  = 36;
-    const GRADE = 0.10;
-    const VEL   = 3.5;
-    const GAP_F = 1 + GRADE * 100 * 0.033;
-    const VEL_FLAT = VEL / GAP_F;
-    const ALT_STEP = VEL * STEP * GRADE;
+  it('detects genuine cardiac drift on symmetric rolling terrain', () => {
+    // Same rolling terrain in both halves, but HR rises in the second half.
+    // The terrain symmetry check passes; the HR difference is real.
+    const AMP    = 15;
+    const PERIOD = 20;
+    const STEP   = 36;
 
     const first  = Array.from({length: 50}, (_, i) => ({
-      time: i * STEP, velocity: VEL, heartrate: 140, altitude: i * ALT_STEP,
+      time: i * STEP, velocity: 3.5, heartrate: 140,
+      altitude: AMP * Math.sin((2 * Math.PI * i) / PERIOD),
     }));
-    const peakAlt = (50 - 1) * ALT_STEP;
     const second = Array.from({length: 50}, (_, i) => ({
-      time: (50 + i) * STEP, velocity: VEL_FLAT, heartrate: 160, altitude: peakAlt,
+      time: (50 + i) * STEP, velocity: 3.5, heartrate: 160,
+      altitude: AMP * Math.sin((2 * Math.PI * i) / PERIOD),
     }));
 
-    const result = computeDecoupling(makeStream([...first, ...second]));
-    expect(result).not.toBeNull();
-    // HR rose in second half despite same GAP effort → positive decoupling
-    expect(result!).toBeGreaterThan(5);
+    const r = computeDecoupling(makeStream([...first, ...second]));
+    expect(r.value).not.toBeNull();
+    expect(r.reason).toBe('ok');
+    expect(r.value!).toBeGreaterThan(5);
   });
 });
