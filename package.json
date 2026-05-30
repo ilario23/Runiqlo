@@ -17,6 +17,8 @@
     "@ai-sdk/anthropic": "^3.0.0",
     "@ai-sdk/openai": "^3.0.0",
     "@ai-sdk/react": "^3.0.0",
+    "@assistant-ui/react": "^0.14.11",
+    "@assistant-ui/react-markdown": "^0.14.1",
     "@base-ui/react": "^1.5.0",
     "@tanstack/react-query": "^5.100.11",
     "@types/leaflet": "^1.9.21",
