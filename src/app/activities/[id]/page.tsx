@@ -147,7 +147,22 @@ interface ChartPanelProps {
 }
 
 function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
-  if (!data.some((p) => p.elevation != null)) return null;
+  const hasElevation = data.some((p) => p.elevation != null);
+
+  const {elevDomain, elevTicks} = useMemo(() => {
+    const vals = data.flatMap((p) => (p.elevation != null ? [p.elevation] : []));
+    if (vals.length === 0) return {elevDomain: ['auto', 'auto'] as ['auto', 'auto'], elevTicks: undefined};
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const range = max - min;
+    const step = range <= 100 ? 25 : range <= 300 ? 50 : range <= 700 ? 100 : range <= 1500 ? 200 : 500;
+    const start = Math.ceil(min / step) * step;
+    const ticks: number[] = [];
+    for (let v = start; v <= max; v += step) ticks.push(v);
+    return {elevDomain: [min, max] as [number, number], elevTicks: ticks.length ? ticks : [min, max]};
+  }, [data]);
+
+  if (!hasElevation) return null;
   return (
     <div>
       <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1.5">Elevation</p>
@@ -156,7 +171,7 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <AreaChart
             data={data}
             syncId={syncId}
-            margin={{top: 2, right: 4, left: -28, bottom: 0}}
+            margin={{top: 2, right: 36, left: -28, bottom: 0}}
             onMouseLeave={() => onHover(null)}
           >
             <defs>
@@ -166,12 +181,15 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
               </linearGradient>
             </defs>
             <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
-            <YAxis tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={36} />
+            <YAxis yAxisId="elev" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={40} />
+            <YAxis yAxisId="elevR" orientation="right" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={32} />
             <RechartsTooltip
               content={<ElevTooltip onHover={onHover} />}
               cursor={{stroke: 'rgba(255,255,255,0.08)'}}
             />
-            <Area type="monotone" dataKey="elevation" stroke={color} strokeWidth={1.5} fill="url(#gradElev)" dot={false} activeDot={{r: 3, fill: color, strokeWidth: 0}} />
+            <Area yAxisId="elev" type="monotone" dataKey="elevation" stroke={color} strokeWidth={1.5} fill="url(#gradElev)" dot={false} activeDot={{r: 3, fill: color, strokeWidth: 0}} />
+            {/* Invisible area bound to right axis so recharts renders its ticks */}
+            <Area yAxisId="elevR" type="monotone" dataKey="elevation" stroke="none" fill="none" dot={false} activeDot={false} legendType="none" />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -182,6 +200,18 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
 function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
   const hasHR = data.some((p) => p.hr != null);
   const hasPace = data.some((p) => p.pace != null);
+
+  const paceDomain = useMemo((): [number, number] | undefined => {
+    if (!hasPace) return undefined;
+    const vals = data.flatMap((p) => (p.pace != null && p.pace > 0 ? [p.pace] : []));
+    if (vals.length < 4) return undefined;
+    const sorted = [...vals].sort((a, b) => a - b);
+    const q1 = sorted[Math.floor(sorted.length * 0.25)];
+    const q3 = sorted[Math.floor(sorted.length * 0.75)];
+    const iqr = q3 - q1;
+    return [sorted[0], q3 + 1.5 * iqr];
+  }, [data, hasPace]);
+
   if (!hasHR && !hasPace) return null;
   return (
     <div>
@@ -218,6 +248,8 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
               yAxisId="pace"
               reversed
               hide={!hasPace}
+              domain={paceDomain}
+              allowDataOverflow
               tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
@@ -228,6 +260,8 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
               yAxisId="hr"
               orientation="right"
               hide={!hasHR}
+              domain={[100, 200]}
+              allowDataOverflow
               tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
@@ -337,7 +371,8 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   const {data: streams, isLoading: streamsLoading} = useActivityStreams(id);
   const {data: zoneBreakdown} = useActivityZoneBreakdown(id);
   const {data: weather, isLoading: weatherLoading} = useActivityWeather(id);
-  const {data: decouplingPct} = useActivityDecoupling(id);
+  const {data: decouplingResult} = useActivityDecoupling(id);
+  const decouplingPct = decouplingResult?.value;
 
   // Hover index into chartData → drives the map dot
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -661,14 +696,22 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   <div className="h-10 flex items-center">
                     <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/50 animate-spin" />
                   </div>
-                ) : decouplingPct === null || decouplingPct === undefined ? (
-                  <p className="text-sm text-white/25">n/a — run too short or no HR data</p>
+                ) : !decouplingResult || decouplingPct === null || decouplingPct === undefined ? (
+                  <p className="text-sm text-white/25">
+                    {decouplingResult?.reason === 'too_short'
+                      ? 'n/a — run shorter than 45 min'
+                      : decouplingResult?.reason === 'asymmetric'
+                      ? 'n/a — terrain too asymmetric (big climb one way, descent back)'
+                      : 'n/a — no HR or pace data'}
+                  </p>
                 ) : (
                   <div className="flex items-center gap-3">
                     <span
                       className="text-2xl font-bold font-mono tabular-nums"
                       style={{
-                        color: decouplingPct < 5
+                        color: decouplingPct < 0
+                          ? 'var(--color-text-2, #9ca3af)'
+                          : decouplingPct < 5
                           ? 'var(--accent-green, #4ade80)'
                           : decouplingPct < 8
                           ? '#f59e0b'
@@ -679,7 +722,9 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                     </span>
                     <div>
                       <p className="text-xs text-white/50">
-                        {decouplingPct < 5
+                        {decouplingPct < 0
+                          ? 'HR fell vs pace — improving or easy effort'
+                          : decouplingPct < 5
                           ? 'Well coupled — strong aerobic base'
                           : decouplingPct < 8
                           ? 'Mild decoupling — acceptable'

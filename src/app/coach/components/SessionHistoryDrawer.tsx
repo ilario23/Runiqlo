@@ -38,6 +38,7 @@ export function SessionHistoryDrawer({
 }: SessionHistoryDrawerProps) {
   const [sessions, setSessions] = useState<SessionSummary[] | null>(null);
   const [deletingId, setDeletingId] = useState<string | null | undefined>(undefined);
+  const [confirmId, setConfirmId] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     fetch(`/api/coach/chat?athleteId=${athleteId}&listSessions=1`)
@@ -46,8 +47,18 @@ export function SessionHistoryDrawer({
       .catch(() => setSessions([]));
   }, [athleteId]);
 
-  const handleDelete = async (e: React.MouseEvent, sessionId: string | null) => {
+  const handleDeleteClick = (e: React.MouseEvent, sessionId: string | null) => {
     e.stopPropagation();
+    if (confirmId !== sessionId) {
+      setConfirmId(sessionId);
+      return;
+    }
+    handleDeleteConfirm(e, sessionId);
+  };
+
+  const handleDeleteConfirm = async (e: React.MouseEvent, sessionId: string | null) => {
+    e.stopPropagation();
+    setConfirmId(undefined);
     setDeletingId(sessionId);
     const param = sessionId === null ? 'null' : sessionId;
     await fetch(`/api/coach/chat?athleteId=${athleteId}&sessionId=${param}`, {method: 'DELETE'});
@@ -78,7 +89,7 @@ export function SessionHistoryDrawer({
         )}
         <button
           onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface-1)] text-white/40 hover:text-white/70 transition-colors ml-1"
+          className="w-10 h-10 md:w-7 md:h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-surface-1)] text-white/40 hover:text-white/70 transition-colors ml-1"
           title="Close"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -136,25 +147,35 @@ export function SessionHistoryDrawer({
                       <span className="text-[10px] text-[var(--color-accent)] mt-1 block">Current session</span>
                     )}
                   </button>
-                  <button
-                    onClick={e => handleDelete(e, session.id)}
-                    disabled={isDeleting}
-                    title="Delete conversation"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-all disabled:opacity-30"
-                  >
-                    {isDeleting ? (
-                      <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                      </svg>
-                    ) : (
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="3 6 5 6 21 6" />
-                        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-                        <path d="M10 11v6M14 11v6" />
-                        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                      </svg>
-                    )}
-                  </button>
+                  {confirmId === session.id ? (
+                    <button
+                      onClick={e => handleDeleteConfirm(e, session.id)}
+                      title="Confirm delete"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-2 h-6 flex items-center justify-center rounded-md bg-red-500/20 text-red-400 text-[10px] font-semibold transition-all"
+                    >
+                      Delete?
+                    </button>
+                  ) : (
+                    <button
+                      onClick={e => handleDeleteClick(e, session.id)}
+                      disabled={isDeleting}
+                      title="Delete conversation"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-6 md:h-6 flex items-center justify-center rounded-md opacity-60 md:opacity-0 md:group-hover:opacity-100 hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-all disabled:opacity-30"
+                    >
+                      {isDeleting ? (
+                        <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                          <path d="M10 11v6M14 11v6" />
+                          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                        </svg>
+                      )}
+                    </button>
+                  )}
                 </div>
               );
             })}

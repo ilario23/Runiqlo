@@ -181,135 +181,154 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
         <span className="text-xs text-white/30 ml-auto">{totalWeeks} weeks total</span>
       </div>
 
-      {/* Phase timeline */}
+      {/* Phase timeline + Volume chart — shared grid so blocks align with bars */}
       <div className="mb-6">
-        <div className="text-xs text-white/30 mb-2">Phase timeline</div>
-        <div className="flex rounded-xl overflow-hidden h-10 gap-0.5">
-          {segments.map((seg, i) => {
-            const cfg = PHASE_COLORS[seg.phase] ?? PHASE_COLORS.base;
-            const widthPct = (seg.weekCount / totalWeeks) * 100;
-            const isCurrent = currentWeekOffset >= seg.weekOffset && currentWeekOffset < seg.weekOffset + seg.weekCount;
-            const progress = isCurrent
-              ? Math.min(1, Math.max(0, (currentWeekOffset - seg.weekOffset) / seg.weekCount))
-              : 0;
-            return (
-              <div
-                key={i}
-                className={`relative flex items-center justify-center cursor-pointer overflow-hidden transition-opacity ${cfg.bg} ${!isCurrent ? 'opacity-35 hover:opacity-55' : ''}`}
-                style={{width: `${widthPct}%`}}
-                title={`${cfg.label}: ${seg.startDate} → ${seg.endDate}`}
-                onClick={() => onWeekClick?.(seg.startDate)}
-              >
-                {isCurrent && (
-                  <div
-                    className="absolute inset-y-0 left-0 pointer-events-none"
-                    style={{width: `${progress * 100}%`, background: cfg.hex.replace('1)', '0.38)')}}
-                  />
-                )}
-                {isCurrent && (
-                  <div
-                    className="absolute top-0 bottom-0 w-px pointer-events-none"
-                    style={{left: `${progress * 100}%`, background: cfg.hex}}
-                  />
-                )}
-                <span className={`relative z-10 text-xs font-bold uppercase tracking-wide ${cfg.text} select-none`}>
-                  {seg.weekCount > 2 ? cfg.label : ''}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex justify-between mt-1">
-          <span className="text-xs text-white/25">{plan.startDate}</span>
-          {plan.targetDate && <span className="text-xs text-white/25">{plan.targetDate}</span>}
-        </div>
-      </div>
-
-      {/* Volume chart */}
-      {sketches.length > 0 && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <div className="text-xs text-white/30">Weekly volume (km)</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-white/30">Phase timeline</div>
+          {sketches.length > 0 && (
             <div className="flex items-center gap-3 text-xs text-white/25">
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm bg-white/30" /> actual</span>
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-2 rounded-sm bg-[var(--color-accent)]/40" /> planned</span>
             </div>
-          </div>
-
-          {/* Tooltip */}
-          {tooltip.visible && (
-            <div
-              className="fixed z-50 pointer-events-none px-2.5 py-1.5 rounded-lg border text-xs shadow-xl"
-              style={{background: 'var(--color-surface-0)', borderColor: 'var(--color-border)', left: tooltip.x + 12, top: tooltip.y - 40}}
-            >
-              <div className={`font-semibold ${PHASE_COLORS[tooltip.phase]?.text ?? 'text-white'}`}>
-                Wk {tooltip.weekNumber} · {PHASE_COLORS[tooltip.phase]?.label ?? tooltip.phase}
-              </div>
-              <div className="text-white/60 mt-0.5">
-                Planned: <span className="text-white/90">{tooltip.targetKm} km</span>
-              </div>
-              {tooltip.actualKm != null && (
-                <div className="text-white/60">
-                  Actual: <span className="text-white/90">{tooltip.actualKm} km</span>
-                </div>
-              )}
-            </div>
           )}
+        </div>
 
+        {tooltip.visible && (
           <div
-            ref={chartRef}
-            className="flex items-end gap-px overflow-x-auto pb-1"
-            style={{height: CHART_H + 20}}
+            className="fixed z-50 pointer-events-none px-2.5 py-1.5 rounded-lg border text-xs shadow-xl"
+            style={{background: 'var(--color-surface-0)', borderColor: 'var(--color-border)', left: tooltip.x + 12, top: tooltip.y - 40}}
           >
-            {sketches.map(s => {
-              const isCurrent = s.weekStart === currentMonday;
-              const isPast = s.weekStart < currentMonday;
-              const planH = Math.round((s.targetKm / maxKm) * CHART_H);
-              const actual = actualKmByWeek[s.weekStart];
-              const actH = actual != null ? Math.min(Math.round((actual / maxKm) * CHART_H), CHART_H + 8) : 0;
-              const cfg = PHASE_COLORS[s.phase] ?? PHASE_COLORS.base;
+            <div className={`font-semibold ${PHASE_COLORS[tooltip.phase]?.text ?? 'text-white'}`}>
+              Wk {tooltip.weekNumber} · {PHASE_COLORS[tooltip.phase]?.label ?? tooltip.phase}
+            </div>
+            <div className="text-white/60 mt-0.5">
+              Planned: <span className="text-white/90">{tooltip.targetKm} km</span>
+            </div>
+            {tooltip.actualKm != null && (
+              <div className="text-white/60">
+                Actual: <span className="text-white/90">{tooltip.actualKm} km</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="overflow-x-auto">
+          {/* Phase blocks row */}
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: `repeat(${totalWeeks}, 1fr)`,
+              gap: '1px',
+              height: 40,
+            }}
+          >
+            {segments.map((seg, i) => {
+              const cfg = PHASE_COLORS[seg.phase] ?? PHASE_COLORS.base;
+              const isCurrent = currentWeekOffset >= seg.weekOffset && currentWeekOffset < seg.weekOffset + seg.weekCount;
+              const progress = isCurrent
+                ? Math.min(1, Math.max(0, (currentWeekOffset - seg.weekOffset) / seg.weekCount))
+                : 0;
               return (
                 <div
-                  key={s.weekNumber}
-                  className="relative flex-1 min-w-[10px] max-w-[32px] cursor-pointer group"
-                  style={{height: CHART_H}}
-                  onClick={() => onWeekClick?.(s.weekStart)}
-                  onMouseMove={e => setTooltip({visible: true, x: e.clientX, y: e.clientY, weekNumber: s.weekNumber, phase: s.phase, targetKm: s.targetKm, actualKm: actual ?? null, weekStart: s.weekStart})}
-                  onMouseLeave={() => setTooltip(t => ({...t, visible: false}))}
+                  key={i}
+                  className={`relative flex items-center justify-center cursor-pointer overflow-hidden transition-opacity ${cfg.bg} ${!isCurrent ? 'opacity-35 hover:opacity-55' : ''}`}
+                  style={{gridColumn: `span ${seg.weekCount}`}}
+                  title={`${cfg.label}: ${seg.startDate} → ${seg.endDate}`}
+                  onClick={() => onWeekClick?.(seg.startDate)}
                 >
-                  {/* Planned bar */}
-                  <div
-                    className={`absolute bottom-0 left-0 right-0 rounded-t-[2px] transition-opacity group-hover:opacity-80 ${isCurrent ? 'ring-1 ring-inset ' + cfg.border : ''}`}
-                    style={{height: planH, backgroundColor: cfg.hex}}
-                  />
-                  {/* Actual bar overlay — past weeks only */}
-                  {isPast && actH > 0 && (
+                  {isCurrent && (
                     <div
-                      className="absolute bottom-0 left-0 right-0 rounded-t-[2px]"
-                      style={{height: actH, backgroundColor: 'rgba(255,255,255,0.28)'}}
+                      className="absolute inset-y-0 left-0 pointer-events-none"
+                      style={{width: `${progress * 100}%`, background: cfg.hex.replace('1)', '0.38)')}}
                     />
                   )}
-                  {/* Current week marker */}
                   {isCurrent && (
-                    <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/70" />
+                    <div
+                      className="absolute top-0 bottom-0 w-px pointer-events-none"
+                      style={{left: `${progress * 100}%`, background: cfg.hex}}
+                    />
                   )}
+                  <span className={`relative z-10 text-xs font-bold uppercase tracking-wide ${cfg.text} select-none`}>
+                    {seg.weekCount > 2 ? cfg.label : ''}
+                  </span>
                 </div>
               );
             })}
           </div>
 
-          {/* X-axis: show label every 4 weeks */}
-          <div className="flex gap-px overflow-x-auto">
-            {sketches.map(s => (
-              <div key={s.weekNumber} className="flex-1 min-w-[10px] max-w-[32px] text-center">
-                {s.weekNumber % 4 === 1 && (
-                  <span className="text-[10px] text-white/20">W{s.weekNumber}</span>
-                )}
+          {/* Weekly volume bars — same grid columns so bars align with phase blocks above */}
+          {sketches.length > 0 && (
+            <>
+              <div
+                ref={chartRef}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${totalWeeks}, 1fr)`,
+                  gap: '1px',
+                  height: CHART_H + 20,
+                  alignItems: 'end',
+                  marginTop: 8,
+                }}
+              >
+                {sketches.map(s => {
+                  const isCurrent = s.weekStart === currentMonday;
+                  const isPast = s.weekStart < currentMonday;
+                  const planH = Math.round((s.targetKm / maxKm) * CHART_H);
+                  const actual = actualKmByWeek[s.weekStart];
+                  const actH = actual != null ? Math.min(Math.round((actual / maxKm) * CHART_H), CHART_H + 8) : 0;
+                  const cfg = PHASE_COLORS[s.phase] ?? PHASE_COLORS.base;
+                  return (
+                    <div
+                      key={s.weekNumber}
+                      className="relative cursor-pointer group"
+                      style={{height: CHART_H}}
+                      onClick={() => onWeekClick?.(s.weekStart)}
+                      onMouseMove={e => setTooltip({visible: true, x: e.clientX, y: e.clientY, weekNumber: s.weekNumber, phase: s.phase, targetKm: s.targetKm, actualKm: actual ?? null, weekStart: s.weekStart})}
+                      onMouseLeave={() => setTooltip(t => ({...t, visible: false}))}
+                    >
+                      <div
+                        className={`absolute bottom-0 left-0 right-0 rounded-t-[2px] transition-opacity group-hover:opacity-80 ${isCurrent ? 'ring-1 ring-inset ' + cfg.border : ''}`}
+                        style={{height: planH, backgroundColor: cfg.hex}}
+                      />
+                      {isPast && actH > 0 && (
+                        <div
+                          className="absolute bottom-0 left-0 right-0 rounded-t-[2px]"
+                          style={{height: actH, backgroundColor: 'rgba(255,255,255,0.28)'}}
+                        />
+                      )}
+                      {isCurrent && (
+                        <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white/70" />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: `repeat(${totalWeeks}, 1fr)`,
+                  gap: '1px',
+                }}
+              >
+                {sketches.map(s => (
+                  <div key={s.weekNumber} className="text-center">
+                    {s.weekNumber % 4 === 1 && (
+                      <span className="text-[10px] text-white/20">W{s.weekNumber}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-      )}
+
+        <div className="flex justify-between mt-1">
+          <span className="text-xs text-white/25">{plan.startDate}</span>
+          {plan.targetDate && <span className="text-xs text-white/25">{plan.targetDate}</span>}
+        </div>
+      </div>
 
       {/* Week-by-week table */}
       {sketches.length > 0 && (

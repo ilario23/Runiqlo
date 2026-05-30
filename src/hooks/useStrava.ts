@@ -37,7 +37,7 @@ import type {
 } from '@/lib/strava';
 import {fetchStarredSegments} from '@/lib/strava';
 import {computeZoneBreakdown} from '@/lib/zoneCompute';
-import {computeDecoupling} from '@/lib/aerobicDecoupling';
+import {computeDecoupling, type DecouplingResult} from '@/lib/aerobicDecoupling';
 
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -349,10 +349,10 @@ export const useActivityZoneBreakdown = (activityId: string | undefined) => {
 export const useActivityDecoupling = (activityId: string | undefined) => {
   const {data: streams} = useActivityStreams(activityId);
 
-  return useQuery<number | null>({
+  return useQuery<DecouplingResult>({
     queryKey: ['strava', 'decoupling', activityId],
     queryFn: () => {
-      if (!streams || streams.length === 0) return null;
+      if (!streams || streams.length === 0) return {value: null, reason: 'no_hr' as const};
       return computeDecoupling(streams);
     },
     enabled: !!activityId && !!streams && streams.length > 0,

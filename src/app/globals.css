@@ -16,6 +16,16 @@
 }
 
 :root {
+  --primary-hover: rgba(252, 76, 2, 0.15);
+
+  /* ── Mobile menu tokens ─────────────────────────────────────────────────── */
+  --component-inactive-color: var(--color-text-2);
+  --component-bg: var(--color-surface-0);
+  --component-shadow: var(--color-edge);
+  --component-active-bg: var(--color-surface-1);
+  --component-line-inactive-color: var(--color-border);
+  --component-active-color-default: var(--color-accent);
+
   /* ── Dark Luxe surface system ────────────────────────────────────────────── */
   --color-base: #09090c;
   --color-surface-0: #101013;
@@ -126,7 +136,92 @@ body {
   color: var(--color-text-2);
 }
 
+/* ── Modern Mobile Menu ─────────────────────────────────────────────────────── */
+
+.menu {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  width: 100%;
+  background: var(--component-bg);
+  border-top: 1px solid var(--component-shadow);
+}
+
+.menu__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 10px 8px 8px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+  position: relative;
+  color: var(--component-inactive-color);
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s;
+}
+
+.menu__item::after {
+  content: '';
+  position: absolute;
+  bottom: max(6px, calc(env(safe-area-inset-bottom) + 4px));
+  left: 50%;
+  transform: translateX(-50%);
+  width: var(--lineWidth, 0px);
+  height: 2px;
+  border-radius: 999px;
+  background-color: var(--component-active-color, var(--component-active-color-default));
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu__item.active {
+  color: var(--component-active-color, var(--component-active-color-default));
+}
+
+.menu__item.active .icon {
+  animation: iconBounce 0.45s ease;
+}
+
+.menu__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu__icon .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.menu__text {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: capitalize;
+  color: var(--component-inactive-color);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.menu__text.active {
+  color: var(--component-active-color, var(--component-active-color-default));
+}
+
 /* ── Animations ─────────────────────────────────────────────────────────────── */
+
+@keyframes iconBounce {
+  0%, 100% { transform: translateY(0); }
+  20% { transform: translateY(-0.3em); }
+  40% { transform: translateY(0); }
+  60% { transform: translateY(-0.1em); }
+  80% { transform: translateY(0); }
+}
 
 @keyframes breath {
   0%, 100% { opacity: 1; transform: scale(1); }

@@ -5,6 +5,7 @@ import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import AppHeader from '@/components/AppHeader';
 import {ChatPanel} from './components/ChatPanel';
+import {ConnectPrompt} from '@/components/ConnectPrompt';
 
 const ONBOARDING_MESSAGE = "Hi! I'd like to set up my training plan with you. Walk me through it.";
 
@@ -28,10 +29,8 @@ function CoachPageInner() {
     return (
       <div className="min-h-screen" style={{background: 'var(--color-base)'}}>
         <AppHeader />
-        <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
-          <p style={{color: 'var(--color-text-3)'}} className="text-sm">
-            Connect Strava to use the coach
-          </p>
+        <div className="pt-14">
+          <ConnectPrompt subtitle="Connect Strava to start chatting with your coach" />
         </div>
       </div>
     );

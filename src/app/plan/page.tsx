@@ -11,6 +11,7 @@ import {PlanOverview} from './components/PlanOverview';
 import {AskCoachBar} from './components/AskCoachBar';
 import type {Goal, TrainingPlan} from '@/lib/coachTypes';
 import {CalendarDays} from 'lucide-react';
+import {ConnectPrompt} from '@/components/ConnectPrompt';
 
 type PlanView = 'week' | 'plan';
 
@@ -71,10 +72,8 @@ function PlanPageInner() {
     return (
       <div className="min-h-screen" style={{background: 'var(--color-base)'}}>
         <AppHeader />
-        <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
-          <p style={{color: 'var(--color-text-3)'}} className="text-sm">
-            Connect Strava to view your plan
-          </p>
+        <div className="pt-14">
+          <ConnectPrompt subtitle="Connect Strava to view your training plan" />
         </div>
       </div>
     );
@@ -83,10 +82,28 @@ function PlanPageInner() {
   // ── Loading ───────────────────────────────────────────────────────────────────
   if (goal === undefined) {
     return (
-      <div className="min-h-screen" style={{background: 'var(--color-base)'}}>
+      <div className="flex flex-col h-dvh" style={{background: 'var(--color-base)'}}>
         <AppHeader />
-        <div className="flex items-center justify-center h-[calc(100vh-3.5rem)] mt-14">
-          <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+        <div className="flex flex-col flex-1 min-h-0 pt-14">
+          {/* GoalBanner skeleton */}
+          <div className="flex-shrink-0 flex items-center gap-3 px-5 border-b border-[var(--color-border)] animate-pulse" style={{height: '40px', background: 'var(--color-surface-0)'}}>
+            <div className="w-1.5 h-1.5 rounded-full bg-white/20 flex-shrink-0" />
+            <div className="h-2.5 w-24 rounded bg-white/10" />
+            <div className="h-2.5 w-16 rounded bg-white/10" />
+          </div>
+          {/* Tab bar skeleton */}
+          <div className="flex-shrink-0 flex items-center border-b border-[var(--color-border)] px-5 animate-pulse" style={{height: '42px', background: 'var(--color-base)'}}>
+            <div className="h-2.5 w-20 rounded bg-white/10 mr-6" />
+            <div className="h-2.5 w-24 rounded bg-white/10" />
+          </div>
+          {/* Week grid skeleton */}
+          <div className="flex-1 overflow-hidden px-5 py-5">
+            <div className="flex flex-col gap-2 md:grid md:grid-cols-7 animate-pulse">
+              {Array.from({length: 7}).map((_, i) => (
+                <div key={i} className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] p-2 min-h-12 md:min-h-[100px]" />
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     );

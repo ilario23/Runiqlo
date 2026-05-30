@@ -1,6 +1,6 @@
 'use client';
 
-import {useState, useEffect, useCallback} from 'react';
+import {useState, useEffect, useCallback, useRef} from 'react';
 import {Activity, TrendingUp, Zap, Timer, Wind, Dumbbell, Bike, Leaf, Shuffle, Moon, Mountain, Waves, CalendarDays, Download, Footprints} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {WorkoutCard} from './WorkoutCard';
@@ -58,6 +58,14 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<SelectedWorkout | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState(false);
+  const detailRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selected) {
+      setTimeout(() => detailRef.current?.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50);
+    }
+  }, [selected]);
   const today = getMonday(new Date()) === weekStart
     ? (() => {
         const d = new Date();
@@ -90,6 +98,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
   const handleExport = async () => {
     if (!plan || exporting) return;
     setExporting(true);
+    setExportError(false);
     try {
       const res = await fetch(`/api/coach/week/ics?athleteId=${athleteId}&weekStart=${weekStart}`);
       if (!res.ok) throw new Error();
@@ -102,7 +111,10 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch { /* silent */ } finally {
+    } catch {
+      setExportError(true);
+      setTimeout(() => setExportError(false), 3000);
+    } finally {
       setExporting(false);
     }
   };
@@ -148,15 +160,15 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
               <button
                 onClick={handleExport}
                 disabled={exporting}
-                title="Export to calendar (.ics)"
-                className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors disabled:opacity-40"
+                title={exportError ? 'Export failed' : 'Export to calendar (.ics)'}
+                className={`w-10 h-10 md:w-7 md:h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40 ${exportError ? 'bg-red-500/20 text-red-400' : 'bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)]'}`}
               >
                 <Download style={{width: '12px', height: '12px'}} />
               </button>
               <a
                 href={`webcal://${typeof window !== 'undefined' ? window.location.host : ''}/api/coach/week/ics?athleteId=${athleteId}&mode=subscribe`}
                 title="Subscribe to training calendar"
-                className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
+                className="w-10 h-10 md:w-7 md:h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
               >
                 <CalendarDays style={{width: '12px', height: '12px'}} />
               </a>
@@ -164,7 +176,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           )}
           <button
             onClick={prevWeek}
-            className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
+            className="w-10 h-10 md:w-7 md:h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="15 18 9 12 15 6" />
@@ -172,7 +184,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           </button>
           <button
             onClick={nextWeek}
-            className="w-7 h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
+            className="w-10 h-10 md:w-7 md:h-7 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] flex items-center justify-center transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <polyline points="9 18 15 12 9 6" />
@@ -240,8 +252,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           </div>
 
           {/* Workout detail panel */}
-          {selected && (
-            <WorkoutDetailPanel
+          {selected && <div ref={detailRef}><WorkoutDetailPanel
               selected={selected}
               athleteId={athleteId}
               weekStart={weekStart}
@@ -280,8 +291,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                     : prev
                 );
               }}
-            />
-          )}
+            /></div>}
         </>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">

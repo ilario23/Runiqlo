@@ -3,12 +3,22 @@
 import {useState} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import {usePathname} from 'next/navigation';
+import {usePathname, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
+import {CleanMotionBackground} from '@/components/ui/animated-tabs-background';
+import {InteractiveMenu, type InteractiveMenuItem} from '@/components/ui/modern-mobile-menu';
+import {LayoutDashboard, Activity, CalendarRange, Bot} from 'lucide-react';
 
 interface AppHeaderProps {
   onRefresh?: () => Promise<void>;
 }
+
+const MOBILE_NAV_ITEMS: (InteractiveMenuItem & { href: string; exact: boolean })[] = [
+  {label: 'dashboard', icon: LayoutDashboard, href: '/', exact: true},
+  {label: 'activities', icon: Activity, href: '/activities', exact: false},
+  {label: 'plan', icon: CalendarRange, href: '/plan', exact: false},
+  {label: 'coach', icon: Bot, href: '/coach', exact: true},
+];
 
 const NAV_LINKS = [
   {
@@ -61,8 +71,13 @@ const NAV_LINKS = [
 
 export default function AppHeader({onRefresh}: AppHeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [refreshing, setRefreshing] = useState(false);
   const {athlete} = useStravaAuth();
+
+  const mobileActiveIndex = MOBILE_NAV_ITEMS.findIndex(({href, exact}) =>
+    exact ? pathname === href : pathname === href || pathname.startsWith(href + '/'),
+  );
   const initials = athlete
     ? `${athlete.firstname?.[0] ?? ''}${athlete.lastname?.[0] ?? ''}`.toUpperCase()
     : undefined;
@@ -97,25 +112,29 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
 
         {/* Nav links — desktop only; mobile uses bottom bar */}
         <nav className='hidden md:flex items-center gap-1 flex-1'>
-          {NAV_LINKS.map(({href, label, icon, exact}) => {
-            const active = isActive(href, exact);
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold tracking-wide uppercase transition-colors cursor-pointer relative ${
-                  active ? 'text-white' : 'hover:text-white/70'
-                }`}
-                style={{
-                  color: active ? 'var(--color-text-1)' : 'var(--color-text-2)',
-                  borderBottom: active ? '2px solid #fc4c02' : '2px solid transparent',
-                }}
-              >
-                <span style={{color: active ? 'rgba(255,255,255,0.7)' : 'var(--color-text-3)'}}>{icon}</span>
-                <span>{label}</span>
-              </Link>
-            );
-          })}
+          <CleanMotionBackground hoverable className='gap-0'>
+            {NAV_LINKS.map(({href, label, icon, exact}) => {
+              const active = isActive(href, exact);
+              return (
+                <div key={href} data-key={href}>
+                  <Link
+                    href={href}
+                    aria-current={active ? 'page' : undefined}
+                    className='flex items-center gap-1.5 text-xs font-semibold tracking-wide uppercase transition-colors cursor-pointer relative'
+                    style={{
+                      color: active ? 'var(--color-text-1)' : 'var(--color-text-2)',
+                    }}
+                  >
+                    <span style={{color: active ? 'rgba(255,255,255,0.7)' : 'var(--color-text-2)'}}>{icon}</span>
+                    <span>{label}</span>
+                    {active && (
+                      <span className='absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-full h-[2px] rounded-full bg-brand' />
+                    )}
+                  </Link>
+                </div>
+              );
+            })}
+          </CleanMotionBackground>
         </nav>
 
         {/* Actions */}
@@ -151,7 +170,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
           {athlete && (
             <Link
               href='/profile'
-              className='hidden md:flex items-center gap-2 px-2 py-1 rounded-lg transition-colors cursor-pointer hover:bg-white/[0.05]'
+              className='flex items-center gap-2 px-2 py-1 rounded-lg transition-colors cursor-pointer hover:bg-white/[0.05]'
             >
               {athlete.profile_medium ? (
                 <Image
@@ -167,7 +186,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
                   <span className='text-[10px] font-bold text-white/75 leading-none tracking-wide'>{initials}</span>
                 </div>
               )}
-              <span className='text-sm font-medium text-white/70 leading-none'>{athlete.firstname}</span>
+              <span className='hidden md:inline text-sm font-medium text-white/70 leading-none'>{athlete.firstname}</span>
             </Link>
           )}
 
@@ -186,33 +205,14 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
       </header>
 
       {/* ── Mobile bottom tab bar ─────────────────────────────────────────────── */}
-      <nav
-        className='md:hidden fixed bottom-0 left-0 right-0 z-50 grid grid-cols-4 backdrop-blur-xl bg-black/85'
-        style={{
-          height: 'calc(56px + env(safe-area-inset-bottom))',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-        }}
-      >
-        {NAV_LINKS.map(({href, label, icon, exact}) => {
-          const active = isActive(href, exact);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`relative flex flex-col items-center justify-center gap-1 transition-colors cursor-pointer ${
-                active ? 'text-white' : 'text-white/40 hover:text-white/65'
-              }`}
-            >
-              <span className={`transition-colors ${active ? 'text-white' : 'text-white/35'}`}>{icon}</span>
-              <span className='text-[10px] font-medium'>{label}</span>
-              {active && (
-                <span className='absolute bottom-2.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-brand' />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+      <div className='md:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/85'>
+        <InteractiveMenu
+          items={MOBILE_NAV_ITEMS}
+          activeIndex={mobileActiveIndex >= 0 ? mobileActiveIndex : 0}
+          onItemClick={(i) => router.push(MOBILE_NAV_ITEMS[i].href)}
+          accentColor='var(--color-accent)'
+        />
+      </div>
     </>
   );
 }

@@ -136,7 +136,7 @@ function ChartTooltip({active, payload, label}: ChartTooltipProps) {
   if (!active || !payload?.length || !label) return null;
   return (
     <div className='surface-card px-3 py-2.5 text-xs space-y-1 min-w-[120px]'>
-      <p className='mb-1.5' style={{color: 'var(--color-text-3)'}}>
+      <p className='mb-1.5' style={{color: 'var(--color-text-2)'}}>
         {fmtDate(label)}
       </p>
       {payload.map((p) => (
@@ -169,6 +169,7 @@ function StatPill({label, sublabel, value, prev, color, isLoading, info}: StatPi
   const delta = typeof value === 'number' && typeof prev === 'number' ? value - prev : undefined;
   const isUp = delta !== undefined && delta > 0;
   const isDown = delta !== undefined && delta < 0;
+  const [tooltipOpen, setTooltipOpen] = useState(false);
 
   return (
     <div className='surface-raised px-4 py-3 min-w-[110px]'>
@@ -185,9 +186,16 @@ function StatPill({label, sublabel, value, prev, color, isLoading, info}: StatPi
             <span className='text-xs' style={{color: 'var(--color-text-3)'}}>{sublabel}</span>
             {info && (
               <div className='relative group flex-shrink-0'>
-                <Info size={10} className='cursor-default transition-colors' style={{color: 'var(--color-text-3)'}} />
+                <button
+                  type='button'
+                  onClick={() => setTooltipOpen(o => !o)}
+                  className='flex items-center cursor-pointer'
+                  aria-label='More info'
+                >
+                  <Info size={10} className='transition-colors' style={{color: 'var(--color-text-3)'}} />
+                </button>
                 <div
-                  className='absolute right-0 top-5 w-52 p-3 rounded-xl text-xs leading-relaxed opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50'
+                  className={`absolute right-0 top-5 w-52 p-3 rounded-xl text-xs leading-relaxed transition-opacity duration-150 z-50 ${tooltipOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 pointer-events-none'}`}
                   style={{
                     background: 'var(--color-surface-2)',
                     border: '1px solid var(--color-border)',
