@@ -22,6 +22,7 @@ export interface StreamPoint {
   velocity: number;
   heartrate: number;
   altitude: number;
+  cadence?: number;
   lat?: number;
   lng?: number;
 }

@@ -15,7 +15,7 @@ const COMMANDS = ['/modify', '/week', '/status'];
 
 export function EmptyState({onSend, onPrefill}: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6 text-center gap-5">
+    <div className="flex flex-col items-center justify-center flex-1 px-6 text-center gap-5">
       {/* Icon */}
       <div
         className="w-14 h-14 rounded-2xl flex items-center justify-center"

@@ -65,7 +65,7 @@ export function MessageAssistant({msg, isLatest, isLoading, isStreaming, onSelec
     .join('\n\n');
 
   return (
-    <div className="group flex gap-3 px-4 py-4">
+    <div className="group flex gap-3 px-5 py-4">
       <BotAvatar />
       <div className="flex-1 min-w-0">
         {msg.parts.map((part, partIdx) => {

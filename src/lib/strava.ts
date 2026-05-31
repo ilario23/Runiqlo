@@ -718,6 +718,7 @@ export const transformStreams = (
   const hrStream = arr.find((s) => s.type === "heartrate");
   const altStream = arr.find((s) => s.type === "altitude");
   const velStream = arr.find((s) => s.type === "velocity_smooth");
+  const cadenceStream = arr.find((s) => s.type === "cadence");
   const latlngStream = arr.find((s) => s.type === "latlng");
 
   if (!timeStream) return [];
@@ -727,12 +728,14 @@ export const transformStreams = (
 
   for (let i = 0; i < length; i++) {
     const ll = latlngStream ? (latlngStream.data as [number, number][])[i] : undefined;
+    const cad = cadenceStream ? (cadenceStream.data as number[])[i] : undefined;
     points.push({
       time: (timeStream.data as number[])[i],
       distance: distStream ? (distStream.data as number[])[i] : 0,
       velocity: velStream ? (velStream.data as number[])[i] : 0,
       heartrate: hrStream ? (hrStream.data as number[])[i] : 0,
       altitude: altStream ? (altStream.data as number[])[i] : 0,
+      cadence: cad != null && cad > 0 ? cad : undefined,
       lat: ll?.[0],
       lng: ll?.[1],
     });

@@ -7,8 +7,6 @@ import AppHeader from '@/components/AppHeader';
 import {ChatPanel} from './components/ChatPanel';
 import {ConnectPrompt} from '@/components/ConnectPrompt';
 
-const ONBOARDING_MESSAGE = "Hi! I'd like to set up my training plan with you. Walk me through it.";
-
 function CoachPageInner() {
   const {athlete} = useStravaAuth();
   const searchParams = useSearchParams();
@@ -44,7 +42,6 @@ function CoachPageInner() {
       <div className="flex-1 overflow-hidden pt-14">
         <ChatPanel
           athleteId={athleteId}
-          initialMessage={prefillQ ? undefined : ONBOARDING_MESSAGE}
           prefillInput={prefillQ}
         />
       </div>

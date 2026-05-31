@@ -71,6 +71,7 @@ interface ChartPoint {
   elevation?: number;
   hr?: number;
   pace?: number;
+  cadence?: number;
   lat?: number;
   lng?: number;
 }
@@ -121,9 +122,11 @@ function PaceHRTooltip({
   if (!pt) return null;
   const hrEntry = payload.find((p) => p.dataKey === 'hr');
   const paceEntry = payload.find((p) => p.dataKey === 'pace');
+  const cadenceEntry = payload.find((p) => p.dataKey === 'cadence');
   const hr = hrEntry?.value != null ? Math.round(Number(hrEntry.value)) : null;
   const pace = paceEntry?.value != null ? Number(paceEntry.value) : null;
-  if (hr == null && (pace == null || pace <= 0)) return null;
+  const cadence = cadenceEntry?.value != null ? Math.round(Number(cadenceEntry.value)) : null;
+  if (hr == null && (pace == null || pace <= 0) && cadence == null) return null;
   return (
     <div className="surface-card px-2.5 py-1.5 text-[11px] space-y-0.5">
       <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
@@ -132,6 +135,9 @@ function PaceHRTooltip({
       )}
       {hr != null && (
         <p style={{color: COLORS.red}} className="font-medium">{hr} bpm</p>
+      )}
+      {cadence != null && (
+        <p style={{color: COLORS.purple}} className="font-medium">{cadence} spm</p>
       )}
     </div>
   );
@@ -200,6 +206,11 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
 function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
   const hasHR = data.some((p) => p.hr != null);
   const hasPace = data.some((p) => p.pace != null);
+  const hasCadence = data.some((p) => p.cadence != null);
+
+  const [showPace, setShowPace] = useState(true);
+  const [showHR, setShowHR] = useState(true);
+  const [showCadence, setShowCadence] = useState(false);
 
   const paceDomain = useMemo((): [number, number] | undefined => {
     if (!hasPace) return undefined;
@@ -212,21 +223,51 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
     return [sorted[0], q3 + 1.5 * iqr];
   }, [data, hasPace]);
 
-  if (!hasHR && !hasPace) return null;
+  const cadenceDomain = useMemo((): [number, number] | undefined => {
+    if (!hasCadence) return undefined;
+    const vals = data.flatMap((p) => (p.cadence != null ? [p.cadence] : []));
+    if (vals.length < 4) return undefined;
+    const min = Math.min(...vals);
+    const max = Math.max(...vals);
+    const pad = (max - min) * 0.1;
+    return [Math.max(0, min - pad), max + pad];
+  }, [data, hasCadence]);
+
+  const rightMargin = (hasHR && showHR ? 32 : 0) + (hasCadence && showCadence ? 32 : 0) + 4;
+
+  if (!hasHR && !hasPace && !hasCadence) return null;
   return (
     <div>
       <div className="flex items-center gap-3 mb-1.5">
         {hasPace && (
-          <span className="flex items-center gap-1.5 text-[10px] text-white/30 uppercase tracking-wide">
+          <button
+            onClick={() => setShowPace((v) => !v)}
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
+            style={{opacity: showPace ? 1 : 0.3, color: 'rgba(255,255,255,0.5)'}}
+          >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: color}} />
             Pace
-          </span>
+          </button>
         )}
         {hasHR && (
-          <span className="flex items-center gap-1.5 text-[10px] text-white/30 uppercase tracking-wide">
+          <button
+            onClick={() => setShowHR((v) => !v)}
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
+            style={{opacity: showHR ? 1 : 0.3, color: 'rgba(255,255,255,0.5)'}}
+          >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: COLORS.red}} />
             HR
-          </span>
+          </button>
+        )}
+        {hasCadence && (
+          <button
+            onClick={() => setShowCadence((v) => !v)}
+            className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
+            style={{opacity: showCadence ? 1 : 0.3, color: 'rgba(255,255,255,0.5)'}}
+          >
+            <span className="w-3 h-[2px] rounded-full inline-block" style={{background: COLORS.purple}} />
+            Cadence
+          </button>
         )}
       </div>
       <div className="h-[140px]">
@@ -234,7 +275,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <ComposedChart
             data={data}
             syncId={syncId}
-            margin={{top: 2, right: 36, left: -28, bottom: 0}}
+            margin={{top: 2, right: rightMargin, left: -28, bottom: 0}}
             onMouseLeave={() => onHover(null)}
           >
             <defs>
@@ -247,7 +288,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
             <YAxis
               yAxisId="pace"
               reversed
-              hide={!hasPace}
+              hide={!hasPace || !showPace}
               domain={paceDomain}
               allowDataOverflow
               tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
@@ -259,8 +300,20 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
             <YAxis
               yAxisId="hr"
               orientation="right"
-              hide={!hasHR}
+              hide={!hasHR || !showHR}
               domain={[100, 200]}
+              allowDataOverflow
+              tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(v) => `${v as number}`}
+              width={32}
+            />
+            <YAxis
+              yAxisId="cadence"
+              orientation="right"
+              hide={!hasCadence || !showCadence}
+              domain={cadenceDomain}
               allowDataOverflow
               tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
               axisLine={false}
@@ -272,7 +325,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
               content={<PaceHRTooltip onHover={onHover} color={color} />}
               cursor={{stroke: 'rgba(255,255,255,0.08)'}}
             />
-            {hasHR && (
+            {hasHR && showHR && (
               <Area
                 yAxisId="hr"
                 type="monotone"
@@ -284,7 +337,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
                 activeDot={{r: 3, fill: COLORS.red, strokeWidth: 0}}
               />
             )}
-            {hasPace && (
+            {hasPace && showPace && (
               <Line
                 yAxisId="pace"
                 type="monotone"
@@ -293,6 +346,17 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
                 strokeWidth={1.5}
                 dot={false}
                 activeDot={{r: 3, fill: color, strokeWidth: 0}}
+              />
+            )}
+            {hasCadence && showCadence && (
+              <Line
+                yAxisId="cadence"
+                type="monotone"
+                dataKey="cadence"
+                stroke={COLORS.purple}
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={{r: 3, fill: COLORS.purple, strokeWidth: 0}}
               />
             )}
           </ComposedChart>
@@ -433,6 +497,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
         elevation: pt.altitude > 0 ? pt.altitude : undefined,
         hr: pt.heartrate > 0 ? pt.heartrate : undefined,
         pace: pt.velocity > 0.5 ? 1 / (pt.velocity * 60 / 1000) : undefined,
+        cadence: pt.cadence ? pt.cadence * 2 : undefined,
         lat: pt.lat,
         lng: pt.lng,
       }));

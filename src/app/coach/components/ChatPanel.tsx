@@ -15,7 +15,7 @@ import {Composer} from '../chat/Composer';
 
 function ThinkingDots() {
   return (
-    <div className="flex gap-3 px-4 py-4">
+    <div className="flex gap-3 px-5 py-4">
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
         style={{background: 'var(--color-accent-dim)', color: 'var(--color-accent)'}}
@@ -224,12 +224,14 @@ function ChatContent({
       <div ref={scrollRef} className="flex-1 overflow-y-auto relative">
         <div className="min-h-full flex flex-col">
           {!hasMessages ? (
-            <EmptyState
-              onSend={async (text) => { sendMessage({text}); }}
-              onPrefill={setInput}
-            />
+            <div className="flex-1 flex flex-col max-w-3xl mx-auto w-full">
+              <EmptyState
+                onSend={async (text) => { sendMessage({text}); }}
+                onPrefill={setInput}
+              />
+            </div>
           ) : (
-            <div className="py-2">
+            <div className="max-w-3xl mx-auto w-full py-2">
               {messages.map((msg, msgIdx) => {
                 if (msg.role === 'user') {
                   return <MessageUser key={msg.id} msg={msg} />;
@@ -252,7 +254,7 @@ function ChatContent({
               {showThinking && <ThinkingDots />}
 
               {status === 'error' && (
-                <div className="flex justify-start px-4 py-2">
+                <div className="flex justify-start px-5 py-2">
                   <div className="max-w-[80%] rounded-2xl px-4 py-3 text-sm bg-red-500/10 border border-red-500/20 text-red-400">
                     {errorMsg ?? 'Something went wrong. Please try again.'}
                   </div>
@@ -273,15 +275,17 @@ function ChatContent({
         </AnimatePresence>
       </div>
 
-      {/* Composer */}
-      <Composer
-        athleteId={athleteId}
-        isLoading={isLoading}
-        input={input}
-        setInput={setInput}
-        onSend={doSend}
-        onStop={stop}
-      />
+      {/* Composer — same centred column as messages */}
+      <div className="max-w-3xl mx-auto w-full">
+        <Composer
+          athleteId={athleteId}
+          isLoading={isLoading}
+          input={input}
+          setInput={setInput}
+          onSend={doSend}
+          onStop={stop}
+        />
+      </div>
     </>
   );
 }
