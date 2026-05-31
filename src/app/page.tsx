@@ -182,8 +182,8 @@ function StatPill({label, sublabel, value, prev, color, isLoading, info}: StatPi
         <>
           <div className='flex items-center gap-1.5 mb-1'>
             <span className='metric-label'>{label}</span>
-            <span style={{color: 'var(--color-text-3)'}}>·</span>
-            <span className='text-xs' style={{color: 'var(--color-text-3)'}}>{sublabel}</span>
+            <span style={{color: 'var(--color-text-2)'}}>·</span>
+            <span className='text-xs' style={{color: 'var(--color-text-2)'}}>{sublabel}</span>
             {info && (
               <div className='relative group flex-shrink-0'>
                 <button
@@ -408,13 +408,12 @@ function TodayWorkoutStrip() {
         <Link
           href='/coach'
           className='surface-card flex items-center gap-4 px-5 py-3.5 group transition-colors hover:border-[var(--color-accent)]/30'
-          style={{borderLeftWidth: '2px', borderLeftColor: 'var(--color-text-3)'}}
         >
           <span className='metric-label'>Today</span>
           <span className='text-sm' style={{color: 'var(--color-text-2)'}}>
             {!plan ? 'No training plan set up' : 'Rest day'}
           </span>
-          <span className='ml-auto text-sm group-hover:translate-x-0.5 transition-transform' style={{color: 'var(--color-text-3)'}}>
+          <span className='ml-auto text-sm group-hover:translate-x-0.5 transition-transform' style={{color: 'var(--color-text-2)'}}>
             {!plan ? 'Set up plan →' : ''}
           </span>
         </Link>
@@ -436,7 +435,6 @@ function TodayWorkoutStrip() {
       <Link
         href='/plan'
         className='surface-card flex items-center gap-4 px-5 py-3.5 group transition-colors hover:border-[var(--color-accent)]/30'
-        style={{borderLeftWidth: '2px', borderLeftColor: 'var(--color-accent)'}}
       >
         <span className='metric-label'>Today</span>
         <span className='text-sm font-medium' style={{color: 'var(--color-text-1)'}}>{label}</span>

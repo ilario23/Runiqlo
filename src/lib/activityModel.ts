@@ -86,6 +86,7 @@ export const COLORS = {
   orange: '#ff9f0a',
   red: '#ff453a',
   purple: '#bf5af2',
+  cyan: '#64d2ff',
   gold: '#f59e0b',
 } as const;
 

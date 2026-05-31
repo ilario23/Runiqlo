@@ -12,7 +12,10 @@
   --color-accent-orange: #ff9f0a;
   --color-accent-red: #ff453a;
   --color-accent-purple: #bf5af2;
+  --color-accent-cyan: #64d2ff;
   --color-gold: #f59e0b;
+  --color-medal-silver: #9ca3af;
+  --color-medal-bronze: #cd7f32;
 }
 
 :root {
@@ -172,11 +175,16 @@ body {
   bottom: max(6px, calc(env(safe-area-inset-bottom) + 4px));
   left: 50%;
   transform: translateX(-50%);
-  width: var(--lineWidth, 0px);
+  width: var(--lineWidth, 20px);
   height: 2px;
   border-radius: 999px;
   background-color: var(--component-active-color, var(--component-active-color-default));
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.menu__item.active::after {
+  opacity: 1;
 }
 
 .menu__item.active {

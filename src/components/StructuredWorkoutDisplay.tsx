@@ -3,26 +3,26 @@
 import type {WorkoutBlock, WorkoutStep, RepeatBlock} from '@/lib/coachTypes';
 import {isRepeatBlock, formatDuration} from '@/lib/workoutUtils';
 
-const STEP_STYLE: Record<string, {border: string; bg: string; label: string}> = {
+const STEP_STYLE: Record<string, {dot: string; bg: string; label: string}> = {
   warmup: {
-    border: 'border-l-[var(--color-accent-orange)]',
-    bg: 'bg-[color-mix(in_srgb,var(--color-accent-orange)_7%,transparent)]',
+    dot: 'bg-[var(--color-accent-orange)]',
+    bg: 'bg-[color-mix(in_srgb,var(--color-accent-orange)_8%,transparent)]',
     label: 'text-[var(--color-accent-orange)]',
   },
   training: {
-    border: 'border-l-[var(--color-accent-green)]',
-    bg: 'bg-[color-mix(in_srgb,var(--color-accent-green)_7%,transparent)]',
+    dot: 'bg-[var(--color-accent-green)]',
+    bg: 'bg-[color-mix(in_srgb,var(--color-accent-green)_8%,transparent)]',
     label: 'text-[var(--color-accent-green)]',
   },
   rest: {
-    border: 'border-l-[var(--color-accent-blue)]',
-    bg: 'bg-[color-mix(in_srgb,var(--color-accent-blue)_7%,transparent)]',
+    dot: 'bg-[var(--color-accent-blue)]',
+    bg: 'bg-[color-mix(in_srgb,var(--color-accent-blue)_8%,transparent)]',
     label: 'text-[var(--color-accent-blue)]',
   },
   cooldown: {
-    border: 'border-l-[#64d2ff]',
-    bg: 'bg-[color-mix(in_srgb,#64d2ff_7%,transparent)]',
-    label: 'text-[#64d2ff]',
+    dot: 'bg-[var(--color-accent-cyan)]',
+    bg: 'bg-[color-mix(in_srgb,var(--color-accent-cyan)_8%,transparent)]',
+    label: 'text-[var(--color-accent-cyan)]',
   },
 };
 
@@ -36,16 +36,15 @@ const STEP_LABELS: Record<string, string> = {
 function StepRow({step, nested}: {step: WorkoutStep; nested?: boolean}) {
   const sty = STEP_STYLE[step.stepType] ?? STEP_STYLE.training;
   return (
-    <div
-      className={`flex items-stretch px-3 py-2.5 ${
-        nested ? '' : `border-l-[3px] ${sty.border} ${sty.bg} rounded-r-xl`
-      }`}
-    >
+    <div className={`flex items-stretch rounded-xl px-3 py-2.5 ${nested ? '' : sty.bg}`}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
-          <span className={`text-[10px] uppercase tracking-widest font-semibold ${sty.label}`}>
-            {STEP_LABELS[step.stepType] ?? step.stepType}
-          </span>
+          <div className="flex items-center gap-1.5">
+            {!nested && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sty.dot}`} />}
+            <span className={`text-[10px] uppercase tracking-widest font-semibold ${sty.label}`}>
+              {STEP_LABELS[step.stepType] ?? step.stepType}
+            </span>
+          </div>
           <span className="text-xs font-mono text-white/70 tabular-nums">
             {formatDuration(step.durationSeconds)}
           </span>
@@ -81,7 +80,7 @@ function RepeatContainer({block}: {block: RepeatBlock}) {
         {block.steps.map((step, i) => {
           const sty = STEP_STYLE[step.stepType] ?? STEP_STYLE.training;
           return (
-            <div key={i} className={`border-l-[3px] ${sty.border} ${sty.bg}`}>
+            <div key={i} className={sty.bg}>
               <StepRow step={step} nested />
             </div>
           );

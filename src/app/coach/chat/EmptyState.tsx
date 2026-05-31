@@ -28,9 +28,9 @@ export function EmptyState({onSend, onPrefill}: EmptyStateProps) {
 
       {/* Copy */}
       <div className="space-y-1.5">
-        <h2 className="text-base font-semibold text-white">Your AI running coach</h2>
-        <p className="text-sm text-[var(--color-text-3)] max-w-[220px] leading-relaxed">
-          Ask about training, request a weekly plan, or share how you're feeling.
+        <h2 className="text-base font-semibold text-white">Ask your coach</h2>
+        <p className="text-sm max-w-[240px] leading-relaxed" style={{color: 'var(--color-text-2)'}}>
+          Get a weekly plan, interpret your fitness data, or talk through how a session went.
         </p>
       </div>
 

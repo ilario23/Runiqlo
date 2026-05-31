@@ -195,7 +195,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
 
       {/* Coach notes */}
       {plan?.coachNotes && (
-        <div className="mb-3 rounded-xl border-l-2 border-[var(--color-accent)] bg-[var(--color-accent-dim)] px-3 py-2 text-xs text-white/70 leading-relaxed">
+        <div className="mb-3 rounded-xl bg-[var(--color-accent-dim)] px-3 py-2 text-xs text-white/70 leading-relaxed">
           <span className="text-[var(--color-accent)] font-semibold">Coach · </span>{plan.coachNotes}
         </div>
       )}
@@ -364,7 +364,7 @@ function getZoneColor(intensityDescription: string | null | undefined): string {
 
 const CONVERT_SPORT_CONFIG: Record<ConvertibleSport, {label: string; icon: LucideIcon; color: string}> = {
   cycling: {label: 'Bike',  icon: Bike,       color: 'border-accent-blue/40 bg-accent-blue/10 text-accent-blue hover:bg-accent-blue/20'},
-  swim:     {label: 'Swim',  icon: Waves,      color: 'border-[#64d2ff]/40 bg-[#64d2ff]/10 text-[#64d2ff] hover:bg-[#64d2ff]/20'},
+  swim:     {label: 'Swim',  icon: Waves,      color: 'border-accent-cyan/40 bg-accent-cyan/10 text-accent-cyan hover:bg-accent-cyan/20'},
   walk:     {label: 'Walk',  icon: Footprints, color: 'border-accent-green/40 bg-accent-green/10 text-accent-green hover:bg-accent-green/20'},
   hike:     {label: 'Hike',  icon: Mountain,   color: 'border-accent-green/40 bg-accent-green/10 text-accent-green hover:bg-accent-green/20'},
 };
@@ -411,13 +411,13 @@ function WorkoutDetailPanel({
     long_run:     {color: 'border-accent-green/30 bg-accent-green/5',   icon: TrendingUp, iconColor: 'text-accent-green',  accent: COLORS.green},
     tempo_run:    {color: 'border-accent-yellow/30 bg-accent-yellow/5', icon: Zap,        iconColor: 'text-accent-yellow', accent: COLORS.yellow},
     interval_run: {color: 'border-accent-red/30 bg-accent-red/5',       icon: Timer,      iconColor: 'text-accent-red',    accent: COLORS.red},
-    recovery_run: {color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',         icon: Wind,       iconColor: 'text-[#64d2ff]',     accent: '#64d2ff'},
+    recovery_run: {color: 'border-accent-cyan/30 bg-accent-cyan/5',       icon: Wind,       iconColor: 'text-accent-cyan',   accent: COLORS.cyan},
     gym:          {color: 'border-accent-orange/30 bg-accent-orange/5', icon: Dumbbell,   iconColor: 'text-accent-orange', accent: COLORS.orange},
     cycling:      {color: 'border-accent-blue/30 bg-accent-blue/5',     icon: Bike,       iconColor: 'text-accent-blue',   accent: COLORS.blue},
     yoga:         {color: 'border-accent-purple/30 bg-accent-purple/5', icon: Leaf,       iconColor: 'text-accent-purple', accent: COLORS.purple},
-    cross_training:{color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',        icon: Shuffle,    iconColor: 'text-[#64d2ff]',     accent: '#64d2ff'},
+    cross_training:{color: 'border-accent-cyan/30 bg-accent-cyan/5',      icon: Shuffle,    iconColor: 'text-accent-cyan',   accent: COLORS.cyan},
     rest:         {color: 'border-white/10 bg-white/[0.02]',            icon: Moon,       iconColor: 'text-white/30',      accent: '#ffffff60'},
-    swim:         {color: 'border-[#64d2ff]/30 bg-[#64d2ff]/5',         icon: Waves,      iconColor: 'text-[#64d2ff]',     accent: '#64d2ff'},
+    swim:         {color: 'border-accent-cyan/30 bg-accent-cyan/5',       icon: Waves,      iconColor: 'text-accent-cyan',   accent: COLORS.cyan},
     walk:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Footprints, iconColor: 'text-accent-green',  accent: COLORS.green},
     hike:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Mountain,   iconColor: 'text-accent-green',  accent: COLORS.green},
   };

@@ -56,17 +56,19 @@ const InteractiveMenu: React.FC<InteractiveMenuProps> = ({
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
-    const setLineWidth = () => {
-      const activeItemEl = itemRefs.current[activeIndex];
-      const activeTextEl = textRefs.current[activeIndex];
-      if (activeItemEl && activeTextEl) {
-        activeItemEl.style.setProperty('--lineWidth', `${activeTextEl.offsetWidth}px`);
-      }
+    const setLineWidths = () => {
+      finalItems.forEach((_, i) => {
+        const itemEl = itemRefs.current[i];
+        const textEl = textRefs.current[i];
+        if (itemEl && textEl) {
+          itemEl.style.setProperty('--lineWidth', `${textEl.offsetWidth}px`);
+        }
+      });
     };
-    setLineWidth();
-    window.addEventListener('resize', setLineWidth);
-    return () => window.removeEventListener('resize', setLineWidth);
-  }, [activeIndex, finalItems]);
+    setLineWidths();
+    window.addEventListener('resize', setLineWidths);
+    return () => window.removeEventListener('resize', setLineWidths);
+  }, [finalItems]);
 
   const handleItemClick = (index: number) => {
     if (!isControlled) setInternalActiveIndex(index);
@@ -90,6 +92,7 @@ const InteractiveMenu: React.FC<InteractiveMenuProps> = ({
             onClick={() => handleItemClick(index)}
             ref={(el) => { itemRefs.current[index] = el; }}
             style={{ '--lineWidth': '0px' } as React.CSSProperties}
+            aria-current={isActive ? 'page' : undefined}
           >
             <div className="menu__icon">
               <IconComponent className="icon" />
