@@ -7,7 +7,7 @@ import {usePathname, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {CleanMotionBackground} from '@/components/ui/animated-tabs-background';
 import {InteractiveMenu, type InteractiveMenuItem} from '@/components/ui/modern-mobile-menu';
-import {LayoutDashboard, Activity, CalendarRange, Bot} from 'lucide-react';
+import {LayoutDashboard, Activity, CalendarRange, Bot, LineChart} from 'lucide-react';
 
 interface AppHeaderProps {
   onRefresh?: () => Promise<void>;
@@ -16,6 +16,7 @@ interface AppHeaderProps {
 const MOBILE_NAV_ITEMS: (InteractiveMenuItem & { href: string; exact: boolean })[] = [
   {label: 'dashboard', icon: LayoutDashboard, href: '/', exact: true},
   {label: 'activities', icon: Activity, href: '/activities', exact: false},
+  {label: 'fitness', icon: LineChart, href: '/fitness', exact: false},
   {label: 'plan', icon: CalendarRange, href: '/plan', exact: false},
   {label: 'coach', icon: Bot, href: '/coach', exact: true},
 ];
@@ -40,6 +41,17 @@ const NAV_LINKS = [
     icon: (
       <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
         <polyline points='22 12 18 12 15 21 9 3 6 12 2 12' />
+      </svg>
+    ),
+    exact: false,
+  },
+  {
+    href: '/fitness',
+    label: 'Fitness',
+    icon: (
+      <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+        <path d='M3 3v18h18' />
+        <path d='M19 9l-5 5-4-4-3 3' />
       </svg>
     ),
     exact: false,
