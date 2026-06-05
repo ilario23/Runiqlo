@@ -43,6 +43,7 @@ next-env.d.ts
 # .claude skills
 .claude/skills/*
 .agents/skills/*
+.impeccable/
 
 MOBILE_SPEC.md
 CAPABILITY.md
