@@ -1,18 +1,21 @@
 'use client';
 
-import {useState, useMemo, useEffect, useRef} from 'react';
+import {useState, useMemo, useEffect, useRef, useCallback} from 'react';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import {ConnectPrompt} from '@/components/ConnectPrompt';
 import {motion, AnimatePresence} from 'framer-motion';
 import {
-  AreaChart,
+  ComposedChart,
   Area,
+  Line,
   XAxis,
+  YAxis,
+  ReferenceLine,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
 } from 'recharts';
-import {ArrowRight, Info, ChevronRight} from 'lucide-react';
+import {ArrowRight, ChevronRight} from 'lucide-react';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {
   useDashboardActivities,
@@ -71,9 +74,13 @@ function useCountUp(target: number | undefined, duration = 550): number | undefi
       setDisplay(undefined);
       return;
     }
-    const from = prev.current ?? target;
+    const from = prev.current;
     prev.current = target;
-    if (from === target) return;
+    // First real value (or unchanged): show it immediately, no tween.
+    if (from === undefined || from === target) {
+      setDisplay(target);
+      return;
+    }
     const start = performance.now();
     const tick = (now: number) => {
       const t = Math.min((now - start) / duration, 1);
@@ -94,231 +101,199 @@ function SectionLabel({children}: {children: React.ReactNode}) {
   return <p className="metric-label mb-3 px-0.5">{children}</p>;
 }
 
-// ── Chart tooltip ──
+// ── TSB → status mapping (single source of truth) ──
 
-interface ChartTooltipProps {
+type TsbStatus = {label: string; sub: string; color: string};
+
+function tsbStatus(tsb: number | undefined): TsbStatus | null {
+  if (tsb === undefined) return null;
+  if (tsb > 5) return {label: 'Fresh', sub: 'Good day to push hard', color: COLORS.green};
+  if (tsb > -10) return {label: 'Building', sub: 'Productive training load', color: COLORS.blue};
+  if (tsb > -20) return {label: 'Loaded', sub: 'High training stress', color: COLORS.orange};
+  return {label: 'Fatigued', sub: 'Recovery is the priority', color: COLORS.red};
+}
+
+// ── PMC tooltip — all three series at the hovered day ──
+
+interface PmcTooltipProps {
   active?: boolean;
-  payload?: Array<{name: string; value: number; color: string}>;
+  payload?: Array<{value: number; dataKey: string}>;
   label?: string;
 }
 
-function ChartTooltip({active, payload, label}: ChartTooltipProps) {
+function PmcTooltip({active, payload, label}: PmcTooltipProps) {
   if (!active || !payload?.length || !label) return null;
+  const get = (k: string) => payload.find((p) => p.dataKey === k)?.value;
+  const tsbVal = get('tsb');
+  const rows: Array<{name: string; value: number | undefined; color: string; signed?: boolean}> = [
+    {name: 'Fitness · CTL', value: get('ctl'), color: COLORS.blue},
+    {name: 'Fatigue · ATL', value: get('atl'), color: COLORS.orange},
+    {name: 'Form · TSB', value: tsbVal, color: tsbStatus(tsbVal)?.color ?? COLORS.green, signed: true},
+  ];
   return (
-    <div className="surface-card px-3 py-2.5 text-xs space-y-1 min-w-[120px]">
-      <p className="mb-1.5" style={{color: 'var(--color-text-2)'}}>{fmtDate(label)}</p>
-      {payload.map((p) => (
-        <div key={p.name} className="flex items-center justify-between gap-3">
+    <div className="surface-card px-3 py-2.5 text-xs space-y-1.5 min-w-[156px]">
+      <p style={{color: 'var(--color-text-2)'}}>{fmtDate(label)}</p>
+      {rows.map((r) => (
+        <div key={r.name} className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full inline-block" style={{background: p.color}} />
-            <span style={{color: 'var(--color-text-2)'}}>{p.name}</span>
+            <span className="w-1.5 h-1.5 rounded-full inline-block" style={{background: r.color}} />
+            <span style={{color: 'var(--color-text-2)'}}>{r.name}</span>
           </span>
-          <span className="font-mono font-medium" style={{color: 'var(--color-text-1)'}}>{p.value?.toFixed(1)}</span>
+          <span className="font-mono font-medium tabular-nums" style={{color: 'var(--color-text-1)'}}>
+            {typeof r.value === 'number'
+              ? `${r.signed && r.value > 0 ? '+' : ''}${r.value.toFixed(1)}`
+              : '—'}
+          </span>
         </div>
       ))}
     </div>
   );
 }
 
-// ── Stat Pill (CTL / ATL) ──
+// ── [1a] Form & Fitness — Performance Management Chart (CTL · ATL · TSB over time) ──
 
-interface StatPillProps {
-  label: string;
-  sublabel: string;
-  value: number | undefined;
-  prev: number | undefined;
-  color: string;
-  isLoading: boolean;
-  info?: string;
-}
+const PMC_RANGES = [
+  {key: '6w', label: '6W', days: 42},
+  {key: '3m', label: '3M', days: 90},
+  {key: '1y', label: '1Y', days: 365},
+] as const;
+type PmcRangeKey = (typeof PMC_RANGES)[number]['key'];
 
-function StatPill({label, sublabel, value, prev, color, isLoading, info}: StatPillProps) {
-  const animated = useCountUp(value);
-  const delta = typeof value === 'number' && typeof prev === 'number' ? value - prev : undefined;
-  const isUp = delta !== undefined && delta > 0;
-  const isDown = delta !== undefined && delta < 0;
-  const [tooltipOpen, setTooltipOpen] = useState(false);
-
-  return (
-    <div className="surface-raised px-4 py-3 flex-1 sm:flex-none sm:min-w-[120px]">
-      {isLoading ? (
-        <>
-          <Skeleton className="h-2.5 w-12 mb-2" />
-          <Skeleton className="h-7 w-16" />
-        </>
-      ) : (
-        <>
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="metric-label">{label}</span>
-            <span style={{color: 'var(--color-text-2)'}}>·</span>
-            <span className="text-xs" style={{color: 'var(--color-text-2)'}}>{sublabel}</span>
-            {info && (
-              <div className="relative group flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setTooltipOpen((o) => !o)}
-                  className="flex items-center cursor-pointer"
-                  aria-label={`What is ${label}?`}
-                >
-                  <Info size={10} className="transition-colors" style={{color: 'var(--color-text-3)'}} />
-                </button>
-                <div
-                  className={`absolute right-0 top-5 w-52 p-3 rounded-xl text-xs leading-relaxed transition-opacity duration-150 z-50 ${tooltipOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 pointer-events-none'}`}
-                  style={{
-                    background: 'var(--color-surface-2)',
-                    border: '1px solid var(--color-border)',
-                    color: 'var(--color-text-2)',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-                  }}
-                >
-                  {info}
-                </div>
-              </div>
-            )}
-          </div>
-          <p className="text-2xl font-bold font-mono tabular-nums leading-tight" style={{color}}>
-            {typeof animated === 'number' ? animated.toFixed(1) : '—'}
-          </p>
-          {delta !== undefined && (
-            <p
-              className={`text-xs font-mono mt-0.5 ${isUp ? 'text-accent-green' : isDown ? 'text-accent-red' : ''}`}
-              style={!isUp && !isDown ? {color: 'var(--color-text-3)'} : {}}
-            >
-              {isUp ? '↑' : isDown ? '↓' : '→'} {Math.abs(delta).toFixed(1)} vs 7d
-            </p>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── TSB Sparkline ──
-
-function TsbSparkline({data, color}: {data: number[]; color: string}) {
-  if (data.length < 2) return null;
-  const min = Math.min(...data);
-  const max = Math.max(...data);
-  const range = max - min || 1;
-  const zeroY = 100 - ((0 - min) / range) * 80 - 10;
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * 100;
-      const y = 100 - ((v - min) / range) * 80 - 10;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-  return (
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full">
-      {min < 0 && max > 0 && (
-        <line
-          x1="0" y1={zeroY} x2="100" y2={zeroY}
-          stroke="white" strokeWidth="1" opacity={0.06}
-          vectorEffect="non-scaling-stroke" strokeDasharray="3,3"
-        />
-      )}
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        vectorEffect="non-scaling-stroke"
-        opacity={0.6}
-      />
-    </svg>
-  );
-}
-
-// ── [1a] Form Hero (TSB) ──
-
-function FormHero({
+function FormFitnessChart({
   fitnessData,
   fitnessLoading,
 }: {
   fitnessData: FitnessDataPoint[] | undefined;
   fitnessLoading: boolean;
 }) {
-  const last = fitnessData?.[fitnessData.length - 1];
-  const prev7 = fitnessData?.[fitnessData.length - 8];
+  const [range, setRange] = useState<PmcRangeKey>('3m');
+  const days = PMC_RANGES.find((r) => r.key === range)!.days;
 
+  const last = fitnessData?.[fitnessData.length - 1];
   const tsb = last?.tsb;
   const ctl = last?.ctl;
   const atl = last?.atl;
+  const status = tsbStatus(tsb);
   const animatedTSB = useCountUp(tsb);
+  const formColor = status?.color ?? COLORS.green;
 
-  const status =
-    tsb === undefined
-      ? null
-      : tsb > 5
-      ? {label: 'Fresh', sub: 'Good day to push hard', color: COLORS.green}
-      : tsb > -10
-      ? {label: 'Building', sub: 'Normal training load', color: COLORS.blue}
-      : tsb > -20
-      ? {label: 'Loaded', sub: 'High training stress', color: COLORS.orange}
-      : {label: 'Fatigued', sub: 'Recovery priority', color: COLORS.red};
-
-  const tsbHistory = useMemo(
-    () => fitnessData?.slice(-14).map((d) => d.tsb) ?? [],
-    [fitnessData],
-  );
+  const data = useMemo(() => fitnessData?.slice(-days) ?? [], [fitnessData, days]);
 
   return (
-    <div
-      className="surface-card relative overflow-hidden h-full p-6 md:p-7 flex flex-col justify-between"
-      style={{minHeight: 230}}
-    >
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{background: 'radial-gradient(ellipse 50% 70% at 0% 40%, var(--color-accent-dim) 0%, transparent 70%)'}}
-      />
-
-      <div className="relative">
-        <div className="flex items-center justify-between">
-          <p className="metric-label">Form · TSB</p>
-          {tsbHistory.length >= 2 && (
-            <div className="w-20 h-7 opacity-90">
-              <TsbSparkline data={tsbHistory} color={status?.color ?? COLORS.blue} />
+    <div className="surface-card h-full p-6 md:p-7 flex flex-col" style={{minHeight: 340}}>
+      {/* Header — current form readout + time range */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p className="metric-label">Form &amp; Fitness</p>
+          {fitnessLoading && tsb === undefined ? (
+            <Skeleton className="h-9 w-28 mt-2" />
+          ) : (
+            <div className="mt-2 flex items-baseline gap-2.5 flex-wrap">
+              <span
+                className="text-[2.75rem] font-bold font-mono tabular-nums leading-none"
+                style={{color: formColor, letterSpacing: '-0.03em'}}
+              >
+                {typeof animatedTSB === 'number' ? `${animatedTSB > 0 ? '+' : ''}${animatedTSB.toFixed(1)}` : '—'}
+              </span>
+              {status && (
+                <span className="text-base font-semibold" style={{color: 'var(--color-text-1)'}}>
+                  {status.label}
+                </span>
+              )}
             </div>
+          )}
+          {status && (
+            <p className="text-sm mt-1" style={{color: 'var(--color-text-2)'}}>
+              {status.sub} · Training Stress Balance
+            </p>
           )}
         </div>
 
-        {fitnessLoading && tsb === undefined ? (
-          <div className="mt-4 space-y-2">
-            <Skeleton className="h-16 w-32" />
-            <Skeleton className="h-4 w-40" />
-          </div>
-        ) : (
-          <div className="mt-3">
-            <p className="metric-display" style={{color: status?.color ?? 'var(--color-text-1)'}}>
-              {typeof animatedTSB === 'number' ? `${animatedTSB > 0 ? '+' : ''}${animatedTSB.toFixed(1)}` : '—'}
-            </p>
-            {status && (
-              <div className="mt-2">
-                <p className="text-base font-semibold leading-tight" style={{color: 'var(--color-text-1)'}}>
-                  {status.label}
-                </p>
-                <p className="text-sm mt-0.5" style={{color: 'var(--color-text-2)'}}>{status.sub}</p>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="flex gap-0.5 surface-raised p-0.5" role="group" aria-label="Chart time range">
+          {PMC_RANGES.map((r) => {
+            const selected = range === r.key;
+            return (
+              <button
+                key={r.key}
+                type="button"
+                onClick={() => setRange(r.key)}
+                aria-pressed={selected}
+                className="px-2.5 py-1 rounded-[7px] text-xs font-medium transition-colors"
+                style={
+                  selected
+                    ? {background: 'var(--color-surface-2)', color: 'var(--color-text-1)'}
+                    : {color: 'var(--color-text-2)'}
+                }
+              >
+                {r.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* CTL + ATL */}
-      <div className="relative flex gap-3 mt-6">
-        <StatPill
-          label="CTL" sublabel="Fitness" value={ctl} prev={prev7?.ctl}
-          color={COLORS.blue} isLoading={fitnessLoading && ctl === undefined}
-          info="Chronic Training Load — 42-day EWMA. Higher = more fit. Builds slowly over weeks."
-        />
-        <StatPill
-          label="ATL" sublabel="Fatigue" value={atl} prev={prev7?.atl}
-          color={COLORS.orange} isLoading={fitnessLoading && atl === undefined}
-          info="Acute Training Load — 7-day EWMA. Spikes after hard weeks, drops quickly with rest."
-        />
+      {/* Legend — current CTL / ATL values, Form series key */}
+      <div className="flex items-center gap-5 mt-4 text-xs flex-wrap">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-0.5 rounded inline-block" style={{background: COLORS.blue}} />
+          <span style={{color: 'var(--color-text-2)'}}>Fitness</span>
+          <span className="font-mono font-semibold tabular-nums" style={{color: 'var(--color-text-1)'}}>{fmtNum(ctl)}</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-0.5 rounded inline-block opacity-70" style={{background: COLORS.orange}} />
+          <span style={{color: 'var(--color-text-2)'}}>Fatigue</span>
+          <span className="font-mono font-semibold tabular-nums" style={{color: 'var(--color-text-1)'}}>{fmtNum(atl)}</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 inline-block border-t border-dashed" style={{borderColor: formColor}} />
+          <span style={{color: 'var(--color-text-2)'}}>Form</span>
+        </span>
+      </div>
+
+      {/* Chart — CTL area, ATL line (left axis); TSB line (right axis, 0-baseline) */}
+      <div className="flex-1 mt-4 min-h-[200px]">
+        {fitnessLoading || data.length === 0 ? (
+          <Skeleton className="h-full w-full" />
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={data} margin={{top: 6, right: 0, left: 0, bottom: 0}}>
+              <defs>
+                <linearGradient id="gradCTL" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={COLORS.blue} stopOpacity={0.28} />
+                  <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="date"
+                tickFormatter={fmtDate}
+                tick={{fill: 'var(--color-text-3)', fontSize: 10}}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+                minTickGap={44}
+              />
+              <YAxis yAxisId="load" hide domain={[0, 'dataMax + 8']} />
+              <YAxis yAxisId="tsb" hide domain={['dataMin - 5', 'dataMax + 5']} />
+              <ReferenceLine yAxisId="tsb" y={0} stroke="var(--color-border)" strokeDasharray="3 3" />
+              <RechartsTooltip content={<PmcTooltip />} cursor={{stroke: 'var(--color-border)', strokeWidth: 1}} />
+              <Area
+                yAxisId="load" type="monotone" dataKey="ctl" name="CTL"
+                stroke={COLORS.blue} strokeWidth={2.5} fill="url(#gradCTL)"
+                dot={false} activeDot={{r: 4, fill: COLORS.blue}}
+              />
+              <Line
+                yAxisId="load" type="monotone" dataKey="atl" name="ATL"
+                stroke={COLORS.orange} strokeWidth={1.5} strokeOpacity={0.75}
+                dot={false} activeDot={{r: 3, fill: COLORS.orange}}
+              />
+              <Line
+                yAxisId="tsb" type="monotone" dataKey="tsb" name="TSB"
+                stroke={formColor} strokeWidth={2} strokeDasharray="4 3"
+                dot={false} activeDot={{r: 4, fill: formColor}}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
@@ -329,17 +304,53 @@ function FormHero({
 function TodayWorkoutCard() {
   const {athlete} = useStravaAuth();
   const [plan, setPlan] = useState<WeeklyPlan | null | undefined>(undefined);
+  const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!athlete?.id) return;
+    setError(false);
+    setPlan(undefined);
     const weekStart = getMondayISO();
     fetch(`/api/coach/week?athleteId=${athlete.id}&weekStart=${weekStart}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => setPlan(data ?? null))
-      .catch(() => setPlan(null));
+      .catch(() => setError(true));
   }, [athlete?.id]);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const todayLabel = new Date().toLocaleDateString('en-US', {weekday: 'long', month: 'short', day: 'numeric'});
+
+  // Network / server error — distinct from "no plan"
+  if (error) {
+    return (
+      <div className="surface-card h-full p-6 flex flex-col" style={{minHeight: 230}}>
+        <SectionLabel>Today · {todayLabel}</SectionLabel>
+        <div className="flex-1 flex flex-col justify-center">
+          <p className="text-base font-semibold" style={{color: 'var(--color-text-1)'}}>
+            Couldn&apos;t load today&apos;s workout
+          </p>
+          <p className="text-sm mt-1.5" style={{color: 'var(--color-text-2)'}}>
+            Check your connection and try again.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={load}
+          className="inline-flex items-center gap-1.5 text-sm font-medium mt-4 w-fit transition-colors hover:text-[var(--color-text-1)]"
+          style={{color: 'var(--color-accent)'}}
+        >
+          Retry
+          <ArrowRight size={15} />
+        </button>
+      </div>
+    );
+  }
 
   // Loading
   if (plan === undefined) {
@@ -416,9 +427,12 @@ function TodayWorkoutCard() {
     <Link
       href="/plan"
       className="surface-card group h-full p-6 flex flex-col transition-colors hover:border-[var(--color-accent)]/30"
-      style={{minHeight: 230, borderLeftWidth: 3, borderLeftColor: 'var(--color-accent)'}}
+      style={{minHeight: 230}}
     >
-      <SectionLabel>Today · {todayLabel}</SectionLabel>
+      <div className="flex items-center gap-2">
+        <span className="dot-breathe w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: 'var(--color-accent)'}} />
+        <SectionLabel>Today · {todayLabel}</SectionLabel>
+      </div>
       <div className="flex-1 flex flex-col justify-center">
         <h2 className="text-2xl font-bold leading-tight" style={{color: 'var(--color-text-1)', letterSpacing: '-0.01em'}}>
           {label}
@@ -454,7 +468,7 @@ function LastRunCard({
 
   if (isLoading) {
     return (
-      <div className="surface-card p-6 h-full" style={{borderLeftWidth: 3, borderLeftColor: 'var(--color-surface-1)'}}>
+      <div className="surface-card p-6 h-full">
         <Skeleton className="h-3 w-24" />
         <Skeleton className="h-7 w-64 mt-3" />
         <div className="flex gap-8 mt-6">
@@ -491,7 +505,6 @@ function LastRunCard({
     <Link
       href={`/activities/${run.id}`}
       className="surface-card group block p-6 h-full transition-colors hover:border-[rgba(255,255,255,0.09)]"
-      style={{borderLeftWidth: 3, borderLeftColor: color}}
     >
       <div className="flex items-start gap-3 mb-5">
         <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{background: color}} />
@@ -583,93 +596,6 @@ function ThisWeekCard({
             <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </>
-      )}
-    </div>
-  );
-}
-
-// ── [3] Training Load (CTL + TSB) ──
-
-function TrainingLoadCard({
-  data,
-  currentCTL,
-  currentATL,
-  currentTSB,
-  isLoading,
-}: {
-  data: FitnessDataPoint[] | undefined;
-  currentCTL: number | undefined;
-  currentATL: number | undefined;
-  currentTSB: number | undefined;
-  isLoading: boolean;
-}) {
-  const last90 = data?.slice(-90) ?? [];
-
-  const tsbColor =
-    typeof currentTSB === 'number'
-      ? currentTSB > 5 ? COLORS.green : currentTSB < -10 ? COLORS.red : COLORS.yellow
-      : undefined;
-
-  return (
-    <div className="surface-card p-6 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
-        <div>
-          <h2 className="text-sm font-semibold" style={{color: 'var(--color-text-1)'}}>Training Load</h2>
-          <p className="text-xs mt-0.5" style={{color: 'var(--color-text-2)'}}>Last 90 days</p>
-        </div>
-
-        <div className="flex items-center gap-5 text-xs">
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 rounded inline-block" style={{background: COLORS.blue}} />
-            <span style={{color: 'var(--color-text-2)'}}>CTL</span>
-            <span className="font-mono font-semibold ml-0.5 tabular-nums" style={{color: 'var(--color-text-1)'}}>
-              {isLoading ? '—' : fmtNum(currentCTL)}
-            </span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-0.5 rounded inline-block opacity-60" style={{background: COLORS.orange}} />
-            <span style={{color: 'var(--color-text-2)'}}>ATL</span>
-            <span className="font-mono font-semibold ml-0.5 tabular-nums" style={{color: 'var(--color-text-1)'}}>
-              {isLoading ? '—' : fmtNum(currentATL)}
-            </span>
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-3 h-px rounded inline-block" style={{background: tsbColor ?? COLORS.yellow, borderTop: '1px dashed'}} />
-            <span style={{color: 'var(--color-text-2)'}}>TSB</span>
-            <span className="font-mono font-semibold ml-0.5 tabular-nums" style={{color: tsbColor ?? 'var(--color-text-1)'}}>
-              {isLoading ? '—' : typeof currentTSB === 'number' ? `${currentTSB > 0 ? '+' : ''}${currentTSB.toFixed(1)}` : '—'}
-            </span>
-          </span>
-        </div>
-      </div>
-
-      {isLoading || last90.length === 0 ? (
-        <Skeleton className="h-[200px]" />
-      ) : (
-        <div className="h-[200px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={last90} margin={{top: 4, right: 4, left: 0, bottom: 0}}>
-              <defs>
-                <linearGradient id="gradCTL" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS.blue} stopOpacity={0.35} />
-                  <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="date"
-                tickFormatter={fmtDate}
-                tick={{fill: 'var(--color-text-3)', fontSize: 10}}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-                minTickGap={40}
-              />
-              <RechartsTooltip content={<ChartTooltip />} cursor={{stroke: 'var(--color-border)', strokeWidth: 1}} />
-              <Area type="monotone" dataKey="ctl" name="CTL" stroke={COLORS.blue} strokeWidth={2.5} fill="url(#gradCTL)" dot={false} activeDot={{r: 4, fill: COLORS.blue}} />
-              <Area type="monotone" dataKey="tsb" name="TSB" stroke={tsbColor ?? COLORS.yellow} strokeWidth={1.5} fill="none" dot={false} activeDot={{r: 3, fill: tsbColor ?? COLORS.yellow}} strokeDasharray="4 3" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
       )}
     </div>
   );
@@ -770,10 +696,6 @@ export default function DashboardPage() {
   const {data: activities, isLoading: activitiesLoading} = useDashboardActivities();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
 
-  const currentTSB = fitnessData?.[fitnessData.length - 1]?.tsb;
-  const currentCTL = fitnessData?.[fitnessData.length - 1]?.ctl;
-  const currentATL = fitnessData?.[fitnessData.length - 1]?.atl;
-
   if (authLoading) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
@@ -801,10 +723,10 @@ export default function DashboardPage() {
           <section>
             <SectionLabel>Right now</SectionLabel>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-5">
-                <FormHero fitnessData={fitnessData} fitnessLoading={fitnessLoading} />
-              </div>
               <div className="lg:col-span-7">
+                <FormFitnessChart fitnessData={fitnessData} fitnessLoading={fitnessLoading} />
+              </div>
+              <div className="lg:col-span-5">
                 <TodayWorkoutCard />
               </div>
             </div>
@@ -821,18 +743,6 @@ export default function DashboardPage() {
                 <ThisWeekCard activities={activities} isLoading={activitiesLoading} />
               </div>
             </div>
-          </section>
-
-          {/* ── Band 3 · Trend ─────────────────────────────────────────── */}
-          <section>
-            <SectionLabel>Trend</SectionLabel>
-            <TrainingLoadCard
-              data={fitnessData}
-              currentCTL={currentCTL}
-              currentATL={currentATL}
-              currentTSB={currentTSB}
-              isLoading={fitnessLoading}
-            />
           </section>
 
           {/* ── Band 4 · Feed ──────────────────────────────────────────── */}

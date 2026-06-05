@@ -26,7 +26,7 @@ const markdownComponents: Components = {
         if (blocks) {
           return (
             <div className="my-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-0)] p-4">
-              <div className="text-[10px] uppercase tracking-widest text-[var(--color-text-3)] font-semibold mb-3">Session Breakdown</div>
+              <div className="text-[10px] uppercase tracking-widest text-[var(--color-text-2)] font-semibold mb-3">Session Breakdown</div>
               <StructuredWorkoutDisplay blocks={blocks} />
             </div>
           );
@@ -49,7 +49,7 @@ const markdownComponents: Components = {
   },
   hr: () => <hr className="border-[var(--color-border)] my-3" />,
   blockquote: ({children}) => (
-    <blockquote className="border-l-2 border-[var(--color-accent)]/40 pl-4 text-[var(--color-text-3)] my-2 italic">
+    <blockquote className="border-l-2 border-[var(--color-accent)]/40 pl-4 text-[var(--color-text-2)] my-2 italic">
       {children}
     </blockquote>
   ),

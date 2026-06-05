@@ -22,7 +22,7 @@ function CommandPalette({
   return (
     <div className="absolute bottom-full left-0 right-0 mb-2 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-2xl z-50 bg-[var(--color-surface-1)]">
       <div className="px-3.5 py-2 border-b border-[var(--color-border)]">
-        <span className="text-[11px] text-[var(--color-text-3)] font-medium uppercase tracking-wider">Commands</span>
+        <span className="text-[11px] text-[var(--color-text-2)] font-medium uppercase tracking-wider">Commands</span>
       </div>
       {filtered.map((cmd, i) => (
         <button
@@ -34,8 +34,8 @@ function CommandPalette({
           ].join(' ')}
         >
           <span className="text-sm font-mono text-[var(--color-accent)] min-w-[90px]">/{cmd.name}</span>
-          <span className="text-xs text-[var(--color-text-3)] font-mono opacity-60">{cmd.argsHint}</span>
-          <span className="text-xs text-[var(--color-text-3)] ml-auto truncate">{cmd.description}</span>
+          <span className="text-xs text-[var(--color-text-2)] font-mono opacity-60">{cmd.argsHint}</span>
+          <span className="text-xs text-[var(--color-text-2)] ml-auto truncate">{cmd.description}</span>
         </button>
       ))}
     </div>
@@ -61,7 +61,7 @@ function MentionDropdown({
   return (
     <div className="absolute bottom-full left-0 mb-2 w-72 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-2xl z-50 bg-[var(--color-surface-1)]">
       <div className="px-3.5 py-2 border-b border-[var(--color-border)]">
-        <span className="text-[11px] text-[var(--color-text-3)] font-medium uppercase tracking-wider">References</span>
+        <span className="text-[11px] text-[var(--color-text-2)] font-medium uppercase tracking-wider">References</span>
       </div>
       {filtered.map((m, i) => (
         <button
@@ -73,7 +73,7 @@ function MentionDropdown({
           ].join(' ')}
         >
           <span className="text-sm font-mono text-[var(--color-accent)]">@{m.prefix}</span>
-          <span className="text-xs text-[var(--color-text-3)]">{m.description}</span>
+          <span className="text-xs text-[var(--color-text-2)]">{m.description}</span>
         </button>
       ))}
     </div>
@@ -315,7 +315,7 @@ export function Composer({athleteId, isLoading, input, setInput, onSend, onStop}
         </form>
 
         {/* Hint */}
-        <p className="hidden md:block text-[11px] text-[var(--color-text-3)] mt-1.5 text-center">
+        <p className="hidden md:block text-[11px] text-[var(--color-text-2)] mt-1.5 text-center">
           Enter to send · Shift+Enter for new line · <span className="font-mono">/</span> commands · <span className="font-mono">@</span> references
         </p>
       </div>

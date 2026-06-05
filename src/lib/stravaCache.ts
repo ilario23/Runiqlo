@@ -438,7 +438,7 @@ export const cachedCalcFitnessData = async (
   const currentHash = hashTrainingSettings(settings.zones, settings.maxHr, settings.restingHr);
   const latestId = activities[0]?.id ? Number(activities[0].id) : 0;
   const actCount = activities.length;
-  const cacheKey = `fitness:${athleteId}`;
+  const cacheKey = `fitness:v2:${athleteId}`;
 
   const cached = await dbGetDashboardCache(cacheKey);
 
@@ -455,10 +455,16 @@ export const cachedCalcFitnessData = async (
 
     if (cached.hrHash === currentHash) {
       const newActivities = activities.filter((a) => a.date > cached.lastDate);
-      const result = appendFitnessData(newActivities, {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
-      const {ctl, atl} = result.continuation;
-      await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
-      return result.data;
+      const newActivityDelta = actCount - cached.lastActivityCount;
+      // If delta doesn't match strictly-after-lastDate count, some activities landed on/before
+      // the cached date (e.g. today's run when lastDate=today). appendFitnessData can't go back,
+      // so fall through to full recompute.
+      if (newActivityDelta === newActivities.length) {
+        const result = appendFitnessData(newActivities, {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
+        const {ctl, atl} = result.continuation;
+        await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
+        return result.data;
+      }
     }
   }
 

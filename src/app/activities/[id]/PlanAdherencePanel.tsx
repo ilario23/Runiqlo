@@ -177,7 +177,7 @@ function pctScore(actual: number, planned: number): number {
 function badgeClass(pct: number | null): string {
   if (pct === null) return 'text-white/25';
   if (pct >= 90) return 'text-accent-green';
-  if (pct >= 70) return 'text-yellow-400';
+  if (pct >= 70) return 'text-accent-yellow';
   return 'text-accent-red';
 }
 

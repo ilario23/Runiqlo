@@ -118,7 +118,7 @@ export function StructuredWorkoutDisplay({
       )}
       {total > 0 && (
         <div className="pt-0.5 flex items-center justify-end">
-          <span className="text-[10px] text-white/30 font-mono tabular-nums">
+          <span className="text-[10px] text-white/50 font-mono tabular-nums">
             Total: {formatDuration(total)}
           </span>
         </div>

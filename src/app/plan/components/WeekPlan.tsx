@@ -56,6 +56,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
   const [weekStart, setWeekStart] = useState(initialWeekStart ?? getMonday());
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<SelectedWorkout | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState(false);
@@ -78,13 +79,16 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
 
   const fetchPlan = useCallback(async (ws: string) => {
     setLoading(true);
+    setLoadError(false);
     setSelected(null);
     try {
       const res = await fetch(`/api/coach/week?athleteId=${athleteId}&weekStart=${ws}`);
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setPlan(data);
     } catch {
       setPlan(null);
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -293,6 +297,18 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
               }}
             /></div>}
         </>
+      ) : loadError ? (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">
+          <CalendarDays className="w-8 h-8 text-accent-red/60 mx-auto mb-2" />
+          <p className="text-sm text-white/60 mb-1">Couldn&apos;t load this week&apos;s plan</p>
+          <p className="text-xs text-white/40 mb-3">Check your connection and try again.</p>
+          <button
+            onClick={() => fetchPlan(weekStart)}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-white/80 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">
           <CalendarDays className="w-8 h-8 text-white/20 mx-auto mb-2" />

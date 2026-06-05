@@ -30,6 +30,12 @@ import {aggregateZoneBreakdowns} from '@/lib/zoneCompute';
 import type {AggregatedZoneTotals, ZoneBreakdown} from '@/lib/zoneCompute';
 import type {ActivitySummary} from '@/lib/activityModel';
 
+// Decoupling thresholds map to the zone color vocabulary (One Signal Rule):
+// well-coupled = green, mild drift = yellow, decoupled = red.
+function decouplingColor(pct: number): string {
+  return pct < 5 ? COLORS.green : pct < 8 ? COLORS.yellow : COLORS.red;
+}
+
 // ─── Segmented control (shared) ───────────────────────────────────────────────
 
 function SegmentedControl<T extends string>({
@@ -94,7 +100,7 @@ function FitnessHeader() {
           <div key={it.sub}>
             <div className="flex items-baseline gap-1.5 mb-1.5">
               <span className="text-[11px] font-medium" style={{color: 'var(--color-text-1)'}}>{it.label}</span>
-              <span className="text-[10px] font-mono" style={{color: 'var(--color-text-3)'}}>{it.sub}</span>
+              <span className="text-[10px] font-mono" style={{color: 'var(--color-text-2)'}}>{it.sub}</span>
             </div>
             {isLoading && it.value === undefined ? (
               <Skeleton className="h-8 w-16" />
@@ -180,7 +186,7 @@ function ZoneDistributionCard({
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {isLoading && progress.total > 0 && (
-            <span className="text-xs" style={{color: 'var(--color-text-3)'}}>{progress.done}/{progress.total}</span>
+            <span className="text-xs" style={{color: 'var(--color-text-2)'}}>{progress.done}/{progress.total}</span>
           )}
           <SegmentedControl
             options={[{value: 'grouped' as const, label: '80/20'}, {value: 'all' as const, label: '6 zones'}]}
@@ -206,7 +212,7 @@ function ZoneDistributionCard({
         </div>
       ) : !data || totalTime === 0 ? (
         <div className="py-12 flex items-center justify-center">
-          <p className="text-xs" style={{color: 'var(--color-text-3)'}}>No zone data for the past 4 weeks</p>
+          <p className="text-xs" style={{color: 'var(--color-text-2)'}}>No zone data for the past 4 weeks</p>
         </div>
       ) : (
         <AnimatePresence mode="wait" initial={false}>
@@ -242,7 +248,7 @@ function ZoneDistributionCard({
                 </div>
               );
             })}
-            <p className="text-xs pt-1" style={{color: 'var(--color-text-3)'}}>
+            <p className="text-xs pt-1" style={{color: 'var(--color-text-2)'}}>
               Total: {metric === 'time' ? formatDuration(totalTime) : `${totalDistance.toFixed(1)} km`}
             </p>
           </motion.div>
@@ -266,13 +272,13 @@ function DecouplingTooltip({active, payload}: {active?: boolean; payload?: Array
   if (!active || !payload?.length) return null;
   const pt = payload[0]?.payload;
   if (!pt) return null;
-  const color = pt.decouplingPct < 5 ? '#4ade80' : pt.decouplingPct < 8 ? '#f59e0b' : '#ef4444';
+  const color = decouplingColor(pt.decouplingPct);
   return (
     <div className="surface-card px-3 py-2 text-xs space-y-0.5 min-w-[160px]">
-      <p style={{color: 'var(--color-text-3)'}}>{new Date(pt.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</p>
+      <p style={{color: 'var(--color-text-2)'}}>{new Date(pt.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</p>
       <p className="font-medium truncate" style={{color: 'var(--color-text-1)'}}>{pt.name}</p>
       <p className="font-mono" style={{color}}>{pt.decouplingPct > 0 ? '+' : ''}{pt.decouplingPct}% decoupling</p>
-      <p style={{color: 'var(--color-text-3)'}}>{pt.durationMins} min</p>
+      <p style={{color: 'var(--color-text-2)'}}>{pt.durationMins} min</p>
     </div>
   );
 }
@@ -290,22 +296,25 @@ function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
   const [to, setTo] = useState(defaultTo);
   const [points, setPoints] = useState<DecouplingPoint[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     if (!athlete?.id) return;
     setLoading(true);
+    setError(false);
     fetch(`/api/decoupling?athleteId=${athlete.id}&from=${from}&to=${to}`)
-      .then((r) => r.json())
+      .then((r) => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data: DecouplingPoint[]) => setPoints(data))
-      .catch(() => setPoints([]))
+      .catch(() => { setError(true); setPoints(null); })
       .finally(() => setLoading(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [athlete?.id, from, to, breakdownsReady]);
+  }, [athlete?.id, from, to, breakdownsReady, retry]);
 
   const chartData = (points ?? []).map((p) => ({
     ...p,
     dateMs: new Date(p.date).getTime(),
-    dotColor: p.decouplingPct < 5 ? '#4ade80' : p.decouplingPct < 8 ? '#f59e0b' : '#ef4444',
+    dotColor: decouplingColor(p.decouplingPct),
   }));
 
   return (
@@ -317,15 +326,15 @@ function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
         </div>
         <div className="flex items-center gap-2 text-xs flex-wrap">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{background: '#4ade80'}} />
+            <span className="w-2 h-2 rounded-full" style={{background: COLORS.green}} />
             <span style={{color: 'var(--color-text-2)'}}>{'<5% coupled'}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{background: '#f59e0b'}} />
+            <span className="w-2 h-2 rounded-full" style={{background: COLORS.yellow}} />
             <span style={{color: 'var(--color-text-2)'}}>{'5–8%'}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{background: '#ef4444'}} />
+            <span className="w-2 h-2 rounded-full" style={{background: COLORS.red}} />
             <span style={{color: 'var(--color-text-2)'}}>{'>8% decoupled'}</span>
           </div>
         </div>
@@ -356,10 +365,21 @@ function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
 
       {loading ? (
         <Skeleton className="h-[200px] w-full" />
+      ) : error ? (
+        <div className="h-[200px] flex flex-col items-center justify-center gap-2.5 text-center">
+          <p className="text-xs" style={{color: 'var(--color-text-2)'}}>Couldn&apos;t load decoupling data.</p>
+          <button
+            onClick={() => setRetry((c) => c + 1)}
+            className="text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
+            style={{background: 'var(--color-surface-1)', color: 'var(--color-text-1)'}}
+          >
+            Try again
+          </button>
+        </div>
       ) : !points || points.length === 0 ? (
         <div className="h-[200px] flex items-center justify-center">
-          <p className="text-xs" style={{color: 'var(--color-text-3)'}}>
-            {!points ? 'Loading…' : 'No long runs with HR data in this range'}
+          <p className="text-xs" style={{color: 'var(--color-text-2)'}}>
+            No long runs with HR data in this range
           </p>
         </div>
       ) : (
@@ -393,7 +413,7 @@ function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
                 data={chartData}
                 shape={(props: {cx?: number; cy?: number; payload?: {dotColor: string}}) => {
                   const {cx = 0, cy = 0, payload} = props;
-                  return <circle cx={cx} cy={cy} r={5} fill={payload?.dotColor ?? '#4ade80'} opacity={0.85} />;
+                  return <circle cx={cx} cy={cy} r={5} fill={payload?.dotColor ?? COLORS.green} opacity={0.85} />;
                 }}
               />
             </ScatterChart>

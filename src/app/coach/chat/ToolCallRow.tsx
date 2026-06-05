@@ -88,7 +88,7 @@ export function ToolCallRow({name, status, input, output}: ToolCallRowProps) {
           )}
         </span>
 
-        <span className={isDone ? 'text-[var(--color-text-3)]' : 'text-[var(--color-text-3)]'}>
+        <span className={isDone ? 'text-[var(--color-text-2)]' : 'text-[var(--color-text-2)]'}>
           {label}
         </span>
 
@@ -98,7 +98,7 @@ export function ToolCallRow({name, status, input, output}: ToolCallRowProps) {
             width="10" height="10" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" strokeWidth="2"
             className={[
-              'text-[var(--color-text-3)] ml-0.5 transition-transform flex-shrink-0',
+              'text-[var(--color-text-2)] ml-0.5 transition-transform flex-shrink-0',
               expanded ? 'rotate-180' : '',
             ].join(' ')}
           >
@@ -112,7 +112,7 @@ export function ToolCallRow({name, status, input, output}: ToolCallRowProps) {
         <div className="ml-9 mt-1 mb-2 rounded-xl bg-[var(--color-surface-2)] border border-[var(--color-border)] overflow-hidden">
           {input !== undefined && (
             <div className="px-3 py-2 border-b border-[var(--color-border)] last:border-0">
-              <div className="text-[10px] text-[var(--color-text-3)] uppercase tracking-wider font-medium mb-1">Input</div>
+              <div className="text-[10px] text-[var(--color-text-2)] uppercase tracking-wider font-medium mb-1">Input</div>
               <pre className="text-[11px] font-mono text-[var(--color-text-2)] whitespace-pre-wrap break-all">
                 {JSON.stringify(input, null, 2)}
               </pre>
@@ -120,7 +120,7 @@ export function ToolCallRow({name, status, input, output}: ToolCallRowProps) {
           )}
           {output !== undefined && (
             <div className="px-3 py-2">
-              <div className="text-[10px] text-[var(--color-text-3)] uppercase tracking-wider font-medium mb-1">Output</div>
+              <div className="text-[10px] text-[var(--color-text-2)] uppercase tracking-wider font-medium mb-1">Output</div>
               <pre className="text-[11px] font-mono text-[var(--color-text-2)] whitespace-pre-wrap break-all">
                 {typeof output === 'string' ? output : JSON.stringify(output, null, 2)}
               </pre>

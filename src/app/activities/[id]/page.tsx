@@ -28,6 +28,7 @@ import {formatPace, formatDuration, ZONE_COLORS, ZONE_NAMES, getZoneForHr, SPORT
 import {Skeleton} from '@/components/ui/skeleton';
 import {useSettings} from '@/contexts/SettingsContext';
 import AppHeader from '@/components/AppHeader';
+import {ConnectPrompt} from '@/components/ConnectPrompt';
 import type {ZoneSegment} from '@/components/RouteMapLeaflet';
 import PlanAdherencePanel from './PlanAdherencePanel';
 
@@ -523,8 +524,8 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
     return (
       <>
         <AppHeader />
-        <div className="pt-[72px] flex items-center justify-center min-h-screen">
-          <Link href="/settings" className="text-accent-blue text-sm">Connect Strava →</Link>
+        <div className="pt-14">
+          <ConnectPrompt subtitle="Connect Strava to view this activity." />
         </div>
       </>
     );
@@ -775,12 +776,12 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       className="text-2xl font-bold font-mono tabular-nums"
                       style={{
                         color: decouplingPct < 0
-                          ? 'var(--color-text-2, #9ca3af)'
+                          ? 'var(--color-text-2)'
                           : decouplingPct < 5
-                          ? 'var(--accent-green, #4ade80)'
+                          ? COLORS.green
                           : decouplingPct < 8
-                          ? '#f59e0b'
-                          : '#ef4444',
+                          ? COLORS.yellow
+                          : COLORS.red,
                       }}
                     >
                       {decouplingPct > 0 ? '+' : ''}{decouplingPct}%

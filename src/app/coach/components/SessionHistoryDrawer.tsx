@@ -83,8 +83,8 @@ function SessionItem({
       className={[
         'group relative rounded-xl transition-colors cursor-pointer',
         isActive
-          ? 'bg-[var(--color-surface-2)] border-l-2 border-[var(--color-accent)]'
-          : 'hover:bg-[var(--color-surface-1)] border-l-2 border-transparent',
+          ? 'bg-[var(--color-surface-2)] border border-[var(--color-accent)]/30'
+          : 'hover:bg-[var(--color-surface-1)] border border-transparent',
       ].join(' ')}
     >
       <button onClick={onSelect} className="w-full text-left px-3 py-3 pr-10">
@@ -94,9 +94,9 @@ function SessionItem({
         </p>
         {/* Meta row */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-[var(--color-text-3)]">{timeStr}</span>
+          <span className="text-[11px] text-[var(--color-text-2)]">{timeStr}</span>
           <span className="text-[10px] text-[var(--color-text-3)] opacity-60">·</span>
-          <span className="text-[11px] text-[var(--color-text-3)] opacity-70">{session.messageCount} msgs</span>
+          <span className="text-[11px] text-[var(--color-text-2)]">{session.messageCount} msgs</span>
           {isActive && (
             <>
               <span className="text-[10px] text-[var(--color-text-3)] opacity-60">·</span>
@@ -233,7 +233,7 @@ export function SessionHistoryDrawer({
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-[var(--color-text-3)] opacity-40" strokeWidth="1.5">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            <p className="text-sm text-[var(--color-text-3)]">No previous conversations</p>
+            <p className="text-sm text-[var(--color-text-2)]">No previous conversations</p>
           </div>
         ) : (
           <div className="p-2 space-y-4">

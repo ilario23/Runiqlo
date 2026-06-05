@@ -98,7 +98,7 @@ export function ConnectPrompt({
           type="button"
           onClick={login}
           whileTap={{scale: 0.98}}
-          className="group mt-8 inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-brand py-3.5 text-[15px] font-semibold text-white shadow-[0_8px_30px_rgba(252,76,2,0.30)] transition-colors hover:bg-brand/90 cursor-pointer"
+          className="group mt-8 inline-flex w-full items-center justify-center gap-2.5 rounded-[10px] bg-brand py-3.5 text-[15px] font-semibold text-white transition-colors hover:bg-brand/90 cursor-pointer"
         >
           {/* Strava bolt mark */}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -106,28 +106,27 @@ export function ConnectPrompt({
           </svg>
           Connect with Strava
         </motion.button>
-        <p className="mt-3 text-[11px]" style={{color: 'var(--color-text-3)'}}>
+        <p className="mt-3 text-[11px]" style={{color: 'var(--color-text-2)'}}>
           Strava credentials are never stored in the browser.
         </p>
 
-        {/* Feature row */}
-        <div className="mt-12 grid grid-cols-3 gap-3 text-left">
-          {FEATURES.map(({icon: Icon, title, desc}, i) => (
-            <motion.div
-              key={title}
-              initial={{opacity: 0, y: 12}}
-              animate={{opacity: 1, y: 0}}
-              transition={{duration: 0.5, ease, delay: 0.25 + i * 0.08}}
-              className="surface-card p-3.5"
-            >
+        {/* Feature strip — one cohesive panel, divided, not a card grid */}
+        <motion.div
+          initial={{opacity: 0, y: 12}}
+          animate={{opacity: 1, y: 0}}
+          transition={{duration: 0.5, ease, delay: 0.25}}
+          className="surface-card mt-12 flex divide-x divide-[var(--color-border)] text-left"
+        >
+          {FEATURES.map(({icon: Icon, title, desc}) => (
+            <div key={title} className="flex-1 px-3.5 py-4">
               <Icon size={16} className="mb-2.5" style={{color: 'var(--color-accent)'}} aria-hidden />
               <p className="text-[12px] font-semibold leading-tight text-white">{title}</p>
               <p className="mt-1 text-[11px] leading-snug" style={{color: 'var(--color-text-2)'}}>
                 {desc}
               </p>
-            </motion.div>
+            </div>
           ))}
-        </div>
+        </motion.div>
       </motion.div>
     </div>
   );
