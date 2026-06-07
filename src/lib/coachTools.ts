@@ -9,6 +9,21 @@ import {invalidateCoachPromptCache} from './coachContext';
 import type {ActivityWeatherData} from './weather';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const WEEKDAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+type WeekdayKey = (typeof WEEKDAY_KEYS)[number];
+
+/** Add n days to a YYYY-MM-DD string, returning YYYY-MM-DD (UTC-safe). */
+function addDaysStr(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Day index 0=Mon … 6=Sun for a YYYY-MM-DD date. */
+function mondayIndex(dateStr: string): number {
+  const dow = new Date(dateStr + 'T00:00:00Z').getUTCDay(); // 0=Sun … 6=Sat
+  return (dow + 6) % 7;
+}
 
 const structuredStepSchema = z.union([
   z.object({
@@ -587,6 +602,21 @@ export function getCoachTools(athleteId: number) {
       execute: async input => {
         const now = Date.now();
 
+        // Guard: weekStart must be a Monday, and every day's date must agree with its
+        // dayOfWeek relative to weekStart. Catches the model miscomputing dates
+        // (e.g. labelling Sunday's date as Saturday) before it reaches the DB.
+        if (mondayIndex(input.weekStart) !== 0) {
+          return {error: `weekStart ${input.weekStart} is not a Monday. Use the Monday that begins the week.`};
+        }
+        for (const d of input.days) {
+          const expected = addDaysStr(input.weekStart, d.dayOfWeek);
+          if (d.date !== expected) {
+            return {
+              error: `Day mismatch: dayOfWeek ${d.dayOfWeek} of week ${input.weekStart} is ${expected}, but you passed date ${d.date}. ${DAY_NAMES[d.dayOfWeek]} = ${expected}. Fix the date/dayOfWeek so they agree, then resave.`,
+            };
+          }
+        }
+
         // Replace existing plan for this week
         await db
           .delete(schema.weeklyPlan)
@@ -625,7 +655,7 @@ export function getCoachTools(athleteId: number) {
 
     setWeeklyPlanDays: tool({
       description:
-        "Edit specific days of an EXISTING weekly plan without rewriting the whole week. Use this for any small change — moving the long run, swapping two days, marking a day as a hike/rest, adjusting one workout. Only the days you pass are replaced; every other day is left exactly as stored. Prefer this over saveWeeklyPlan whenever a plan already exists for the week. Refuses to overwrite a day that contains a completed [done] workout. Returns the full resulting Mon–Sun layout, which you MUST restate to the athlete verbatim instead of describing your intent.",
+        "Edit specific days of an EXISTING weekly plan without rewriting the whole week. Use this for any small change — moving the long run, swapping two days, marking a day as a hike/rest, adjusting one workout. Address each day by its WEEKDAY NAME (mon…sun); the exact calendar date is computed server-side from the week, so you never compute dates yourself. Only the days you pass are replaced; every other day is left exactly as stored. Prefer this over saveWeeklyPlan whenever a plan already exists for the week. Refuses to overwrite a day that contains a completed [done] workout. Returns the full resulting Mon–Sun layout, which you MUST restate to the athlete verbatim instead of describing your intent.",
       inputSchema: z.object({
         weekStart: z.string().describe('Monday date YYYY-MM-DD of the existing plan'),
         coachNotes: z
@@ -634,9 +664,19 @@ export function getCoachTools(athleteId: number) {
           .optional()
           .describe('Optional updated coach explanation. MUST match the actual resulting layout. Omit to leave unchanged.'),
         days: z
-          .array(plannedDaySchema)
+          .array(
+            z.object({
+              weekday: z
+                .enum(WEEKDAY_KEYS)
+                .describe('Which day to set: mon, tue, wed, thu, fri, sat, or sun. The date is derived from this — do not pass a raw date.'),
+              dayNotes: z.string().nullable().optional(),
+              workouts: z
+                .array(plannedWorkoutSchema)
+                .describe('Full set of workouts for this day. For a hike use type "hike"; for a pure rest day pass an empty array or a single type "rest" workout.'),
+            }),
+          )
           .min(1)
-          .describe('Only the days to change (1–7). Each must carry the correct date and dayOfWeek (0=Mon…6=Sun).'),
+          .describe('Only the days to change (1–7), addressed by weekday name.'),
       }),
       execute: async input => {
         const rows = await db
@@ -652,15 +692,22 @@ export function getCoachTools(athleteId: number) {
 
         const current = (existing.days as PlannedDayInput[]).map(normalizeDay);
         const byDate = new Map(current.map(d => [d.date, d]));
+        const changed: string[] = [];
 
         for (const patch of input.days) {
-          const target = byDate.get(patch.date);
+          const idx = WEEKDAY_KEYS.indexOf(patch.weekday); // 0=Mon … 6=Sun
+          const date = addDaysStr(input.weekStart, idx);
+          const target = byDate.get(date);
           if (target && target.workouts.some(w => w.completed)) {
             return {
-              error: `Refusing to edit ${patch.date}: it contains a completed [done] workout. Completed days are fixed.`,
+              error: `Refusing to edit ${patch.weekday} (${date}): it contains a completed [done] workout. Completed days are fixed.`,
             };
           }
-          byDate.set(patch.date, normalizeDay(patch));
+          byDate.set(
+            date,
+            normalizeDay({date, dayOfWeek: idx, dayNotes: patch.dayNotes, workouts: patch.workouts}),
+          );
+          changed.push(`${patch.weekday} ${date}`);
         }
 
         const days = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -678,7 +725,7 @@ export function getCoachTools(athleteId: number) {
         return {
           success: true,
           weekStart: input.weekStart,
-          changedDates: input.days.map(d => d.date),
+          changed,
           savedLayout: summarizeWeek(days),
         };
       },
