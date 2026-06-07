@@ -47,3 +47,7 @@ next-env.d.ts
 
 MOBILE_SPEC.md
 CAPABILITY.md
+
+# pnpm (project uses npm)
+pnpm-lock.yaml
+pnpm-workspace.yaml
