@@ -39,7 +39,7 @@ function CoachPageInner() {
   return (
     <div className="flex flex-col h-dvh" style={{background: 'var(--color-base)'}}>
       <AppHeader />
-      <div className="flex-1 overflow-hidden pt-14">
+      <div className="flex-1 overflow-hidden pt-14 pb-[calc(51px+env(safe-area-inset-bottom))] md:pb-0">
         <ChatPanel
           athleteId={athleteId}
           prefillInput={prefillQ}

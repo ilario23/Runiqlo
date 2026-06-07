@@ -311,7 +311,7 @@ function SettingsContent() {
   return (
     <>
       <AppHeader />
-      <main className="min-h-screen pt-[72px] pb-10 px-5">
+      <main className="min-h-screen pt-[72px] pb-24 md:pb-10 px-5">
         <div className="max-w-[600px] mx-auto space-y-8">
 
           {/* Page title */}

@@ -9,6 +9,10 @@ export interface ZoneSegment {
   color: string;
 }
 
+// Leaflet path options need literal colors, not CSS vars — these mirror globals.css tokens.
+const INK = '#1a1814';
+const PAPER = '#f2ede2';
+
 interface RouteMapLeafletProps {
   /** Colored polyline segments (one per HR zone run). Replaces the single polyline. */
   segments: ZoneSegment[];
@@ -39,7 +43,7 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
     });
 
     L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
       {maxZoom: 19},
     ).addTo(map);
 
@@ -88,7 +92,7 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
     if (firstPt) {
       startMarkerRef.current = L.circleMarker(firstPt, {
         radius: 5,
-        color: '#fff',
+        color: PAPER,
         fillColor: color,
         fillOpacity: 1,
         weight: 2,
@@ -101,7 +105,7 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
     if (lastPt) {
       endMarkerRef.current = L.circleMarker(lastPt, {
         radius: 5,
-        color: '#fff',
+        color: PAPER,
         fillColor: color,
         fillOpacity: 0.45,
         weight: 2,
@@ -125,8 +129,8 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
     } else {
       markerRef.current = L.circleMarker(hoverPos, {
         radius: 6,
-        color: '#fff',
-        fillColor: '#fff',
+        color: PAPER,
+        fillColor: INK,
         fillOpacity: 1,
         weight: 2,
       }).addTo(map);
@@ -137,7 +141,7 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
     <div
       ref={containerRef}
       className="w-full h-[300px] rounded-xl overflow-hidden"
-      style={{background: '#1a1a2e'}}
+      style={{background: 'var(--color-paper-2)'}}
     />
   );
 }

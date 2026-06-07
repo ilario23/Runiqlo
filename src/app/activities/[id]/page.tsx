@@ -537,7 +537,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   return (
     <>
       <AppHeader />
-      <main className="pt-[72px] pb-8 px-5 min-h-screen">
+      <main className="pt-[72px] pb-24 md:pb-8 px-5 min-h-screen">
         <div className="max-w-[1100px] mx-auto">
 
           {/* Breadcrumb */}

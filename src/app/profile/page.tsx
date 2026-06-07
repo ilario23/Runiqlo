@@ -343,7 +343,7 @@ export default function ProfilePage() {
   return (
     <>
       <AppHeader />
-      <main className="pt-14 pb-12 min-h-screen" style={{background: 'var(--color-base)'}}>
+      <main className="pt-14 pb-24 md:pb-12 min-h-screen" style={{background: 'var(--color-base)'}}>
         <div className="max-w-[760px] mx-auto px-5">
           <motion.div variants={containerVariant} initial="hidden" animate="show" className="space-y-4">
 

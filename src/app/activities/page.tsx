@@ -449,7 +449,7 @@ export default function ActivitiesPage() {
   return (
     <>
       <AppHeader onRefresh={forceRefresh} />
-      <main className="pt-[72px] pb-8 px-5 min-h-screen">
+      <main className="pt-[72px] pb-24 md:pb-8 px-5 min-h-screen">
         <div className="max-w-[1100px] mx-auto space-y-4">
 
           {/* Page title */}
