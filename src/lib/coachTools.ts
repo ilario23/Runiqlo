@@ -77,21 +77,37 @@ const plannedWorkoutSchema = z.object({
     ),
 });
 
-const plannedDaySchema = z.object({
-  date: z.string(),
-  dayOfWeek: z.number().describe('0=Mon…6=Sun'),
-  dayNotes: z.string().nullable().optional(),
-  workouts: z.array(plannedWorkoutSchema),
-});
-
-type PlannedDayInput = z.infer<typeof plannedDaySchema>;
+type PlannedWorkoutInput = z.infer<typeof plannedWorkoutSchema>;
 
 /**
- * Normalize a day patch into the stored PlannedDay shape (fill optional fields).
+ * A single day addressed by WEEKDAY NAME (mon…sun). The model never supplies a
+ * calendar date — the server derives it from the week's Monday, so a workout
+ * can never land on the wrong date (e.g. the model thinking Saturday is the 14th).
  */
-function normalizeDay(d: PlannedDayInput) {
+const weekdayDaySchema = z.object({
+  weekday: z
+    .enum(WEEKDAY_KEYS)
+    .describe('Which day: mon, tue, wed, thu, fri, sat, or sun. The calendar date is derived from this — never pass a raw date.'),
+  dayNotes: z.string().nullable().optional(),
+  workouts: z
+    .array(plannedWorkoutSchema)
+    .describe('Workouts for this day. For a hike use type "hike"; for a pure rest day pass an empty array or a single type "rest" workout.'),
+});
+
+type StoredDayInput = {
+  date: string;
+  dayOfWeek: number;
+  dayNotes?: string | null;
+  workouts: PlannedWorkoutInput[];
+};
+
+/**
+ * Normalize a day into the stored PlannedDay shape (fill optional fields).
+ */
+function normalizeDay(d: StoredDayInput) {
   return {
-    ...d,
+    date: d.date,
+    dayOfWeek: d.dayOfWeek,
     dayNotes: d.dayNotes ?? null,
     workouts: d.workouts.map(w => ({
       ...w,
@@ -99,6 +115,17 @@ function normalizeDay(d: PlannedDayInput) {
       completed: w.completed ?? false,
     })),
   };
+}
+
+/** Build a normalized stored day from a weekday-addressed input + the week's Monday. */
+function dayFromWeekday(weekStart: string, d: z.infer<typeof weekdayDaySchema>) {
+  const idx = WEEKDAY_KEYS.indexOf(d.weekday); // 0=Mon … 6=Sun
+  return normalizeDay({
+    date: addDaysStr(weekStart, idx),
+    dayOfWeek: idx,
+    dayNotes: d.dayNotes,
+    workouts: d.workouts,
+  });
 }
 
 /**
@@ -597,24 +624,22 @@ export function getCoachTools(athleteId: number) {
         weekNumber: z.number(),
         targetWeeklyKm: z.number().nullable().optional(),
         coachNotes: z.string().nullable().optional().describe("Coach's explanation and reasoning for this week"),
-        days: z.array(plannedDaySchema).describe('Exactly 7 days Mon–Sun'),
+        days: z
+          .array(weekdayDaySchema)
+          .length(7)
+          .describe('All 7 days, addressed by weekday name (mon, tue, wed, thu, fri, sat, sun). Provide each weekday exactly once.'),
       }),
       execute: async input => {
         const now = Date.now();
 
-        // Guard: weekStart must be a Monday, and every day's date must agree with its
-        // dayOfWeek relative to weekStart. Catches the model miscomputing dates
-        // (e.g. labelling Sunday's date as Saturday) before it reaches the DB.
+        // Guard: weekStart must be a Monday.
         if (mondayIndex(input.weekStart) !== 0) {
           return {error: `weekStart ${input.weekStart} is not a Monday. Use the Monday that begins the week.`};
         }
-        for (const d of input.days) {
-          const expected = addDaysStr(input.weekStart, d.dayOfWeek);
-          if (d.date !== expected) {
-            return {
-              error: `Day mismatch: dayOfWeek ${d.dayOfWeek} of week ${input.weekStart} is ${expected}, but you passed date ${d.date}. ${DAY_NAMES[d.dayOfWeek]} = ${expected}. Fix the date/dayOfWeek so they agree, then resave.`,
-            };
-          }
+        // Guard: all 7 distinct weekdays present exactly once.
+        const seen = new Set(input.days.map(d => d.weekday));
+        if (seen.size !== 7) {
+          return {error: `Provide all 7 weekdays (mon–sun) exactly once. Got: ${input.days.map(d => d.weekday).join(', ')}.`};
         }
 
         // Replace existing plan for this week
@@ -622,7 +647,9 @@ export function getCoachTools(athleteId: number) {
           .delete(schema.weeklyPlan)
           .where(and(eq(schema.weeklyPlan.athleteId, athleteId), eq(schema.weeklyPlan.weekStart, input.weekStart)));
 
-        const days = input.days.map(normalizeDay);
+        const days = input.days
+          .map(d => dayFromWeekday(input.weekStart, d))
+          .sort((a, b) => a.date.localeCompare(b.date));
 
         const [row] = await db
           .insert(schema.weeklyPlan)
@@ -664,17 +691,7 @@ export function getCoachTools(athleteId: number) {
           .optional()
           .describe('Optional updated coach explanation. MUST match the actual resulting layout. Omit to leave unchanged.'),
         days: z
-          .array(
-            z.object({
-              weekday: z
-                .enum(WEEKDAY_KEYS)
-                .describe('Which day to set: mon, tue, wed, thu, fri, sat, or sun. The date is derived from this — do not pass a raw date.'),
-              dayNotes: z.string().nullable().optional(),
-              workouts: z
-                .array(plannedWorkoutSchema)
-                .describe('Full set of workouts for this day. For a hike use type "hike"; for a pure rest day pass an empty array or a single type "rest" workout.'),
-            }),
-          )
+          .array(weekdayDaySchema)
           .min(1)
           .describe('Only the days to change (1–7), addressed by weekday name.'),
       }),
@@ -690,24 +707,20 @@ export function getCoachTools(athleteId: number) {
           return {error: `No weekly plan exists for ${input.weekStart}. Generate it first with saveWeeklyPlan.`};
         }
 
-        const current = (existing.days as PlannedDayInput[]).map(normalizeDay);
+        const current = (existing.days as StoredDayInput[]).map(normalizeDay);
         const byDate = new Map(current.map(d => [d.date, d]));
         const changed: string[] = [];
 
         for (const patch of input.days) {
-          const idx = WEEKDAY_KEYS.indexOf(patch.weekday); // 0=Mon … 6=Sun
-          const date = addDaysStr(input.weekStart, idx);
-          const target = byDate.get(date);
+          const day = dayFromWeekday(input.weekStart, patch);
+          const target = byDate.get(day.date);
           if (target && target.workouts.some(w => w.completed)) {
             return {
-              error: `Refusing to edit ${patch.weekday} (${date}): it contains a completed [done] workout. Completed days are fixed.`,
+              error: `Refusing to edit ${patch.weekday} (${day.date}): it contains a completed [done] workout. Completed days are fixed.`,
             };
           }
-          byDate.set(
-            date,
-            normalizeDay({date, dayOfWeek: idx, dayNotes: patch.dayNotes, workouts: patch.workouts}),
-          );
-          changed.push(`${patch.weekday} ${date}`);
+          byDate.set(day.date, day);
+          changed.push(`${patch.weekday} ${day.date}`);
         }
 
         const days = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
