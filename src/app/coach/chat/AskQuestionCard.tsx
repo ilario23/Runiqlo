@@ -21,7 +21,7 @@ export function AskQuestionCard({question, options, disabled, onSelect}: AskQues
               'px-3.5 py-2 rounded-xl text-sm font-medium border transition-all duration-150',
               disabled
                 ? 'bg-[var(--color-surface-0)] border-[var(--color-border)] text-[var(--color-text-3)] cursor-not-allowed opacity-50'
-                : 'bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-2)] hover:border-[var(--color-accent)]/50 hover:text-white hover:bg-[var(--color-accent-dim)] cursor-pointer',
+                : 'bg-[var(--color-surface-2)] border-[var(--color-border)] text-[var(--color-text-2)] hover:border-[var(--color-accent)]/50 hover:text-[var(--color-ink)] hover:bg-[var(--color-accent-dim)] cursor-pointer',
             ].join(' ')}
           >
             {opt.label}

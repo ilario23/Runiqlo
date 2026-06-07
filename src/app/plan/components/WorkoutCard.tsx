@@ -14,7 +14,7 @@ const TYPE_CONFIG: Record<WorkoutType, {label: string; color: string; icon: Luci
   cycling:      {label: 'Cycling',      color: 'text-accent-blue border-accent-blue/30 bg-accent-blue/8',       icon: Bike},
   yoga:         {label: 'Yoga',         color: 'text-accent-purple border-accent-purple/30 bg-accent-purple/8', icon: Leaf},
   cross_training:{label: 'Cross Train', color: 'text-accent-cyan border-accent-cyan/30 bg-accent-cyan/8',      icon: Shuffle},
-  rest:         {label: 'Rest',         color: 'text-white/30 border-white/10 bg-white/4',                     icon: Moon},
+  rest:         {label: 'Rest',         color: 'text-[var(--color-ink-3)] border-[var(--color-rule)] bg-[var(--color-paper)]/4',                     icon: Moon},
   swim:         {label: 'Swim',         color: 'text-accent-cyan border-accent-cyan/30 bg-accent-cyan/8',      icon: Waves},
   walk:         {label: 'Walk',         color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: Footprints},
   hike:         {label: 'Hike',         color: 'text-accent-green border-accent-green/30 bg-accent-green/8',   icon: Mountain},
@@ -76,7 +76,7 @@ export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClic
             href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex shrink-0 items-center gap-1 text-xs text-white/40 hover:text-brand hover:underline"
+            className="flex shrink-0 items-center gap-1 text-xs text-[var(--color-ink-3)] hover:text-brand hover:underline"
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
               <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
@@ -89,7 +89,7 @@ export function WorkoutCard({workout, date, onMarkDone, isToday, compact, onClic
       {!workout.completed && isToday && onMarkDone && (
         <button
           onClick={onMarkDone}
-          className="mt-1.5 text-xs text-white/50 hover:text-white/80 underline transition-colors"
+          className="mt-1.5 text-xs text-[var(--color-ink-2)] hover:text-[var(--color-ink)] underline transition-colors"
         >
           Mark complete
         </button>

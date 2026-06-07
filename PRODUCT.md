@@ -14,7 +14,7 @@ Personal training dashboard that pulls Strava activity data and overlays AI coac
 
 ## Brand Personality
 
-Precise · Minimal · Obsessive · Dark · Technical. The feel of a high-end sports computer or terminal-native tool. No motivational fluff, no badge gamification. Data is the product; the interface gets out of the way.
+Precise · Editorial · Obsessive · Printed · Technical. The feel of a runner's almanac or a sport gazette front page: cream paper, ink rules, serif italic headlines, mono numerals set like a box score, one hot rust accent for race-day signal. No motivational fluff, no badge gamification. Data is the headline; the chrome recedes into paper and rule.
 
 ## Anti-references
 
@@ -26,11 +26,11 @@ Precise · Minimal · Obsessive · Dark · Technical. The feel of a high-end spo
 ## Design Principles
 
 1. **Data earns its place** — every metric shown must be actionable; remove what informs but doesn't direct.
-2. **Dark is the natural state** — dark-mode-first is not a theme toggle, it's the identity.
-3. **Precision over decoration** — prefer exact numbers and clean typography over gradients and shadows.
+2. **Print, not screen** — cream paper, ink hairline rules, square corners, no shadows or blur; depth comes from ink and paper tone, the way ink sits on a page.
+3. **Precision over decoration** — prefer exact numbers and clean typography over gradients and shadows; every number is a tabular mono numeral.
 4. **System not surface** — design system tokens over one-off styles; consistency is trustworthiness.
 5. **Coach speaks plainly** — AI copy is direct and specific, never motivational or hedged.
 
 ## Accessibility & Inclusion
 
-Single-user personal tool; WCAG AA as baseline. Dark-mode always. Reduced motion respected for animations. Mobile-first (used pre/post run on phone).
+Single-user personal tool; WCAG AA as baseline. Light editorial paper theme (ink on cream); body text ≥4.5:1 against paper. Reduced motion respected for animations. Mobile-first (used pre/post run on phone).

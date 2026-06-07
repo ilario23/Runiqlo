@@ -5,65 +5,85 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --color-brand: #fc4c02;
-  --color-accent-blue: #0a84ff;
-  --color-accent-green: #30d158;
-  --color-accent-yellow: #ffd60a;
-  --color-accent-orange: #ff9f0a;
-  --color-accent-red: #ff453a;
-  --color-accent-purple: #bf5af2;
-  --color-accent-cyan: #64d2ff;
-  --color-gold: #f59e0b;
-  --color-medal-silver: #9ca3af;
-  --color-medal-bronze: #cd7f32;
+  --color-brand: #c93f1d;
+  --color-accent-blue: #4a6079;
+  --color-accent-green: #6b8a76;
+  --color-accent-yellow: #b08550;
+  --color-accent-orange: #dc8a5b;
+  --color-accent-red: #c93f1d;
+  --color-accent-purple: #7a6a86;
+  --color-accent-cyan: #6b9c9c;
+  --color-gold: #b08550;
+  --color-medal-silver: #9a948c;
+  --color-medal-bronze: #b08550;
 }
 
 :root {
-  --primary-hover: rgba(252, 76, 2, 0.15);
+  --primary-hover: rgba(201, 63, 29, 0.12);
 
   /* ── Mobile menu tokens ─────────────────────────────────────────────────── */
-  --component-inactive-color: var(--color-text-2);
-  --component-bg: var(--color-surface-0);
-  --component-shadow: var(--color-edge);
-  --component-active-bg: var(--color-surface-1);
-  --component-line-inactive-color: var(--color-border);
+  --component-inactive-color: var(--color-text-3);
+  --component-bg: var(--color-paper-2);
+  --component-shadow: var(--color-ink);
+  --component-active-bg: var(--color-paper-3);
+  --component-line-inactive-color: var(--color-rule);
   --component-active-color-default: var(--color-accent);
 
-  /* ── Dark Luxe surface system ────────────────────────────────────────────── */
-  --color-base: #09090c;
-  --color-surface-0: #101013;
-  --color-surface-1: #17171b;
-  --color-surface-2: #1e1e23;
-  --color-edge: rgba(255,255,255,0.07);
-  --color-border: rgba(255,255,255,0.05);
-  --color-text-1: #efeff3;
-  --color-text-2: #888896;
-  --color-text-3: #404050;
-  --color-accent: #fc4c02;
-  --color-accent-dim: rgba(252,76,2,0.08);
+  /* ── Runner's Almanac — editorial broadsheet palette ─────────────────────── */
+  /* Paper cream + ink, faint contour rules, one hot rust accent. */
+  --color-paper:    #f2ede2;
+  --color-paper-2:  #ebe4d3;
+  --color-paper-3:  #e3dac3;
+  --color-ink:      #1a1814;
+  --color-ink-2:    #4a4136;
+  --color-ink-3:    #786e5b;
+  --color-rule:     #c9c1ad;
+  --color-rule-2:   #d8d1bd;
+  --color-rust:     #c93f1d;
+  --color-rust-dim: #a83518;
+
+  /* Editorial type stacks */
+  --serif: var(--font-display), "Newsreader", "Source Serif Pro", Georgia, serif;
+  --mono:  var(--font-geist-mono), "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  --sans:  var(--font-geist-sans), "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  /* ── Semantic tokens (consumed across the app) ───────────────────────────── */
+  --color-base: var(--color-paper);
+  --color-surface-0: var(--color-paper);
+  --color-surface-1: var(--color-paper-2);
+  --color-surface-2: var(--color-paper-3);
+  --color-edge: rgba(26, 24, 20, 0.06);
+  --color-border: var(--color-rule);        /* faint contour rule — subtle dividers */
+  --color-border-strong: var(--color-ink);  /* hard editorial rule */
+  --color-text-1: var(--color-ink);
+  --color-text-2: var(--color-ink-2);
+  --color-text-3: var(--color-ink-3);
+  --color-accent: var(--color-rust);
+  --color-accent-dim: rgba(201, 63, 29, 0.10);
+  --color-on-accent: var(--color-paper);
 
   /* Legacy aliases kept for compatibility with shadcn/ui */
-  --background: var(--color-base);
-  --foreground: var(--color-text-1);
-  --card: var(--color-surface-0);
-  --card-border: var(--color-border);
-  --card-hover: var(--color-surface-1);
-  --radius-card: 14px;
-  --radius-inner: 10px;
-  --radius-badge: 6px;
-  --shadow-base: 0 1px 3px rgba(0,0,0,0.6);
-  --shadow-elevated: 0 4px 20px rgba(0,0,0,0.7);
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+  --card: var(--color-paper);
+  --card-border: var(--color-ink);
+  --card-hover: var(--color-paper-2);
+  /* Editorial = square, hard corners */
+  --radius-card: 0px;
+  --radius-inner: 0px;
+  --radius-badge: 0px;
+  --shadow-base: none;
+  --shadow-elevated: none;
+  --shadow-slab: none;
 }
 
 * { box-sizing: border-box; }
 
 /* Keyboard focus — visible accent ring on every interactive element */
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--color-rust);
   outline-offset: 2px;
-  border-radius: 6px;
 }
-/* Pointer users don't get the ring (mouse clicks) */
 :focus:not(:focus-visible) { outline: none; }
 
 /* Respect reduced-motion preference globally */
@@ -76,86 +96,400 @@
   }
 }
 
-html { background: var(--color-base); color: var(--color-text-1); }
+html { background: var(--color-paper); color: var(--color-ink); }
 
 body {
-  background: var(--color-base);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, "SF Pro Display", sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--serif);
+  font-feature-settings: "kern", "liga", "onum";
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── Surface system ─────────────────────────────────────────────────────────── */
+/* ── Surface system (editorial paper + ink rules) ────────────────────────────── */
 
-/* Primary card — solid dark surface with edge highlight */
+/* Primary card — paper with a hard ink hairline border */
 .surface-card {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  box-shadow: 0 1px 0 0 var(--color-edge) inset;
+  background: var(--color-paper);
+  border: 1px solid var(--color-ink);
+  border-radius: 0;
+  transition: background 0.18s ease;
 }
 
-/* Raised surface — for hover states, pills, inner elements */
+/* Raised surface — recessed paper tone */
 .surface-raised {
-  background: var(--color-surface-1);
-  border-radius: var(--radius-inner);
+  background: var(--color-paper-2);
+  border: 1px solid var(--color-rule);
+  border-radius: 0;
 }
 
-/* Stage — hero area, no card chrome */
-.surface-stage {
-  background: transparent;
+/* Hero slab — carries a rust top rule (race-day energy) */
+.surface-slab {
+  background: var(--color-paper);
+  border: 1px solid var(--color-ink);
+  border-top: 3px solid var(--color-rust);
+  border-radius: 0;
 }
 
-/* ── Legacy bento classes — kept for pages not yet redesigned ────────────────── */
+/* Stage — open broadsheet area, no chrome */
+.surface-stage { background: transparent; }
 
-.bento-card-stage {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: var(--radius-card);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  box-shadow: var(--shadow-elevated), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
+/* ── Legacy bento classes — remapped to paper ────────────────────────────────── */
 
-.bento-card {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
-  box-shadow: 0 1px 0 0 var(--color-edge) inset;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.bento-card:hover {
-  background: var(--color-surface-1);
-  border-color: rgba(255, 255, 255, 0.08);
-}
-
+.bento-card-stage,
+.bento-card,
 .bento-card-matte {
-  background: var(--color-surface-0);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-card);
+  background: var(--color-paper);
+  border: 1px solid var(--color-ink);
+  border-radius: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
-
+.bento-card:hover { background: var(--color-paper-2); }
 .bento-card-recessed {
-  background: var(--color-surface-1);
-  border-radius: var(--radius-inner);
+  background: var(--color-paper-2);
+  border: 1px solid var(--color-rule);
+  border-radius: 0;
 }
 
-/* ── Display typography ─────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════════════════
+   Runner's Almanac — editorial primitives
+   ════════════════════════════════════════════════════════════════════════════ */
+
+/* Masthead — broadsheet nameplate */
+.masthead {
+  border-bottom: 2px solid var(--color-ink);
+  border-top: 6px double var(--color-ink);
+  padding: 16px 24px 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+.masthead .brand {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--color-ink);
+}
+.masthead .brand sup {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.1em;
+  color: var(--color-rust);
+  margin-left: 6px;
+  top: -0.9em;
+}
+.masthead .line { display: flex; gap: 18px; flex-wrap: wrap; }
+.masthead .line span + span::before {
+  content: "·";
+  margin-right: 18px;
+  color: var(--color-rule);
+}
+
+/* Kicker — sans eyebrow above headlines */
+.kicker {
+  font-family: var(--sans);
+  font-size: 10px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+.kicker.rust { color: var(--color-rust); }
+
+/* Display + section headlines (Newsreader italic) */
+.h-display {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.92;
+  color: var(--color-ink);
+  text-wrap: balance;
+}
+.h-display em { font-style: normal; font-weight: 200; }
+
+.h-section {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 500;
+  font-size: 28px;
+  letter-spacing: -0.015em;
+  line-height: 1;
+  color: var(--color-ink);
+}
+
+.deck {
+  font-family: var(--serif);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--color-ink-2);
+  font-size: 18px;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.body-serif {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-ink-2);
+}
+
+/* Sans labels */
+.label {
+  font-family: var(--sans);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+/* Mono numerals */
+.mono { font-family: var(--mono); font-feature-settings: "tnum"; }
+.num {
+  font-family: var(--mono);
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--color-ink);
+}
+.num.big  { font-size: 56px; font-weight: 500; line-height: 0.9; }
+.num.huge { font-size: 96px; font-weight: 400; line-height: 0.85; letter-spacing: -0.04em; }
+
+/* Rules */
+.rq-rule { background: var(--color-rule); height: 1px; width: 100%; }
+.rq-rule.thick { background: var(--color-ink); height: 2px; }
+.rq-rule.double {
+  height: 4px; background: transparent;
+  border-top: 1px solid var(--color-ink); border-bottom: 1px solid var(--color-ink);
+}
+
+/* Chips */
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 8px; border: 1px solid var(--color-ink);
+  font-family: var(--sans); font-size: 9px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--color-ink); border-radius: 0;
+}
+.chip.rust  { border-color: var(--color-rust); color: var(--color-rust); }
+.chip.ink   { background: var(--color-ink); color: var(--color-paper); border-color: var(--color-ink); }
+.chip.ghost { border-color: var(--color-rule); color: var(--color-ink-3); }
+
+.pill {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 99px;
+  font-family: var(--mono); font-size: 10px;
+  background: var(--color-paper-3); color: var(--color-ink-2);
+}
+
+/* Form pill (training state) */
+.form-pill {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 6px 14px 6px 10px;
+  border: 1.5px solid var(--color-ink);
+  background: var(--color-paper);
+}
+.form-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-rust); }
+
+/* Scoreboard tile */
+.tile {
+  border: 1px solid var(--color-ink);
+  padding: 14px 16px 16px;
+  background: var(--color-paper);
+  position: relative;
+}
+.tile .tile-label {
+  font-family: var(--sans);
+  font-size: 9px; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--color-ink-2);
+  margin-bottom: 8px;
+  display: flex; justify-content: space-between; align-items: baseline;
+}
+.tile .tile-num {
+  font-family: var(--mono);
+  font-size: 36px; letter-spacing: -0.03em;
+  font-weight: 500; line-height: 1;
+}
+.tile .tile-delta {
+  font-family: var(--mono); font-size: 11px;
+  margin-top: 6px; color: var(--color-ink-2);
+}
+.tile .tile-delta.up { color: var(--color-rust); }
+.tile .tile-delta.down { color: var(--color-ink-3); }
+.tile.rust { border-color: var(--color-rust); }
+.tile.rust .tile-label, .tile.rust .tile-num { color: var(--color-rust); }
+
+/* Topographic line accents (for SVG charts) */
+.topo-stroke { stroke: var(--color-ink); fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.topo-fill   { fill: rgba(201, 63, 29, 0.08); }
+.topo-thin   { stroke: var(--color-rule); fill: none; stroke-width: 0.6; }
+.topo-rust   { stroke: var(--color-rust); fill: none; }
+
+/* Letterpress small-caps badge */
+.badge {
+  display: inline-block; padding: 1px 6px;
+  border: 1px solid currentColor;
+  font-family: var(--sans); font-size: 8.5px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+}
+
+/* Hand-stamped seal */
+.seal {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 1.5px solid var(--color-rust);
+  font-family: var(--serif); font-style: italic;
+  font-size: 11px; color: var(--color-rust);
+  text-align: center; line-height: 1.05;
+  transform: rotate(-8deg);
+}
+
+/* Scoreboard segmented bar */
+.seg-bar { display: flex; height: 8px; border: 1px solid var(--color-ink); }
+.seg-bar > div { height: 100%; }
+
+/* Ledger table */
+table.ledger {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--mono); font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+table.ledger th {
+  text-align: left;
+  font-family: var(--sans); font-size: 9px;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--color-ink-3); font-weight: 400;
+  padding: 8px 10px; border-bottom: 1px solid var(--color-ink);
+}
+table.ledger td {
+  padding: 10px;
+  border-bottom: 1px dotted var(--color-rule);
+  color: var(--color-ink);
+}
+table.ledger tr:hover td { background: var(--color-paper-2); }
+table.ledger td.num-cell { text-align: right; }
+table.ledger td.kicker-cell {
+  font-family: var(--serif); font-style: italic; color: var(--color-ink);
+}
+
+/* Phase badges (training block) */
+.phase-base  { --phase: #6b8a76; }
+.phase-build { --phase: #b08550; }
+.phase-peak  { --phase: #c93f1d; }
+.phase-taper { --phase: #4a6079; }
+.phase-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--sans); font-size: 10px;
+  letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--phase, var(--color-ink));
+}
+.phase-tag::before {
+  content: ""; width: 8px; height: 8px;
+  background: var(--phase, var(--color-ink));
+}
+
+/* Calendar day cell */
+.day {
+  border: 1px solid var(--color-ink);
+  background: var(--color-paper);
+  display: flex; flex-direction: column;
+  position: relative; min-height: 0;
+}
+.day.rest {
+  background: repeating-linear-gradient(
+    -45deg, var(--color-paper), var(--color-paper) 8px,
+    var(--color-paper-2) 8px, var(--color-paper-2) 10px);
+}
+
+/* Editorial buttons / inputs */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--sans); font-size: 11px;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 8px 14px;
+  border: 1.5px solid var(--color-ink);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  cursor: pointer; border-radius: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.btn:hover { background: var(--color-paper-2); }
+.btn.ink  { background: var(--color-ink); color: var(--color-paper); }
+.btn.ink:hover { background: var(--color-ink-2); }
+.btn.rust { background: var(--color-rust); color: var(--color-paper); border-color: var(--color-rust); }
+.btn.rust:hover { background: var(--color-rust-dim); }
+
+.field {
+  border: 1px solid var(--color-ink); padding: 10px 12px;
+  font-family: var(--serif); font-style: italic;
+  color: var(--color-ink-2); background: var(--color-paper);
+  font-size: 14px; border-radius: 0;
+}
+
+/* Marginalia — coach's hand-written note */
+.marginalia {
+  font-family: var(--serif); font-style: italic;
+  font-size: 12px; color: var(--color-rust);
+  line-height: 1.35;
+}
+
+.star { color: var(--color-rust); }
+
+/* ── Display typography helpers (kept for component compatibility) ────────────── */
 
 .metric-display {
+  font-family: var(--mono);
   font-size: clamp(3.5rem, 6vw, 6rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-weight: 500;
+  letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
+  line-height: 0.95;
+  color: var(--color-ink);
 }
 
 .metric-label {
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-family: var(--sans);
+  font-size: 0.5625rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--color-text-2);
+  color: var(--color-ink-3);
+}
+
+/* Boxed section tag */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 0.3em 0.6em;
+  font-family: var(--sans);
+  font-size: 0.5625rem;
+  font-weight: 400;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+  background: transparent;
+  border: 1px solid var(--color-ink);
+  border-radius: 0;
+  line-height: 1;
+}
+
+/* Display heading helper — Newsreader italic */
+.font-display {
+  font-family: var(--serif);
+  font-style: italic;
 }
 
 /* ── Modern Mobile Menu ─────────────────────────────────────────────────────── */
@@ -166,7 +500,7 @@ body {
   justify-content: space-around;
   width: 100%;
   background: var(--component-bg);
-  border-top: 1px solid var(--component-shadow);
+  border-top: 1px solid var(--color-ink);
 }
 
 .menu__item {
@@ -202,43 +536,25 @@ body {
   transition: opacity 0.25s ease;
 }
 
-.menu__item.active::after {
-  opacity: 1;
-}
+.menu__item.active::after { opacity: 1; }
+.menu__item.active { color: var(--component-active-color, var(--component-active-color-default)); }
+.menu__item.active .icon { animation: iconBounce 0.45s ease; }
 
-.menu__item.active {
-  color: var(--component-active-color, var(--component-active-color-default));
-}
-
-.menu__item.active .icon {
-  animation: iconBounce 0.45s ease;
-}
-
-.menu__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.menu__icon .icon {
-  width: 20px;
-  height: 20px;
-}
+.menu__icon { display: flex; align-items: center; justify-content: center; }
+.menu__icon .icon { width: 20px; height: 20px; }
 
 .menu__text {
-  font-size: 10px;
+  font-family: var(--sans);
+  font-size: 9px;
   font-weight: 500;
-  text-transform: capitalize;
+  text-transform: uppercase;
   color: var(--component-inactive-color);
   white-space: nowrap;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.12em;
   line-height: 1;
   transition: color 0.2s;
 }
-
-.menu__text.active {
-  color: var(--component-active-color, var(--component-active-color-default));
-}
+.menu__text.active { color: var(--component-active-color, var(--component-active-color-default)); }
 
 /* ── Animations ─────────────────────────────────────────────────────────────── */
 
@@ -255,13 +571,11 @@ body {
   50% { opacity: 0.35; transform: scale(0.75); }
 }
 
-.dot-breathe {
-  animation: breath 2s ease-in-out infinite;
-}
+.dot-breathe { animation: breath 2s ease-in-out infinite; }
 
 /* ── Scrollbars ─────────────────────────────────────────────────────────────── */
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+::-webkit-scrollbar-thumb { background: var(--color-rule); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-ink-3); }

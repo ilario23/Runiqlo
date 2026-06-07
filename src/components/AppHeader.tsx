@@ -111,15 +111,28 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
     <>
       {/* ── Top bar ──────────────────────────────────────────────────────────── */}
       <header
-        className='fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-5 backdrop-blur-xl bg-black/70'
-        style={{boxShadow: '0 1px 0 rgba(255,255,255,0.07), 0 1px 12px rgba(0,0,0,0.4)'}}
+        className='fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-5'
+        style={{
+          background: 'var(--color-paper)',
+          borderBottom: '2px solid var(--color-ink)',
+        }}
       >
         {/* Logo */}
-        <div className='flex items-center gap-2 mr-8'>
-          <Image src='/mylogo.png' alt='Runiqlo' width={28} height={28} className='w-7 h-7 flex-shrink-0' />
-          <span className='font-semibold text-sm text-white tracking-wide hidden sm:inline' style={{letterSpacing: '0.06em'}}>
-            RUNIQLO
+        <div className='flex items-baseline gap-2 mr-8'>
+          <span
+            className='hidden sm:inline'
+            style={{
+              fontFamily: 'var(--serif)',
+              fontStyle: 'italic',
+              fontWeight: 600,
+              fontSize: '20px',
+              letterSpacing: '-0.02em',
+              color: 'var(--color-ink)',
+            }}
+          >
+            Runiqlo
           </span>
+          <span className='label' style={{color: 'var(--color-rust)'}}>The Almanac</span>
         </div>
 
         {/* Nav links — desktop only; mobile uses bottom bar */}
@@ -137,10 +150,10 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
                       color: active ? 'var(--color-text-1)' : 'var(--color-text-2)',
                     }}
                   >
-                    <span style={{color: active ? 'rgba(255,255,255,0.7)' : 'var(--color-text-2)'}}>{icon}</span>
+                    <span style={{color: active ? 'var(--color-ink)' : 'var(--color-text-2)'}}>{icon}</span>
                     <span>{label}</span>
                     {active && (
-                      <span className='absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-full h-[2px] rounded-full bg-brand' />
+                      <span className='absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-full h-[2px]' style={{background: 'var(--color-rust)'}} />
                     )}
                   </Link>
                 </div>
@@ -156,7 +169,8 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
             <button
               onClick={handleRefresh}
               disabled={refreshing}
-              className='relative w-8 h-8 rounded-lg flex items-center justify-center bg-white/[0.06] hover:bg-white/[0.10] cursor-pointer disabled:opacity-50 transition-colors'
+              className='relative w-8 h-8 flex items-center justify-center cursor-pointer disabled:opacity-50 transition-colors hover:bg-[var(--color-paper-2)]'
+              style={{border: '1px solid var(--color-ink)'}}
               aria-label='Refresh data'
             >
               <svg
@@ -166,15 +180,15 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
                 fill='none'
                 stroke='currentColor'
                 strokeWidth='2'
-                className={`text-white/60 ${refreshing ? 'animate-spin' : ''}`}
+                className={refreshing ? 'animate-spin' : ''}
+                style={{color: 'var(--color-ink-2)'}}
               >
                 <path d='M23 4v6h-6M1 20v-6h6' />
                 <path d='M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15' />
               </svg>
               <span
-                className={`absolute top-1 right-1 w-1.5 h-1.5 rounded-full ${
-                  refreshing ? 'bg-accent-yellow dot-breathe' : 'bg-accent-green'
-                }`}
+                className={`absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full ${refreshing ? 'dot-breathe' : ''}`}
+                style={{background: refreshing ? 'var(--color-accent-yellow)' : 'var(--color-accent-green)'}}
               />
             </button>
           )}
@@ -182,7 +196,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
           {athlete && (
             <Link
               href='/profile'
-              className='flex items-center gap-2 px-2 py-1 rounded-lg transition-colors cursor-pointer hover:bg-white/[0.05]'
+              className='flex items-center gap-2 px-2 py-1 transition-colors cursor-pointer hover:bg-[var(--color-paper-2)]'
             >
               {athlete.profile_medium ? (
                 <Image
@@ -191,21 +205,22 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
                   width={28}
                   height={28}
                   className='w-7 h-7 rounded-full object-cover flex-shrink-0'
+                  style={{border: '1px solid var(--color-ink)'}}
                   unoptimized
                 />
               ) : (
-                <div className='w-7 h-7 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center flex-shrink-0'>
-                  <span className='text-[10px] font-bold text-white/75 leading-none tracking-wide'>{initials}</span>
+                <div className='w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0' style={{background: 'var(--color-paper-2)', border: '1px solid var(--color-ink)'}}>
+                  <span className='text-[10px] font-bold leading-none tracking-wide' style={{color: 'var(--color-ink-2)'}}>{initials}</span>
                 </div>
               )}
-              <span className='hidden md:inline text-sm font-medium text-white/70 leading-none'>{athlete.firstname}</span>
+              <span className='hidden md:inline text-sm font-medium leading-none' style={{color: 'var(--color-ink-2)'}}>{athlete.firstname}</span>
             </Link>
           )}
 
           <Link
             href='/settings'
-            className='w-8 h-8 rounded-lg flex items-center justify-center transition-colors cursor-pointer hover:bg-white/[0.07]'
-            style={{color: pathname === '/settings' ? 'var(--color-text-1)' : 'var(--color-text-2)'}}
+            className='w-8 h-8 flex items-center justify-center transition-colors cursor-pointer hover:bg-[var(--color-paper-2)]'
+            style={{color: pathname === '/settings' ? 'var(--color-ink)' : 'var(--color-ink-2)'}}
             aria-label='Settings'
           >
             <svg width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
@@ -217,7 +232,7 @@ export default function AppHeader({onRefresh}: AppHeaderProps) {
       </header>
 
       {/* ── Mobile bottom tab bar ─────────────────────────────────────────────── */}
-      <div className='md:hidden fixed bottom-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/85'>
+      <div className='md:hidden fixed bottom-0 left-0 right-0 z-50' style={{background: 'var(--color-paper)', borderTop: '2px solid var(--color-ink)'}}>
         <InteractiveMenu
           items={MOBILE_NAV_ITEMS}
           activeIndex={mobileActiveIndex >= 0 ? mobileActiveIndex : 0}

@@ -69,16 +69,16 @@ function gradeColor(grade: number): string {
 
 function prBadge(rank: number | null) {
   if (rank === 1) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-gold/15 text-gold font-semibold flex-shrink-0">PR</span>;
-  if (rank === 2) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.08] text-white/50 flex-shrink-0">2nd</span>;
-  if (rank === 3) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-white/40 flex-shrink-0">3rd</span>;
+  if (rank === 2) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--color-paper-2)] text-[var(--color-ink-2)] flex-shrink-0">2nd</span>;
+  if (rank === 3) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--color-paper-2)] text-[var(--color-ink-3)] flex-shrink-0">3rd</span>;
   return null;
 }
 
 function StatTile({label, value, accent}: {label: string; value: string | number; accent?: string}) {
   return (
-    <div className="px-3 py-2.5 rounded-xl bg-white/[0.04] flex flex-col gap-0.5">
-      <p className="text-[11px] text-white/35 uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-semibold tabular-nums" style={{color: accent ?? 'rgba(255,255,255,0.85)'}}>
+    <div className="px-3 py-2.5 rounded-xl bg-[var(--color-paper-2)] flex flex-col gap-0.5">
+      <p className="text-[11px] text-[var(--color-ink-3)] uppercase tracking-wide">{label}</p>
+      <p className="text-sm font-semibold tabular-nums" style={{color: accent ?? 'rgba(26,24,20,0.85)'}}>
         {value}
       </p>
     </div>
@@ -101,7 +101,7 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
   if (efforts.length < 2) {
     return (
       <div className="h-[160px] flex items-center justify-center">
-        <p className="text-sm text-white/25">Run this segment again to see your progress trend</p>
+        <p className="text-sm text-[var(--color-ink-3)]">Run this segment again to see your progress trend</p>
       </div>
     );
   }
@@ -116,7 +116,7 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
       <LineChart data={data} margin={{top: 8, right: 8, bottom: 0, left: 0}}>
         <XAxis
           dataKey="label"
-          tick={{fontSize: 10, fill: 'rgba(255,255,255,0.3)'}}
+          tick={{fontSize: 10, fill: 'rgba(26,24,20,0.3)'}}
           axisLine={false}
           tickLine={false}
           interval="preserveStartEnd"
@@ -124,15 +124,15 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
         <YAxis
           domain={[minT - padding, maxT + padding]}
           reversed
-          tick={{fontSize: 10, fill: 'rgba(255,255,255,0.3)'}}
+          tick={{fontSize: 10, fill: 'rgba(26,24,20,0.3)'}}
           axisLine={false}
           tickLine={false}
           tickFormatter={fmtTime}
           width={48}
         />
         <RechartsTooltip
-          contentStyle={{background: '#1c1c1e', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, fontSize: 12}}
-          labelStyle={{color: 'rgba(255,255,255,0.5)', marginBottom: 4}}
+          contentStyle={{background: '#1c1c1e', border: '1px solid rgba(26,24,20,0.08)', borderRadius: 10, fontSize: 12}}
+          labelStyle={{color: 'rgba(26,24,20,0.5)', marginBottom: 4}}
           formatter={(val) => [fmtTime(Number(val)), 'Time']}
         />
         <Line
@@ -203,7 +203,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-[var(--color-rust)] animate-spin" />
       </div>
     );
   }
@@ -224,7 +224,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
       <>
         <AppHeader />
         <div className="pt-[72px] flex items-center justify-center min-h-screen">
-          <p className="text-sm text-white/40">Invalid segment ID</p>
+          <p className="text-sm text-[var(--color-ink-3)]">Invalid segment ID</p>
         </div>
       </>
     );
@@ -245,10 +245,10 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
         <div className="max-w-[1100px] mx-auto">
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 py-3 text-xs text-white/35">
-            <Link href="/segments" className="hover:text-white/60 transition-colors">Segments</Link>
+          <div className="flex items-center gap-2 py-3 text-xs text-[var(--color-ink-3)]">
+            <Link href="/segments" className="hover:text-[var(--color-ink-2)] transition-colors">Segments</Link>
             <span>/</span>
-            <span className="text-white/55 truncate max-w-[200px]">{segName}</span>
+            <span className="text-[var(--color-ink-2)] truncate max-w-[200px]">{segName}</span>
           </div>
 
           {/* Title row */}
@@ -262,15 +262,15 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
                   {segGrade.toFixed(1)}%
                 </span>
               )}
-              <h1 className="text-xl font-semibold tracking-tight text-white">{segName}</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-[var(--color-ink)]">{segName}</h1>
               {segClimb > 0 && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-white/[0.08] text-white/50">
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--color-paper-2)] text-[var(--color-ink-2)]">
                   {CLIMB_LABELS[segClimb] ?? `Cat ${segClimb}`}
                 </span>
               )}
             </div>
             {(segCity || segState) && (
-              <p className="text-sm text-white/35 mt-1 ml-0">
+              <p className="text-sm text-[var(--color-ink-3)] mt-1 ml-0">
                 {[segCity, segState].filter(Boolean).join(', ')}
               </p>
             )}
@@ -287,34 +287,34 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
 
               {/* Map */}
               <motion.div variants={cardVariant} className="bento-card p-4">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Route</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Route</h2>
                 {detailLoading ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : mapSegments.length >= 1 ? (
                   <RouteMapLeaflet segments={mapSegments} hoverPos={null} color={COLORS.brand} />
                 ) : (
                   <div className="w-full h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-white/25">No map data</p>
+                    <p className="text-sm text-[var(--color-ink-3)]">No map data</p>
                   </div>
                 )}
               </motion.div>
 
               {/* Effort history */}
               <motion.div variants={cardVariant} className="bento-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">History</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">History</h2>
                 {effortsLoading ? (
                   <div className="space-y-2">
                     {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                   </div>
                 ) : effortsNewestFirst.length === 0 ? (
                   <div className="py-8 text-center">
-                    <p className="text-sm text-white/25">No efforts recorded yet</p>
+                    <p className="text-sm text-[var(--color-ink-3)]">No efforts recorded yet</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[10px] text-white/30 uppercase tracking-wide border-b border-white/[0.05]">
+                        <tr className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide border-b border-[var(--color-rule)]">
                           <th className="pb-2 text-left font-medium">Date</th>
                           <th className="pb-2 text-right font-medium">Time</th>
                           <th className="pb-2 text-right font-medium">Pace</th>
@@ -327,26 +327,26 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
                         {effortsNewestFirst.map((effort) => (
                           <tr
                             key={effort.effortId}
-                            className={`border-b border-white/[0.04] last:border-0 ${effort.pr_rank === 1 ? 'bg-gold/[0.04]' : ''}`}
+                            className={`border-b border-[var(--color-rule)] last:border-0 ${effort.pr_rank === 1 ? 'bg-gold/[0.04]' : ''}`}
                           >
-                            <td className="py-2.5 text-white/60 text-xs">
+                            <td className="py-2.5 text-[var(--color-ink-2)] text-xs">
                               <Link
                                 href={`/activities/${effort.activityId}`}
-                                className="hover:text-white/90 transition-colors"
+                                className="hover:text-[var(--color-ink)] transition-colors"
                               >
                                 {fmtDate(effort.activityDate)}
                               </Link>
                             </td>
-                            <td className="py-2.5 text-right font-semibold tabular-nums text-white/80">
+                            <td className="py-2.5 text-right font-semibold tabular-nums text-[var(--color-ink)]">
                               {fmtTime(effort.elapsed_time)}
                             </td>
-                            <td className="py-2.5 text-right tabular-nums text-white/50 text-xs">
+                            <td className="py-2.5 text-right tabular-nums text-[var(--color-ink-2)] text-xs">
                               {fmtPace(effort.elapsed_time, effort.distance)}/km
                             </td>
-                            <td className="py-2.5 text-right tabular-nums text-white/50 text-xs hidden sm:table-cell">
+                            <td className="py-2.5 text-right tabular-nums text-[var(--color-ink-2)] text-xs hidden sm:table-cell">
                               {effort.average_heartrate != null ? Math.round(effort.average_heartrate) : '—'}
                             </td>
-                            <td className="py-2.5 text-right tabular-nums text-white/50 text-xs hidden sm:table-cell">
+                            <td className="py-2.5 text-right tabular-nums text-[var(--color-ink-2)] text-xs hidden sm:table-cell">
                               {effort.max_heartrate != null ? effort.max_heartrate : '—'}
                             </td>
                             <td className="py-2.5 text-right">
@@ -362,7 +362,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
 
               {/* Progress chart */}
               <motion.div variants={cardVariant} className="bento-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Progress</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Progress</h2>
                 {effortsLoading ? (
                   <Skeleton className="h-[180px] w-full" />
                 ) : (
@@ -377,7 +377,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
 
               {/* Stats */}
               <motion.div variants={cardVariant} className="bento-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Stats</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Stats</h2>
                 {effortsLoading && !aggregated ? (
                   <div className="grid grid-cols-2 gap-2">
                     {Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-14" />)}

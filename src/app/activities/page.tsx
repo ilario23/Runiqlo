@@ -87,14 +87,9 @@ function ConnectPrompt() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="surface-card p-10 max-w-sm w-full text-center space-y-5">
-        <h2 className="text-lg font-semibold text-white">Connect Strava</h2>
-        <p className="text-sm text-white/40">Link your account to view your activities</p>
-        <Link
-          href="/settings"
-          className="block w-full bg-brand hover:bg-brand/90 text-white font-semibold py-3 rounded-xl text-sm transition-colors"
-        >
-          Go to Settings
-        </Link>
+        <h2 className="h-section" style={{fontSize: 24}}>Connect Strava</h2>
+        <p className="body-serif" style={{fontStyle: 'italic'}}>Link your account to view your activities</p>
+        <Link href="/settings" className="btn ink w-full justify-center">Go to Settings →</Link>
       </div>
     </div>
   );
@@ -103,7 +98,7 @@ function ConnectPrompt() {
 // ─── Activity row ─────────────────────────────────────────────────────────────
 
 function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: () => void}) {
-  const color = SPORT_COLORS[activity.type] ?? '#ffffff60';
+  const color = SPORT_COLORS[activity.type] ?? 'var(--color-ink-3)';
 
   return (
     <motion.div
@@ -116,21 +111,21 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         style={{background: color}}
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white/85 truncate group-hover:text-white transition-colors">
+        <p className="text-sm font-medium text-[var(--color-ink)] truncate group-hover:text-[var(--color-rust)] transition-colors">
           {activity.name}
         </p>
-        <p className="text-[11px] text-white/45 mt-0.5">
+        <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">
           {fmtDate(activity.date)} · {activity.type}
         </p>
       </div>
       <div className="hidden sm:flex items-center gap-6 text-right flex-shrink-0">
         <div>
-          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
             {activity.distance.toFixed(1)}
-            <span className="text-[11px] font-normal text-white/45 ml-0.5">km</span>
+            <span className="text-[11px] font-normal text-[var(--color-ink-3)] ml-0.5">km</span>
           </p>
           {activity.avgPace > 0 && (
-            <p className="text-[11px] text-white/45 font-mono tabular-nums">
+            <p className="text-[11px] text-[var(--color-ink-3)] font-mono tabular-nums">
               {formatPace(activity.avgPace)}/km
             </p>
           )}
@@ -138,29 +133,29 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         <div className="w-[56px]">
           {activity.elevationGain > 0 && (
             <>
-              <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
+              <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
                 {Math.round(activity.elevationGain)}
-                <span className="text-[11px] font-normal text-white/45 ml-0.5">m</span>
+                <span className="text-[11px] font-normal text-[var(--color-ink-3)] ml-0.5">m</span>
               </p>
-              <p className="text-[11px] text-white/45">elev</p>
+              <p className="text-[11px] text-[var(--color-ink-3)]">elev</p>
             </>
           )}
         </div>
         <div className="w-[52px]">
           {activity.avgHr > 0 && (
             <>
-              <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
+              <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
                 {Math.round(activity.avgHr)}
               </p>
-              <p className="text-[11px] text-white/45">bpm</p>
+              <p className="text-[11px] text-[var(--color-ink-3)]">bpm</p>
             </>
           )}
         </div>
         <div className="w-[56px]">
-          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
             {formatDuration(activity.duration)}
           </p>
-          <p className="text-[11px] text-white/45">time</p>
+          <p className="text-[11px] text-[var(--color-ink-3)]">time</p>
         </div>
       </div>
       <svg
@@ -170,7 +165,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
-        className="text-white/20 group-hover:text-white/40 flex-shrink-0 transition-colors"
+        className="text-[var(--color-ink-3)] group-hover:text-[var(--color-rust)]/40 flex-shrink-0 transition-colors"
       >
         <path d="M9 18l6-6-6-6" />
       </svg>
@@ -197,43 +192,43 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-white/85 truncate group-hover:text-white transition-colors">
+          <p className="text-sm font-medium text-[var(--color-ink)] truncate group-hover:text-[var(--color-rust)] transition-colors">
             {segment.name}
           </p>
           {segment.starred && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-gold/15 text-gold flex-shrink-0">★</span>
           )}
           {segment.climb_category > 0 && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-white/[0.08] text-white/50 flex-shrink-0">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--color-paper-3)] text-[var(--color-ink-2)] flex-shrink-0">
               {CLIMB_LABELS[segment.climb_category] ?? `Cat ${segment.climb_category}`}
             </span>
           )}
         </div>
-        <p className="text-[11px] text-white/45 mt-0.5">
+        <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">
           {[segment.city, segment.state].filter(Boolean).join(', ')}
         </p>
       </div>
       <div className="hidden sm:flex items-center gap-5 flex-shrink-0">
         <div className="text-right w-[55px]">
-          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
             {(segment.distance / 1000).toFixed(1)}
-            <span className="text-[11px] font-normal text-white/45 ml-0.5">km</span>
+            <span className="text-[11px] font-normal text-[var(--color-ink-3)] ml-0.5">km</span>
           </p>
-          <p className="text-[11px] text-white/45">dist</p>
+          <p className="text-[11px] text-[var(--color-ink-3)]">dist</p>
         </div>
         <div className="text-right w-[44px]">
-          <p className="text-sm font-mono font-semibold tabular-nums text-white/80">{segment.effortCount}</p>
-          <p className="text-[11px] text-white/45">runs</p>
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">{segment.effortCount}</p>
+          <p className="text-[11px] text-[var(--color-ink-3)]">runs</p>
         </div>
         <div className="text-right w-[60px]">
           <p className="text-sm font-mono font-semibold tabular-nums text-gold">
             {fmtTime(segment.prTime)}
           </p>
-          <p className="text-[11px] text-white/45">PR</p>
+          <p className="text-[11px] text-[var(--color-ink-3)]">PR</p>
         </div>
         <div className="text-right w-[90px]">
-          <p className="text-[11px] font-mono tabular-nums text-white/40">{fmtSegDate(segment.lastRunDate)}</p>
-          <p className="text-[11px] text-white/25">last run</p>
+          <p className="text-[11px] font-mono tabular-nums text-[var(--color-ink-3)]">{fmtSegDate(segment.lastRunDate)}</p>
+          <p className="text-[11px] text-[var(--color-ink-3)]">last run</p>
         </div>
       </div>
     </motion.div>
@@ -249,7 +244,7 @@ function SortBtn({
     <button
       onClick={onClick}
       className={`text-[10px] font-medium uppercase tracking-wide transition-colors flex items-center gap-1 ${
-        active ? 'text-white/60' : 'text-white/25 hover:text-white/40'
+        active ? 'text-[var(--color-ink-2)]' : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-3)]'
       }`}
     >
       {label}
@@ -292,7 +287,7 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
   return (
     <>
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <p className="text-sm text-white/50">
+        <p className="text-sm text-[var(--color-ink-2)]">
           {segments
             ? `${sorted.length} segment${sorted.length !== 1 ? 's' : ''}`
             : 'Loading…'}
@@ -304,7 +299,7 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
               className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
                 starredOnly
                   ? 'border-gold/40 bg-gold/10 text-gold'
-                  : 'border-white/10 bg-white/[0.04] text-white/40 hover:text-white/60'
+                  : 'border-[var(--color-rule)] bg-[var(--color-paper-2)] text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)]'
               }`}
             >
               ★ Starred only
@@ -314,11 +309,11 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
       </div>
 
       <div className="surface-card overflow-hidden">
-        <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-white/[0.05]">
+        <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-[var(--color-rule)]">
           <div className="w-[46px]">
             <SortBtn label="Grade" active={segSortKey === 'grade'} asc={segSortAsc} onClick={() => handleSort('grade')} />
           </div>
-          <div className="flex-1 text-[10px] font-medium text-white/25 uppercase tracking-wide">Segment</div>
+          <div className="flex-1 text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide">Segment</div>
           <div className="flex items-center gap-5">
             <div className="w-[55px] text-right">
               <SortBtn label="Dist" active={segSortKey === 'distance'} asc={segSortAsc} onClick={() => handleSort('distance')} />
@@ -350,8 +345,8 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
           </div>
         ) : sorted.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm text-white/25">No segments found</p>
-            <p className="text-xs text-white/20 mt-1">Open an activity to load its segment data</p>
+            <p className="text-sm text-[var(--color-ink-3)]">No segments found</p>
+            <p className="text-xs text-[var(--color-ink-3)] mt-1">Open an activity to load its segment data</p>
           </div>
         ) : (
           <motion.div variants={containerVariant} initial="hidden" animate="show" className="p-2">
@@ -432,7 +427,7 @@ export default function ActivitiesPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-[var(--color-rust)] animate-spin" />
       </div>
     );
   }
@@ -454,10 +449,11 @@ export default function ActivitiesPage() {
 
           {/* Page title */}
           <div className="pt-2 pb-1">
-            <h1 className="text-xl font-semibold tracking-tight text-white">Activities</h1>
+            <div className="kicker rust">The Ledger</div>
+            <h1 className="h-display" style={{fontSize: 52}}>Activities</h1>
             {activeTab === 'activities' && (
               <div className="flex items-center gap-3 mt-0.5">
-                <p className="text-sm text-white/50">
+                <p className="text-sm text-[var(--color-ink-2)]">
                   {activities
                     ? isFullyLoaded
                       ? `${activities.length} activities synced`
@@ -466,10 +462,10 @@ export default function ActivitiesPage() {
                 </p>
                 {activities && !isFullyLoaded && (
                   <div className="flex items-center gap-2">
-                    <div className="h-1 w-24 rounded-full bg-white/[0.08] overflow-hidden">
+                    <div className="h-1 w-24 rounded-full bg-[var(--color-paper-3)] overflow-hidden">
                       <div className="h-full w-1/3 rounded-full bg-accent-blue animate-pulse" />
                     </div>
-                    <span className="text-[11px] text-white/45">syncing…</span>
+                    <span className="text-[11px] text-[var(--color-ink-3)]">syncing…</span>
                   </div>
                 )}
               </div>
@@ -487,8 +483,8 @@ export default function ActivitiesPage() {
                 onClick={() => switchTab(value)}
                 className={`px-4 pb-2.5 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
                   activeTab === value
-                    ? 'text-white border-[var(--color-accent)]'
-                    : 'text-white/40 hover:text-white/65 border-transparent'
+                    ? 'text-[var(--color-ink)] border-[var(--color-accent)]'
+                    : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] border-transparent'
                 }`}
               >
                 {label}
@@ -509,7 +505,7 @@ export default function ActivitiesPage() {
                         key={value}
                         onClick={() => setSportFilter(value)}
                         className={`px-3 pb-2 text-xs font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
-                          active ? 'text-white border-[var(--color-accent)]' : 'text-white/40 hover:text-white/65 border-transparent'
+                          active ? 'text-[var(--color-ink)] border-[var(--color-accent)]' : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] border-transparent'
                         }`}
                         style={active && color ? {color, borderColor: color} : undefined}
                       >
@@ -519,14 +515,14 @@ export default function ActivitiesPage() {
                   })}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-white/30">Sort:</span>
+                  <span className="text-xs text-[var(--color-ink-3)]">Sort:</span>
                   <select
                     value={sortKey}
                     onChange={(e) => setSortKey(e.target.value as SortKey)}
-                    className="bg-[var(--color-surface-1)] border border-[var(--color-border)] text-white/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-[var(--color-surface-2)] transition-colors"
+                    className="bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[var(--color-ink)]/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-[var(--color-surface-2)] transition-colors"
                   >
                     {SORT_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value} className="bg-[#111]">
+                      <option key={o.value} value={o.value} className="bg-[var(--color-paper)]">
                         {o.label}
                       </option>
                     ))}
@@ -535,14 +531,14 @@ export default function ActivitiesPage() {
               </div>
 
               <div className="surface-card overflow-hidden">
-                <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-white/[0.05]">
+                <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-[var(--color-rule)]">
                   <div className="w-2 flex-shrink-0" />
-                  <div className="flex-1 text-[10px] font-medium text-white/25 uppercase tracking-wide">Activity</div>
+                  <div className="flex-1 text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide">Activity</div>
                   <div className="flex items-center gap-6 text-right">
-                    <div className="w-[72px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Distance</div>
-                    <div className="w-[56px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Elev</div>
-                    <div className="w-[52px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">HR</div>
-                    <div className="w-[56px] text-[10px] font-medium text-white/25 uppercase tracking-wide text-right">Time</div>
+                    <div className="w-[72px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">Distance</div>
+                    <div className="w-[56px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">Elev</div>
+                    <div className="w-[52px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">HR</div>
+                    <div className="w-[56px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">Time</div>
                   </div>
                   <div className="w-[14px]" />
                 </div>
@@ -562,7 +558,7 @@ export default function ActivitiesPage() {
                   </div>
                 ) : filtered.length === 0 ? (
                   <div className="py-16 text-center">
-                    <p className="text-sm text-white/25">No activities found</p>
+                    <p className="text-sm text-[var(--color-ink-3)]">No activities found</p>
                   </div>
                 ) : (
                   <motion.div
@@ -598,7 +594,7 @@ export default function ActivitiesPage() {
               </div>
 
               {activities && filtered.length > 0 && (
-                <p className="text-center text-[11px] text-white/20">
+                <p className="text-center text-[11px] text-[var(--color-ink-3)]">
                   {!isFullyLoaded
                     ? `Showing ${visibleActivities.length} activities…`
                     : visibleCount >= filtered.length

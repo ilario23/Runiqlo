@@ -53,16 +53,16 @@ export default function AthleteNotesCard() {
   return (
     <div className="bento-card p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-white">Athlete Notes</p>
+        <p className="text-sm font-medium text-[var(--color-ink)]">Athlete Notes</p>
         {editing ? (
           <div className="flex items-center gap-2">
-            <button onClick={cancel} className="text-xs text-white/40 hover:text-white/60 transition-colors px-2 py-1">
+            <button onClick={cancel} className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors px-2 py-1">
               Cancel
             </button>
             <button
               onClick={save}
               disabled={isSaving}
-              className="text-xs bg-accent-blue text-white font-semibold px-3 py-1.5 rounded-lg hover:bg-accent-blue/85 transition-colors disabled:opacity-50"
+              className="text-xs bg-accent-blue text-[var(--color-ink)] font-semibold px-3 py-1.5 rounded-lg hover:bg-accent-blue/85 transition-colors disabled:opacity-50"
             >
               {isSaving ? 'Saving…' : 'Save'}
             </button>
@@ -70,7 +70,7 @@ export default function AthleteNotesCard() {
         ) : (
           <button
             onClick={startEdit}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 bg-white/[0.05] hover:bg-white/[0.09] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
+            className="flex items-center gap-1.5 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)] bg-[var(--color-paper-2)] hover:bg-[var(--color-paper-2)] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -91,7 +91,7 @@ export default function AthleteNotesCard() {
           {/* Injury History */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide">Injury History</p>
+              <p className="text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide">Injury History</p>
               <button
                 onClick={addInjury}
                 className="text-[10px] text-accent-blue hover:text-accent-blue/80 transition-colors flex items-center gap-0.5"
@@ -103,7 +103,7 @@ export default function AthleteNotesCard() {
               </button>
             </div>
             {injuriesDraft.length === 0 ? (
-              <p className="text-[11px] text-white/20 py-1">No injuries logged</p>
+              <p className="text-[11px] text-[var(--color-ink-3)] py-1">No injuries logged</p>
             ) : (
               <div className="space-y-2">
                 {injuriesDraft.map((inj, i) => (
@@ -113,16 +113,16 @@ export default function AthleteNotesCard() {
                       placeholder="Body part…"
                       value={inj.bodyPart}
                       onChange={e => updateInjury(i, 'bodyPart', e.target.value)}
-                      className="flex-1 bg-white/[0.06] border border-white/10 rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder:text-white/20 focus:outline-none focus:border-accent-blue/50 transition-colors"
+                      className="flex-1 bg-[var(--color-paper-2)] border border-[var(--color-rule)] rounded-lg px-2.5 py-1.5 text-[11px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:border-accent-blue/50 transition-colors"
                     />
                     <select
                       value={inj.severity}
                       onChange={e => updateInjury(i, 'severity', e.target.value as InjuryEntry['severity'])}
-                      className="bg-white/[0.06] border border-white/10 rounded-lg px-2 py-1.5 text-[11px] text-white focus:outline-none focus:border-accent-blue/50 transition-colors appearance-none"
+                      className="bg-[var(--color-paper-2)] border border-[var(--color-rule)] rounded-lg px-2 py-1.5 text-[11px] text-[var(--color-ink)] focus:outline-none focus:border-accent-blue/50 transition-colors appearance-none"
                     >
                       {SEVERITY_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                    <label className="flex items-center gap-1 text-[11px] text-white/40 cursor-pointer select-none">
+                    <label className="flex items-center gap-1 text-[11px] text-[var(--color-ink-3)] cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={inj.resolved}
@@ -131,7 +131,7 @@ export default function AthleteNotesCard() {
                       />
                       Resolved
                     </label>
-                    <button onClick={() => removeInjury(i)} className="text-white/20 hover:text-accent-red transition-colors flex-shrink-0">
+                    <button onClick={() => removeInjury(i)} className="text-[var(--color-ink-3)] hover:text-accent-red transition-colors flex-shrink-0">
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                       </svg>
@@ -144,13 +144,13 @@ export default function AthleteNotesCard() {
 
           {/* Freeform Notes */}
           <div>
-            <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Free-form Notes</p>
+            <p className="text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-2">Free-form Notes</p>
             <textarea
               value={freeformDraft}
               onChange={e => setFreeformDraft(e.target.value)}
               placeholder="Anything the coach should know — training preferences, lifestyle constraints, goals…"
               rows={5}
-              className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2.5 text-[12px] text-white placeholder:text-white/20 focus:outline-none focus:border-accent-blue/40 transition-colors resize-none leading-relaxed"
+              className="w-full bg-[var(--color-paper-2)] border border-[var(--color-rule)] rounded-xl px-3 py-2.5 text-[12px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:border-accent-blue/40 transition-colors resize-none leading-relaxed"
             />
           </div>
 
@@ -160,7 +160,7 @@ export default function AthleteNotesCard() {
         <div className="space-y-4">
           {notes?.injuryHistory && notes.injuryHistory.length > 0 && (
             <div>
-              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Injury History</p>
+              <p className="text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-2">Injury History</p>
               <div className="flex flex-wrap gap-1.5">
                 {notes.injuryHistory.map((inj, i) => (
                   <span
@@ -168,7 +168,7 @@ export default function AthleteNotesCard() {
                     className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border"
                     style={{
                       borderColor: `${SEVERITY_COLORS[inj.severity]}30`,
-                      color: inj.resolved ? 'rgba(255,255,255,0.3)' : SEVERITY_COLORS[inj.severity],
+                      color: inj.resolved ? 'rgba(26,24,20,0.3)' : SEVERITY_COLORS[inj.severity],
                       background: `${SEVERITY_COLORS[inj.severity]}10`,
                     }}
                   >
@@ -183,13 +183,13 @@ export default function AthleteNotesCard() {
 
           {notes?.freeformNotes ? (
             <div>
-              <p className="text-[10px] font-medium text-white/30 uppercase tracking-wide mb-2">Notes</p>
-              <p className="text-[12px] text-white/55 leading-relaxed whitespace-pre-wrap">{notes.freeformNotes}</p>
+              <p className="text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-2">Notes</p>
+              <p className="text-[12px] text-[var(--color-ink-2)] leading-relaxed whitespace-pre-wrap">{notes.freeformNotes}</p>
             </div>
           ) : null}
 
           {(!notes || (!notes.freeformNotes && (!notes.injuryHistory || notes.injuryHistory.length === 0))) && (
-            <p className="text-xs text-white/20 py-2">
+            <p className="text-xs text-[var(--color-ink-3)] py-2">
               No notes yet — add context the AI coach should know about you.
             </p>
           )}

@@ -143,20 +143,18 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Header — broadsheet week nameplate */}
+      <div className="flex items-end justify-between mb-4 pb-3" style={{borderBottom: '2px solid var(--color-ink)'}}>
         <div>
-          <span className="text-sm font-semibold text-white">
-            {isCurrentWeek ? 'This Week' : 'Week of'}{' '}
-            {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
-            {' – '}
-            {new Date(weekEnd + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
-          </span>
-          {plan && (
-            <span className="ml-2 text-xs text-white/40 capitalize">
-              {plan.phase} phase · Week {plan.weekNumber}
-            </span>
-          )}
+          <div className="kicker rust">The Week{plan ? ` · ${plan.phase} · Wk ${plan.weekNumber}` : ''}</div>
+          <h2 className="h-display mt-1" style={{fontSize: 40}}>
+            {isCurrentWeek ? 'This week' : 'Week of'}{' '}
+            <em style={{color: 'var(--color-rust)'}}>
+              {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+              {' – '}
+              {new Date(weekEnd + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+            </em>
+          </h2>
         </div>
         <div className="flex items-center gap-1">
           {plan && (
@@ -197,10 +195,11 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
         </div>
       </div>
 
-      {/* Coach notes */}
+      {/* Coach notes — marginalia */}
       {plan?.coachNotes && (
-        <div className="mb-3 rounded-xl bg-[var(--color-accent-dim)] px-3 py-2 text-xs text-white/70 leading-relaxed">
-          <span className="text-[var(--color-accent)] font-semibold">Coach · </span>{plan.coachNotes}
+        <div className="mb-4 py-1 pl-4 body-serif" style={{borderLeft: '2px solid var(--color-rust)', fontStyle: 'italic', fontSize: 14, color: 'var(--color-ink)'}}>
+          <span className="label" style={{color: 'var(--color-rust)', fontStyle: 'normal', marginRight: 6}}>Coach</span>
+          {plan.coachNotes}
         </div>
       )}
 
@@ -221,19 +220,24 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
               return (
                 <div
                   key={date}
-                  className={`rounded-xl border p-2 md:min-h-[100px] transition-colors ${
-                    isToday
-                      ? 'border-[var(--color-accent)]/50 bg-[var(--color-accent-dim)]'
-                      : 'border-[var(--color-border)] bg-[var(--color-surface-0)]'
-                  }`}
+                  className="p-2.5 md:min-h-[120px] transition-colors"
+                  style={{
+                    border: `1px solid ${isToday ? 'var(--color-rust)' : 'var(--color-ink)'}`,
+                    borderWidth: isToday ? '2px' : '1px',
+                    background: workouts.length === 0 && plan
+                      ? 'repeating-linear-gradient(-45deg, var(--color-paper), var(--color-paper) 8px, var(--color-paper-2) 8px, var(--color-paper-2) 10px)'
+                      : 'var(--color-paper)',
+                  }}
                 >
                   <div className="flex items-center gap-3 md:block">
-                    <div className={`text-xs font-medium w-8 flex-shrink-0 md:w-auto md:mb-2 ${isToday ? 'text-white' : 'text-white/40'}`}>
-                      {DAY_NAMES[i]}
-                      {isToday && <span className="ml-1" style={{color: 'var(--color-accent)'}}>·</span>}
+                    <div className="flex items-baseline justify-between w-12 flex-shrink-0 md:w-auto md:mb-2" style={{borderBottom: '1px solid var(--color-rule)', paddingBottom: 4}}>
+                      <span className="label" style={{color: isToday ? 'var(--color-rust)' : 'var(--color-ink-3)'}}>{DAY_NAMES[i]}</span>
+                      <span className="num" style={{fontSize: 16, color: isToday ? 'var(--color-rust)' : 'var(--color-ink)'}}>
+                        {new Date(date + 'T00:00:00').getDate()}
+                      </span>
                     </div>
                     {workouts.length === 0 ? (
-                      <div className="text-xs text-white/20 md:text-center md:pt-2">Rest</div>
+                      <div className="md:text-center md:pt-3 body-serif" style={{fontStyle: 'italic', fontSize: 12, color: 'var(--color-ink-3)'}}>Rest.</div>
                     ) : (
                       <div className="flex flex-wrap gap-1.5 md:block md:space-y-1.5">
                         {workouts.map((w, wi) => (
@@ -300,20 +304,20 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
       ) : loadError ? (
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">
           <CalendarDays className="w-8 h-8 text-accent-red/60 mx-auto mb-2" />
-          <p className="text-sm text-white/60 mb-1">Couldn&apos;t load this week&apos;s plan</p>
-          <p className="text-xs text-white/40 mb-3">Check your connection and try again.</p>
+          <p className="text-sm text-[var(--color-ink-2)] mb-1">Couldn&apos;t load this week&apos;s plan</p>
+          <p className="text-xs text-[var(--color-ink-3)] mb-3">Check your connection and try again.</p>
           <button
             onClick={() => fetchPlan(weekStart)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-white/80 transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--color-ink)] transition-colors"
           >
             Try again
           </button>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">
-          <CalendarDays className="w-8 h-8 text-white/20 mx-auto mb-2" />
-          <p className="text-sm text-white/40 mb-1">No plan for this week yet</p>
-          <p className="text-xs text-white/25">Ask the coach to generate your weekly schedule</p>
+          <CalendarDays className="w-8 h-8 text-[var(--color-ink-3)] mx-auto mb-2" />
+          <p className="text-sm text-[var(--color-ink-3)] mb-1">No plan for this week yet</p>
+          <p className="text-xs text-[var(--color-ink-3)]">Ask the coach to generate your weekly schedule</p>
         </div>
       )}
     </div>
@@ -368,9 +372,9 @@ function parsePhases(text: string | null | undefined): {label: string; text: str
 }
 
 function getZoneColor(intensityDescription: string | null | undefined): string {
-  if (!intensityDescription) return 'bg-white/[0.08] text-white/60';
+  if (!intensityDescription) return 'bg-[var(--color-paper-2)] text-[var(--color-ink-2)]';
   const match = intensityDescription.match(/zone\s*([1-6])/i);
-  if (!match) return 'bg-white/[0.08] text-white/60';
+  if (!match) return 'bg-[var(--color-paper-2)] text-[var(--color-ink-2)]';
   const zone = parseInt(match[1]);
   if (zone <= 2) return 'bg-accent-green/15 text-accent-green';
   if (zone === 3) return 'bg-accent-yellow/15 text-accent-yellow';
@@ -432,7 +436,7 @@ function WorkoutDetailPanel({
     cycling:      {color: 'border-accent-blue/30 bg-accent-blue/5',     icon: Bike,       iconColor: 'text-accent-blue',   accent: COLORS.blue},
     yoga:         {color: 'border-accent-purple/30 bg-accent-purple/5', icon: Leaf,       iconColor: 'text-accent-purple', accent: COLORS.purple},
     cross_training:{color: 'border-accent-cyan/30 bg-accent-cyan/5',      icon: Shuffle,    iconColor: 'text-accent-cyan',   accent: COLORS.cyan},
-    rest:         {color: 'border-white/10 bg-white/[0.02]',            icon: Moon,       iconColor: 'text-white/30',      accent: '#ffffff60'},
+    rest:         {color: 'border-[var(--color-rule)] bg-[var(--color-paper-2)]',            icon: Moon,       iconColor: 'text-[var(--color-ink-3)]',      accent: 'var(--color-ink-3)'},
     swim:         {color: 'border-accent-cyan/30 bg-accent-cyan/5',       icon: Waves,      iconColor: 'text-accent-cyan',   accent: COLORS.cyan},
     walk:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Footprints, iconColor: 'text-accent-green',  accent: COLORS.green},
     hike:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Mountain,   iconColor: 'text-accent-green',  accent: COLORS.green},
@@ -458,12 +462,12 @@ function WorkoutDetailPanel({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-white">{label}</span>
+              <span className="text-sm font-semibold text-[var(--color-ink)]">{label}</span>
               {workout.completed && (
                 <span className="text-xs text-accent-green font-medium bg-accent-green/10 px-2 py-0.5 rounded-full">✓ Done</span>
               )}
             </div>
-            <div className="text-xs text-white/40 mt-0.5">
+            <div className="text-xs text-[var(--color-ink-3)] mt-0.5">
               {DAY_NAMES_FULL[dayIndex]}
               {workout.distanceKm && <span> · {workout.distanceKm} km</span>}
               {!workout.distanceKm && workout.durationMinutes && <span> · {workout.durationMinutes} min</span>}
@@ -483,7 +487,7 @@ function WorkoutDetailPanel({
       {/* Effort badge */}
       {workout.intensityDescription && (
         <div className="mb-4">
-          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1.5">Effort</div>
+          <div className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold mb-1.5">Effort</div>
           <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${zoneColor}`}>
             {workout.intensityDescription}
           </span>
@@ -493,21 +497,21 @@ function WorkoutDetailPanel({
       {/* Session breakdown */}
       {(structuredBlocks || workout.specificInstructions) && (
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-2">Session</div>
+          <div className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold mb-2">Session</div>
           {structuredBlocks ? (
             <StructuredWorkoutDisplay blocks={structuredBlocks} />
           ) : (
             <div className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] overflow-hidden">
               {phases.map((phase, idx) => (
                 <div key={idx} className={`flex gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
-                  <span className="w-5 h-5 rounded-full bg-[var(--color-surface-1)] flex items-center justify-center text-[10px] font-semibold text-white/40 flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-[var(--color-surface-1)] flex items-center justify-center text-[10px] font-semibold text-[var(--color-ink-3)] flex-shrink-0 mt-0.5">
                     {idx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     {phase.label && (
-                      <div className="text-[10px] uppercase tracking-wider font-semibold text-white/40 mb-0.5">{phase.label}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-ink-3)] mb-0.5">{phase.label}</div>
                     )}
-                    <p className="text-sm text-white/80 leading-relaxed">{phase.text}</p>
+                    <p className="text-sm text-[var(--color-ink)] leading-relaxed">{phase.text}</p>
                   </div>
                 </div>
               ))}
@@ -519,8 +523,8 @@ function WorkoutDetailPanel({
       {/* Convert to another sport */}
       {!workout.completed && CONVERTIBLE_RUN_TYPES.has(workout.type) && workout.durationMinutes && (
         <div className="mt-4">
-          <div className="text-[10px] uppercase tracking-widest text-white/30 font-semibold mb-1">Convert to another sport</div>
-          <p className="text-[11px] text-white/40 mb-2.5">Maintain aerobic stimulus · lower impact</p>
+          <div className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold mb-1">Convert to another sport</div>
+          <p className="text-[11px] text-[var(--color-ink-3)] mb-2.5">Maintain aerobic stimulus · lower impact</p>
           {convertTarget === null ? (
             <div className="flex flex-wrap gap-2">
               {(Object.keys(CONVERT_SPORT_CONFIG) as ConvertibleSport[]).map(sport => {
@@ -547,8 +551,8 @@ function WorkoutDetailPanel({
                 const scfg = CONVERT_SPORT_CONFIG[convertTarget];
                 return (
                   <>
-                    <span className="text-xs text-white/60">
-                      Convert to <span className="text-white font-medium">{scfg.label} · {duration} min</span>?
+                    <span className="text-xs text-[var(--color-ink-2)]">
+                      Convert to <span className="text-[var(--color-ink)] font-medium">{scfg.label} · {duration} min</span>?
                     </span>
                     <button
                       disabled={converting}
@@ -576,13 +580,13 @@ function WorkoutDetailPanel({
                           setConverting(false);
                         }
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-white/10 border border-white/20 text-xs font-semibold text-white hover:bg-white/20 transition-colors disabled:opacity-40"
+                      className="px-3 py-1.5 rounded-xl bg-[var(--color-paper-2)] border border-[var(--color-rule)] text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] transition-colors disabled:opacity-40"
                     >
                       {converting ? 'Saving…' : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setConvertTarget(null)}
-                      className="text-xs text-white/40 hover:text-white/70 transition-colors"
+                      className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)] transition-colors"
                     >
                       Cancel
                     </button>
@@ -603,12 +607,12 @@ function WorkoutDetailPanel({
           >
             View details
           </a>
-          <span className="text-white/20">·</span>
+          <span className="text-[var(--color-ink-3)]">·</span>
           <a
             href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-white/40 hover:text-brand hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-[var(--color-ink-3)] hover:text-brand hover:underline"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
               <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
@@ -637,7 +641,7 @@ function WorkoutDetailPanel({
               .catch(() => setCandidates([]))
               .finally(() => setLoadingCandidates(false));
           }}
-          className="mt-3 text-xs text-white/50 hover:text-white/80 underline transition-colors"
+          className="mt-3 text-xs text-[var(--color-ink-2)] hover:text-[var(--color-ink)] underline transition-colors"
         >
           Mark complete
         </button>
@@ -645,7 +649,7 @@ function WorkoutDetailPanel({
       {!workout.completed && canLink && showPicker && (
         <div className="mt-3 space-y-2.5">
           {loadingCandidates ? (
-            <div className="flex items-center gap-2 text-xs text-white/40">
+            <div className="flex items-center gap-2 text-xs text-[var(--color-ink-3)]">
               <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
               </svg>
@@ -654,12 +658,12 @@ function WorkoutDetailPanel({
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-widest text-white/40 font-semibold">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold">
                   {candidates && candidates.length > 0 ? 'Pick the matching activity' : 'No nearby activities'}
                 </p>
                 <button
                   onClick={() => { setShowPicker(false); setCandidates(null); setManualMode(false); setActivityIdInput(''); }}
-                  className="text-[10px] text-white/30 hover:text-white/60 transition-colors uppercase tracking-wider"
+                  className="text-[10px] text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors uppercase tracking-wider"
                 >
                   Cancel
                 </button>
@@ -683,23 +687,23 @@ function WorkoutDetailPanel({
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
-                          <CandidateIcon className="w-4 h-4 mt-0.5 text-white/50 flex-shrink-0" />
+                          <CandidateIcon className="w-4 h-4 mt-0.5 text-[var(--color-ink-2)] flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-sm font-medium text-white truncate">{c.name}</span>
+                              <span className="text-sm font-medium text-[var(--color-ink)] truncate">{c.name}</span>
                               {c.isBestMatch && (
                                 <span className="text-[9px] uppercase tracking-wider text-accent-green font-bold bg-accent-green/15 px-1.5 py-0.5 rounded">Best match</span>
                               )}
                               {c.alreadyLinked && (
-                                <span className="text-[9px] uppercase tracking-wider text-white/40 font-medium bg-[var(--color-surface-1)] px-1.5 py-0.5 rounded">Already linked</span>
+                                <span className="text-[9px] uppercase tracking-wider text-[var(--color-ink-3)] font-medium bg-[var(--color-surface-1)] px-1.5 py-0.5 rounded">Already linked</span>
                               )}
                             </div>
-                            <div className="text-xs text-white/50 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <div className="text-xs text-[var(--color-ink-2)] mt-0.5 flex items-center gap-1.5 flex-wrap">
                               {c.distanceKm > 0 && <span>{c.distanceKm} km</span>}
                               {c.durationMin > 0 && <span>· {c.durationMin >= 60 ? `${Math.floor(c.durationMin/60)}h ${c.durationMin%60}m` : `${c.durationMin}min`}</span>}
                               {c.avgPace && <span>· {c.avgPace}</span>}
-                              {c.startTime && <span className="text-white/30">· {c.startTime}</span>}
-                              {c.date !== selected.date && <span className="text-white/30">· {c.date}</span>}
+                              {c.startTime && <span className="text-[var(--color-ink-3)]">· {c.startTime}</span>}
+                              {c.date !== selected.date && <span className="text-[var(--color-ink-3)]">· {c.date}</span>}
                             </div>
                           </div>
                         </div>
@@ -712,7 +716,7 @@ function WorkoutDetailPanel({
               {!manualMode && (
                 <button
                   onClick={() => setManualMode(true)}
-                  className="text-xs text-white/40 hover:text-white/70 underline transition-colors"
+                  className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)] underline transition-colors"
                 >
                   {candidates && candidates.length > 0 ? "Don't see it? Enter ID manually" : 'Enter ID manually'}
                 </button>
@@ -730,7 +734,7 @@ function WorkoutDetailPanel({
                         onMarkDone(Number(activityIdInput));
                       }
                     }}
-                    className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-[var(--color-accent)]/50 font-mono"
+                    className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm text-[var(--color-ink)] placeholder-white/25 focus:outline-none focus:border-[var(--color-accent)]/50 font-mono"
                     autoFocus
                   />
                   <button

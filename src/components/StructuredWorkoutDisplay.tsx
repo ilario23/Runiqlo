@@ -45,23 +45,23 @@ function StepRow({step, nested}: {step: WorkoutStep; nested?: boolean}) {
               {STEP_LABELS[step.stepType] ?? step.stepType}
             </span>
           </div>
-          <span className="text-xs font-mono text-white/70 tabular-nums">
+          <span className="text-xs font-mono text-[var(--color-ink)] tabular-nums">
             {formatDuration(step.durationSeconds)}
           </span>
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0">
-          <span className="text-xs text-white/80 font-medium">{step.zoneName}</span>
-          <span className="text-[11px] text-white/45">
+          <span className="text-xs text-[var(--color-ink)] font-medium">{step.zoneName}</span>
+          <span className="text-[11px] text-[var(--color-ink-3)]">
             {step.intensityMin}–{step.intensityMax}% LTHR
           </span>
           {step.bpmMin != null && step.bpmMax != null && (
-            <span className="text-[11px] text-white/35">
+            <span className="text-[11px] text-[var(--color-ink-3)]">
               {step.bpmMin}–{step.bpmMax} bpm
             </span>
           )}
         </div>
         {step.notes && (
-          <p className="mt-0.5 text-[11px] text-white/40 italic leading-snug">{step.notes}</p>
+          <p className="mt-0.5 text-[11px] text-[var(--color-ink-3)] italic leading-snug">{step.notes}</p>
         )}
       </div>
     </div>
@@ -72,7 +72,7 @@ function RepeatContainer({block}: {block: RepeatBlock}) {
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-0)] overflow-hidden relative">
       <div className="absolute top-2 right-2 z-10">
-        <span className="text-[10px] font-bold text-white/50 bg-[var(--color-surface-2)] border border-[var(--color-border)] px-2 py-0.5 rounded-full">
+        <span className="text-[10px] font-bold text-[var(--color-ink-2)] bg-[var(--color-surface-2)] border border-[var(--color-border)] px-2 py-0.5 rounded-full">
           ×{block.repeatCount}
         </span>
       </div>
@@ -118,7 +118,7 @@ export function StructuredWorkoutDisplay({
       )}
       {total > 0 && (
         <div className="pt-0.5 flex items-center justify-end">
-          <span className="text-[10px] text-white/50 font-mono tabular-nums">
+          <span className="text-[10px] text-[var(--color-ink-2)] font-mono tabular-nums">
             Total: {formatDuration(total)}
           </span>
         </div>

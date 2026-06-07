@@ -1,16 +1,27 @@
 import type {Metadata, Viewport} from 'next';
-import {Geist, Geist_Mono} from 'next/font/google';
+import {Geist, JetBrains_Mono, Newsreader} from 'next/font/google';
 import './globals.css';
 import {Providers} from './providers';
 
+// Sans — small uppercase labels, nav, UI chrome (Helvetica-ish)
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
+// Mono — all numerals (tabular)
+const jetbrainsMono = JetBrains_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  weight: ['400', '500', '600'],
+});
+
+// Display/serif face — Newsreader italic for editorial headlines & body
+const newsreader = Newsreader({
+  variable: '--font-display',
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  weight: ['200', '300', '400', '500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -20,16 +31,19 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#000000',
+  themeColor: '#f2ede2',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${geistSans.variable} ${jetbrainsMono.variable} ${newsreader.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-black text-white">
+      <body
+        className="min-h-full"
+        style={{background: 'var(--color-paper)', color: 'var(--color-ink)'}}
+      >
         <Providers>{children}</Providers>
       </body>
     </html>

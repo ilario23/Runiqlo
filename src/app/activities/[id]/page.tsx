@@ -99,8 +99,8 @@ function ElevTooltip({
   if (!pt) return null;
   return (
     <div className="surface-card px-2.5 py-1.5 text-[11px]">
-      <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
-      <p className="text-white font-medium">{Math.round(Number(payload[0]?.value))} m</p>
+      <p className="text-[var(--color-ink-2)]">{pt.dist.toFixed(2)} km</p>
+      <p className="text-[var(--color-ink)] font-medium">{Math.round(Number(payload[0]?.value))} m</p>
     </div>
   );
 }
@@ -130,7 +130,7 @@ function PaceHRTooltip({
   if (hr == null && (pace == null || pace <= 0) && cadence == null) return null;
   return (
     <div className="surface-card px-2.5 py-1.5 text-[11px] space-y-0.5">
-      <p className="text-white/50">{pt.dist.toFixed(2)} km</p>
+      <p className="text-[var(--color-ink-2)]">{pt.dist.toFixed(2)} km</p>
       {pace != null && pace > 0 && (
         <p style={{color}} className="font-medium">{formatPace(pace)}/km</p>
       )}
@@ -172,7 +172,7 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
   if (!hasElevation) return null;
   return (
     <div>
-      <p className="text-[10px] text-white/30 uppercase tracking-wide mb-1.5">Elevation</p>
+      <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide mb-1.5">Elevation</p>
       <div className="h-[100px]">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
@@ -187,12 +187,12 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
-            <YAxis yAxisId="elev" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={40} />
-            <YAxis yAxisId="elevR" orientation="right" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={32} />
+            <XAxis dataKey="dist" tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
+            <YAxis yAxisId="elev" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={40} />
+            <YAxis yAxisId="elevR" orientation="right" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={32} />
             <RechartsTooltip
               content={<ElevTooltip onHover={onHover} />}
-              cursor={{stroke: 'rgba(255,255,255,0.08)'}}
+              cursor={{stroke: 'rgba(26,24,20,0.08)'}}
             />
             <Area yAxisId="elev" type="monotone" dataKey="elevation" stroke={color} strokeWidth={1.5} fill="url(#gradElev)" dot={false} activeDot={{r: 3, fill: color, strokeWidth: 0}} />
             {/* Invisible area bound to right axis so recharts renders its ticks */}
@@ -244,7 +244,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <button
             onClick={() => setShowPace((v) => !v)}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
-            style={{opacity: showPace ? 1 : 0.3, color: 'rgba(255,255,255,0.5)'}}
+            style={{opacity: showPace ? 1 : 0.3, color: 'rgba(26,24,20,0.5)'}}
           >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: color}} />
             Pace
@@ -254,7 +254,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <button
             onClick={() => setShowHR((v) => !v)}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
-            style={{opacity: showHR ? 1 : 0.3, color: 'rgba(255,255,255,0.5)'}}
+            style={{opacity: showHR ? 1 : 0.3, color: 'rgba(26,24,20,0.5)'}}
           >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: COLORS.red}} />
             HR
@@ -264,7 +264,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <button
             onClick={() => setShowCadence((v) => !v)}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
-            style={{opacity: showCadence ? 1 : 0.3, color: 'rgba(255,255,255,0.5)'}}
+            style={{opacity: showCadence ? 1 : 0.3, color: 'rgba(26,24,20,0.5)'}}
           >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: COLORS.purple}} />
             Cadence
@@ -285,14 +285,14 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
                 <stop offset="95%" stopColor={COLORS.red} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="dist" tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
+            <XAxis dataKey="dist" tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
             <YAxis
               yAxisId="pace"
               reversed
               hide={!hasPace || !showPace}
               domain={paceDomain}
               allowDataOverflow
-              tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
+              tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => (Number(v) > 0 ? formatPace(Number(v)) : '')}
@@ -304,7 +304,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
               hide={!hasHR || !showHR}
               domain={[100, 200]}
               allowDataOverflow
-              tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
+              tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => `${v as number}`}
@@ -316,7 +316,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
               hide={!hasCadence || !showCadence}
               domain={cadenceDomain}
               allowDataOverflow
-              tick={{fill: 'rgba(255,255,255,0.25)', fontSize: 8}}
+              tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => `${v as number}`}
@@ -324,7 +324,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
             />
             <RechartsTooltip
               content={<PaceHRTooltip onHover={onHover} color={color} />}
-              cursor={{stroke: 'rgba(255,255,255,0.08)'}}
+              cursor={{stroke: 'rgba(26,24,20,0.08)'}}
             />
             {hasHR && showHR && (
               <Area
@@ -390,7 +390,7 @@ function StreamCharts({chartData, color, onHover}: StreamChartsProps) {
 function ZoneCard({breakdown}: {breakdown: ReturnType<typeof useActivityZoneBreakdown>['data']}) {
   if (!breakdown) return (
     <div className="py-8 text-center">
-      <p className="text-xs text-white/25">No HR data for zone breakdown</p>
+      <p className="text-xs text-[var(--color-ink-3)]">No HR data for zone breakdown</p>
     </div>
   );
 
@@ -406,10 +406,10 @@ function ZoneCard({breakdown}: {breakdown: ReturnType<typeof useActivityZoneBrea
         return (
           <div key={z}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] text-white/50 font-medium">Z{z} · {ZONE_NAMES[z]}</span>
-              <span className="text-[11px] text-white/40">{pct}% · {formatDuration(zone?.time ?? 0)}</span>
+              <span className="text-[11px] text-[var(--color-ink-2)] font-medium">Z{z} · {ZONE_NAMES[z]}</span>
+              <span className="text-[11px] text-[var(--color-ink-3)]">{pct}% · {formatDuration(zone?.time ?? 0)}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-[var(--color-paper-2)] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{background: zColor}}
@@ -515,7 +515,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-accent-blue animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-[var(--color-rust)] animate-spin" />
       </div>
     );
   }
@@ -541,25 +541,24 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
         <div className="max-w-[1100px] mx-auto">
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 py-3 text-xs text-white/35">
-            <Link href="/activities" className="hover:text-white/60 transition-colors">Activities</Link>
+          <div className="flex items-center gap-2 py-3 text-xs text-[var(--color-ink-3)]">
+            <Link href="/activities" className="hover:text-[var(--color-ink-2)] transition-colors">Activities</Link>
             <span>/</span>
-            <span className="text-white/55 truncate max-w-[200px]">{activityName}</span>
+            <span className="text-[var(--color-ink-2)] truncate max-w-[200px]">{activityName}</span>
           </div>
 
-          {/* Title row */}
-          <div className="mb-5">
+          {/* Title row — editorial long-read hero */}
+          <div className="mb-6 pb-4" style={{borderBottom: '2px solid var(--color-ink)'}}>
             {detailLoading && !summary ? (
-              <Skeleton className="h-7 w-64 mb-2" />
+              <Skeleton className="h-16 w-3/4 mb-2" />
             ) : (
               <>
-                <div className="flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{background: sportColor}} />
-                  <h1 className="text-xl font-semibold tracking-tight text-white">{activityName}</h1>
+                <div className="kicker rust">
+                  The Long Read{summary?.type ? ` · ${summary.type}` : ''}{activityDate ? ` · ${fmtDateLong(activityDate)}` : ''}
                 </div>
-                {activityDate && (
-                  <p className="text-sm text-white/35 mt-1 ml-6">{fmtDateLong(activityDate)}</p>
-                )}
+                <h1 className="h-display mt-2" style={{fontSize: 'clamp(40px, 7vw, 72px)'}}>
+                  {activityName}
+                </h1>
               </>
             )}
           </div>
@@ -575,7 +574,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Map */}
               <motion.div variants={cardVariant} className="surface-card p-4">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Route</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Route</h2>
                 {streamsLoading || detailLoading ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : mapSegments.length >= 1 ? (
@@ -586,14 +585,14 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   />
                 ) : (
                   <div className="w-full h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-white/25">No GPS data</p>
+                    <p className="text-sm text-[var(--color-ink-3)]">No GPS data</p>
                   </div>
                 )}
               </motion.div>
 
               {/* Charts */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Analysis</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Analysis</h2>
                 {streamsLoading ? (
                   <div className="space-y-5">
                     <Skeleton className="h-[100px] w-full" />
@@ -602,7 +601,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   </div>
                 ) : chartData.length === 0 ? (
                   <div className="h-[200px] flex items-center justify-center">
-                    <p className="text-sm text-white/25">No stream data available</p>
+                    <p className="text-sm text-[var(--color-ink-3)]">No stream data available</p>
                   </div>
                 ) : (
                   <StreamCharts chartData={chartData} color={sportColor} onHover={handleHover} />
@@ -612,11 +611,11 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               {/* Laps */}
               {(detail?.laps?.length ?? 0) > 0 && (
                 <motion.div variants={cardVariant} className="surface-card p-5">
-                  <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Laps</h2>
+                  <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Laps</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[10px] text-white/30 uppercase tracking-wide border-b border-white/[0.05]">
+                        <tr className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide border-b border-[var(--color-rule)]">
                           <th className="pb-2 text-left font-medium">#</th>
                           <th className="pb-2 text-right font-medium">Dist</th>
                           <th className="pb-2 text-right font-medium">Time</th>
@@ -629,13 +628,13 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                         {detail!.laps.map((lap) => {
                           const lapPace = lap.distance > 0 ? (lap.moving_time / 60) / (lap.distance / 1000) : 0;
                           return (
-                            <tr key={lap.id} className="border-b border-white/[0.04] last:border-0">
-                              <td className="py-2.5 text-white/50 text-xs">{lap.lap_index}</td>
-                              <td className="py-2.5 text-right text-white/70 tabular-nums text-xs">{(lap.distance / 1000).toFixed(2)} km</td>
-                              <td className="py-2.5 text-right text-white/70 tabular-nums text-xs">{formatDuration(lap.moving_time)}</td>
-                              <td className="py-2.5 text-right text-white/70 tabular-nums text-xs">{lapPace > 0 ? formatPace(lapPace) + '/km' : '—'}</td>
-                              <td className="py-2.5 text-right text-white/50 tabular-nums text-xs">{lap.average_heartrate ? Math.round(lap.average_heartrate) + ' bpm' : '—'}</td>
-                              <td className="py-2.5 text-right text-white/50 tabular-nums text-xs">{lap.total_elevation_gain ? Math.round(lap.total_elevation_gain) + 'm' : '—'}</td>
+                            <tr key={lap.id} className="border-b border-[var(--color-rule)] last:border-0">
+                              <td className="py-2.5 text-[var(--color-ink-2)] text-xs">{lap.lap_index}</td>
+                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs">{(lap.distance / 1000).toFixed(2)} km</td>
+                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs">{formatDuration(lap.moving_time)}</td>
+                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs">{lapPace > 0 ? formatPace(lapPace) + '/km' : '—'}</td>
+                              <td className="py-2.5 text-right text-[var(--color-ink-2)] tabular-nums text-xs">{lap.average_heartrate ? Math.round(lap.average_heartrate) + ' bpm' : '—'}</td>
+                              <td className="py-2.5 text-right text-[var(--color-ink-2)] tabular-nums text-xs">{lap.total_elevation_gain ? Math.round(lap.total_elevation_gain) + 'm' : '—'}</td>
                             </tr>
                           );
                         })}
@@ -648,8 +647,8 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               {/* Segment efforts */}
               {(detail?.segment_efforts?.length ?? 0) > 0 && (
                 <motion.div variants={cardVariant} className="surface-card p-5">
-                  <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">
-                    Segments <span className="text-white/25 ml-1 normal-case">({detail!.segment_efforts.length})</span>
+                  <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">
+                    Segments <span className="text-[var(--color-ink-3)] ml-1 normal-case">({detail!.segment_efforts.length})</span>
                   </h2>
                   <div className="space-y-0.5">
                     {detail!.segment_efforts.map((se) => {
@@ -659,23 +658,23 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                         <Link key={se.id} href={`/segments/${se.segment.id}`} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-[var(--color-surface-1)] transition-colors group">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm text-white/75 truncate group-hover:text-white/90 transition-colors">{se.name}</p>
+                              <p className="text-sm text-[var(--color-ink)] truncate group-hover:text-[var(--color-ink)] transition-colors">{se.name}</p>
                               {se.pr_rank && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0" style={{color: prColor, background: `${prColor}20`}}>
                                   #{se.pr_rank}
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-white/30 mt-0.5">{(se.distance / 1000).toFixed(1)} km</p>
+                            <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">{(se.distance / 1000).toFixed(1)} km</p>
                           </div>
                           <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                             <div className="text-right">
-                              <p className="text-sm font-medium tabular-nums text-white/70">{fmtTime(se.elapsed_time)}</p>
+                              <p className="text-sm font-medium tabular-nums text-[var(--color-ink)]">{fmtTime(se.elapsed_time)}</p>
                               {se.average_heartrate && (
-                                <p className="text-[11px] text-white/30 tabular-nums">{Math.round(se.average_heartrate)} bpm</p>
+                                <p className="text-[11px] text-[var(--color-ink-3)] tabular-nums">{Math.round(se.average_heartrate)} bpm</p>
                               )}
                             </div>
-                            <svg className="w-3.5 h-3.5 text-white/20 group-hover:text-white/50 transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <svg className="w-3.5 h-3.5 text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                             </svg>
                           </div>
@@ -689,11 +688,11 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               {/* Best efforts */}
               {(detail?.best_efforts?.length ?? 0) > 0 && (
                 <motion.div variants={cardVariant} className="surface-card p-5">
-                  <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Best Efforts</h2>
+                  <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Best Efforts</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[10px] text-white/30 uppercase tracking-wide border-b border-white/[0.05]">
+                        <tr className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide border-b border-[var(--color-rule)]">
                           <th className="pb-2 text-left font-medium">Distance</th>
                           <th className="pb-2 text-right font-medium">Time</th>
                           <th className="pb-2 text-right font-medium">Rank</th>
@@ -704,15 +703,15 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                           const prColors: Record<number, string> = {1: COLORS.gold, 2: '#9CA3AF', 3: '#CD7C32'};
                           const prColor = be.pr_rank ? prColors[be.pr_rank] : undefined;
                           return (
-                            <tr key={be.id} className="border-b border-white/[0.04] last:border-0">
-                              <td className="py-2.5 text-white/70 text-xs">{be.name}</td>
-                              <td className="py-2.5 text-right text-white/70 tabular-nums text-xs font-medium">{fmtTime(be.elapsed_time)}</td>
+                            <tr key={be.id} className="border-b border-[var(--color-rule)] last:border-0">
+                              <td className="py-2.5 text-[var(--color-ink)] text-xs">{be.name}</td>
+                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs font-medium">{fmtTime(be.elapsed_time)}</td>
                               <td className="py-2.5 text-right text-xs">
                                 {be.pr_rank ? (
                                   <span className="font-bold px-1.5 py-0.5 rounded-md" style={{color: prColor, background: `${prColor}20`}}>
                                     #{be.pr_rank}
                                   </span>
-                                ) : <span className="text-white/25">—</span>}
+                                ) : <span className="text-[var(--color-ink-3)]">—</span>}
                               </td>
                             </tr>
                           );
@@ -729,7 +728,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Key stats */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Stats</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Stats</h2>
                 {detailLoading && !summary ? (
                   <div className="space-y-3">
                     {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-10" />)}
@@ -747,8 +746,8 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       {label: 'Device', value: detail?.device_name ?? '—'},
                     ].map(({label, value}) => (
                       <div key={label} className="surface-raised px-3 py-2.5">
-                        <p className="text-[10px] text-white/35 font-medium uppercase tracking-wide">{label}</p>
-                        <p className="text-sm font-semibold text-white/85 mt-0.5 tabular-nums">{value}</p>
+                        <p className="text-[10px] text-[var(--color-ink-3)] font-medium uppercase tracking-wide">{label}</p>
+                        <p className="text-sm font-semibold text-[var(--color-ink)] mt-0.5 tabular-nums">{value}</p>
                       </div>
                     ))}
                   </div>
@@ -757,13 +756,13 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Aerobic Decoupling */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-3">Aerobic Decoupling</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Aerobic Decoupling</h2>
                 {streamsLoading ? (
                   <div className="h-10 flex items-center">
-                    <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/50 animate-spin" />
+                    <div className="w-5 h-5 rounded-full border-2 border-[var(--color-rule)] border-t-white/50 animate-spin" />
                   </div>
                 ) : !decouplingResult || decouplingPct === null || decouplingPct === undefined ? (
-                  <p className="text-sm text-white/25">
+                  <p className="text-sm text-[var(--color-ink-3)]">
                     {decouplingResult?.reason === 'too_short'
                       ? 'n/a — run shorter than 45 min'
                       : decouplingResult?.reason === 'asymmetric'
@@ -787,7 +786,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       {decouplingPct > 0 ? '+' : ''}{decouplingPct}%
                     </span>
                     <div>
-                      <p className="text-xs text-white/50">
+                      <p className="text-xs text-[var(--color-ink-2)]">
                         {decouplingPct < 0
                           ? 'HR fell vs pace — improving or easy effort'
                           : decouplingPct < 5
@@ -796,7 +795,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                           ? 'Mild decoupling — acceptable'
                           : 'High decoupling — HR drifted vs pace'}
                       </p>
-                      <p className="text-[10px] text-white/25 mt-0.5">Pa:Hr ratio, first vs second half</p>
+                      <p className="text-[10px] text-[var(--color-ink-3)] mt-0.5">Pa:Hr ratio, first vs second half</p>
                     </div>
                   </div>
                 )}
@@ -811,26 +810,26 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Weather */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Weather at Start</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Weather at Start</h2>
                 {weatherLoading || detailLoading ? (
                   <div className="space-y-3">
                     <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-8 w-full" />
                   </div>
                 ) : !detail?.start_latlng?.length ? (
-                  <p className="text-sm text-white/25">No GPS data</p>
+                  <p className="text-sm text-[var(--color-ink-3)]">No GPS data</p>
                 ) : !weather ? (
-                  <p className="text-sm text-white/25">Weather unavailable</p>
+                  <p className="text-sm text-[var(--color-ink-3)]">Weather unavailable</p>
                 ) : (
                   <div className="space-y-4">
                     {/* Condition + temperature */}
                     <div className="flex items-center gap-3">
                       <span className="text-3xl leading-none">{weather.conditionEmoji}</span>
                       <div>
-                        <p className="text-sm text-white/80">{weather.conditionLabel}</p>
-                        <p className="text-xl font-semibold text-white tabular-nums">
+                        <p className="text-sm text-[var(--color-ink)]">{weather.conditionLabel}</p>
+                        <p className="text-xl font-semibold text-[var(--color-ink)] tabular-nums">
                           {weather.temperatureC}°C
-                          <span className="text-sm font-normal text-white/40 ml-2">
+                          <span className="text-sm font-normal text-[var(--color-ink-3)] ml-2">
                             feels {weather.apparentTemperatureC}°C
                           </span>
                         </p>
@@ -839,18 +838,18 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                     {/* Sub-stats grid */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="surface-raised px-3 py-2">
-                        <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Wind</p>
-                        <p className="text-sm font-semibold text-white/80 tabular-nums">
+                        <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide font-medium">Wind</p>
+                        <p className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
                           {weather.windSpeedKmh} km/h {windDirectionLabel(weather.windDirectionDeg)}
                         </p>
                       </div>
                       <div className="surface-raised px-3 py-2">
-                        <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Humidity</p>
-                        <p className="text-sm font-semibold text-white/80 tabular-nums">{weather.humidityPct}%</p>
+                        <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide font-medium">Humidity</p>
+                        <p className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{weather.humidityPct}%</p>
                       </div>
                       <div className="surface-raised px-3 py-2 col-span-2">
-                        <p className="text-[10px] text-white/35 uppercase tracking-wide font-medium">Precipitation</p>
-                        <p className="text-sm font-semibold text-white/80 tabular-nums">
+                        <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide font-medium">Precipitation</p>
+                        <p className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
                           {weather.precipitationMm > 0 ? `${weather.precipitationMm} mm` : 'None'}
                         </p>
                       </div>
@@ -861,7 +860,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* HR Zone breakdown */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-white/40 uppercase tracking-wide mb-4">Zone Distribution</h2>
+                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Zone Distribution</h2>
                 {streamsLoading ? (
                   <div className="space-y-3">
                     {[1,2,3,4,5,6].map((z) => <Skeleton key={z} className="h-6" />)}

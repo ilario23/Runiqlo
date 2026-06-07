@@ -55,9 +55,9 @@ function CoachModelCard() {
   return (
     <div className="surface-card p-5">
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-medium text-white">Coach Model</p>
+        <p className="text-sm font-medium text-[var(--color-ink)]">Coach Model</p>
         {activeVendor && (
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--color-surface-1)] text-white/35 font-medium capitalize">
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--color-surface-1)] text-[var(--color-ink-3)] font-medium capitalize">
             {activeVendor}
           </span>
         )}
@@ -75,7 +75,7 @@ function CoachModelCard() {
             return (
               <div key={vendor}>
                 <p className="text-[10px] font-medium uppercase tracking-wide mb-1.5 px-1"
-                   style={{color: isActiveVendor ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.15)'}}>
+                   style={{color: isActiveVendor ? 'rgba(26,24,20,0.4)' : 'rgba(26,24,20,0.15)'}}>
                   {vendor === 'anthropic' ? 'Anthropic' : 'OpenAI'}
                   {!isActiveVendor && <span className="ml-1.5 normal-case">(not configured)</span>}
                 </p>
@@ -94,19 +94,19 @@ function CoachModelCard() {
                             ? 'opacity-30 cursor-not-allowed border-[var(--color-border)] bg-transparent'
                             : isSelected
                               ? 'border-[var(--color-accent)]/40 bg-[var(--color-accent-dim)] cursor-default'
-                              : 'border-[var(--color-border)] bg-[var(--color-surface-0)] hover:bg-[var(--color-surface-1)] hover:border-white/[0.12] cursor-pointer'
+                              : 'border-[var(--color-border)] bg-[var(--color-surface-0)] hover:bg-[var(--color-surface-1)] hover:border-[var(--color-rule)] cursor-pointer'
                           }
                         `}
                       >
                         <div className={`w-3.5 h-3.5 rounded-full border-2 flex-shrink-0 transition-all ${
                           isSelected && !disabled
                             ? 'border-[var(--color-accent)] bg-[var(--color-accent)]'
-                            : 'border-white/20 bg-transparent'
+                            : 'border-[var(--color-rule)] bg-transparent'
                         }`} />
-                        <span className={`flex-1 text-[12px] font-medium ${disabled ? 'text-white/30' : isSelected ? 'text-white' : 'text-white/70'}`}>
+                        <span className={`flex-1 text-[12px] font-medium ${disabled ? 'text-[var(--color-ink-3)]' : isSelected ? 'text-[var(--color-ink)]' : 'text-[var(--color-ink)]'}`}>
                           {m.label}
                         </span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${TIER_BADGE[m.tier] ?? 'text-white/30 bg-white/[0.05]'}`}>
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${TIER_BADGE[m.tier] ?? 'text-[var(--color-ink-3)] bg-[var(--color-paper-2)]'}`}>
                           {m.tier}
                         </span>
                       </button>
@@ -126,7 +126,7 @@ function CoachModelCard() {
 
 function SectionLabel({children}: {children: React.ReactNode}) {
   return (
-    <h2 className="text-[10px] font-bold text-white/40 uppercase tracking-[0.12em] mb-3.5">
+    <h2 className="text-[10px] font-bold text-[var(--color-ink-3)] uppercase tracking-[0.12em] mb-3.5">
       {children}
     </h2>
   );
@@ -161,26 +161,26 @@ function HrZonesEditor() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-white">Heart Rate Zones</p>
-          <p className="text-xs text-white/35 mt-0.5">Customize your training zone boundaries</p>
+          <p className="text-sm font-medium text-[var(--color-ink)]">Heart Rate Zones</p>
+          <p className="text-xs text-[var(--color-ink-3)] mt-0.5">Customize your training zone boundaries</p>
         </div>
         {editing ? (
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
               onClick={reset}
-              className="text-xs text-white/25 hover:text-white/45 transition-colors px-2 py-1"
+              className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink-3)] transition-colors px-2 py-1"
             >
               Reset
             </button>
             <button
               onClick={cancel}
-              className="text-xs text-white/40 hover:text-white/60 transition-colors px-2 py-1"
+              className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors px-2 py-1"
             >
               Cancel
             </button>
             <button
               onClick={save}
-              className="text-xs text-white font-semibold px-3 py-1.5 rounded-lg hover:opacity-85 transition-opacity"
+              className="text-xs text-[var(--color-ink)] font-semibold px-3 py-1.5 rounded-lg hover:opacity-85 transition-opacity"
               style={{background: 'var(--color-accent)'}}
             >
               Save
@@ -189,7 +189,7 @@ function HrZonesEditor() {
         ) : (
           <button
             onClick={startEdit}
-            className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
+            className="flex items-center gap-1.5 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -207,21 +207,21 @@ function HrZonesEditor() {
           {label: 'Resting HR', field: 'restingHr' as const, min: 30, max: 100},
         ] as const).map(({label, field, min, max}) => (
           <div key={field} className="surface-raised rounded-xl p-3.5">
-            <p className="text-[10px] text-white/35 uppercase tracking-wide mb-2">{label}</p>
+            <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide mb-2">{label}</p>
             {editing ? (
               <div className="flex items-baseline gap-1.5">
                 <input
                   type="number"
                   value={draft[field]}
                   onChange={e => setDraft(d => ({...d, [field]: Number(e.target.value)}))}
-                  className="w-16 bg-transparent border-b border-white/20 focus:border-[var(--color-accent)] text-xl font-bold text-white tabular-nums focus:outline-none transition-colors pb-0.5"
+                  className="w-16 bg-transparent border-b border-[var(--color-rule)] focus:border-[var(--color-accent)] text-xl font-bold text-[var(--color-ink)] tabular-nums focus:outline-none transition-colors pb-0.5"
                   min={min} max={max}
                 />
-                <span className="text-xs text-white/30">bpm</span>
+                <span className="text-xs text-[var(--color-ink-3)]">bpm</span>
               </div>
             ) : (
-              <p className="text-xl font-bold text-white tabular-nums">
-                {settings[field]}<span className="text-xs font-normal text-white/30 ml-1">bpm</span>
+              <p className="text-xl font-bold text-[var(--color-ink)] tabular-nums">
+                {settings[field]}<span className="text-xs font-normal text-[var(--color-ink-3)] ml-1">bpm</span>
               </p>
             )}
           </div>
@@ -241,7 +241,7 @@ function HrZonesEditor() {
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--color-surface-1)] transition-colors"
             >
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: color}} />
-              <span className="text-xs font-medium text-white/55 w-[110px] flex-shrink-0">
+              <span className="text-xs font-medium text-[var(--color-ink-2)] w-[110px] flex-shrink-0">
                 Z{z} · {ZONE_NAMES[z]}
               </span>
               <div className="flex-1 h-1.5 rounded-full bg-[var(--color-surface-1)] overflow-hidden">
@@ -260,16 +260,16 @@ function HrZonesEditor() {
                     type="number"
                     value={lo}
                     onChange={e => setZoneBound(zKey, 0, Number(e.target.value))}
-                    className="w-14 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/50 transition-colors"
+                    className="w-14 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-2 py-1 text-xs text-[var(--color-ink)] tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/50 transition-colors"
                   />
-                  <span className="text-[10px] text-white/25">–</span>
+                  <span className="text-[10px] text-[var(--color-ink-3)]">–</span>
                   <input
                     type="number"
                     value={hi}
                     onChange={e => setZoneBound(zKey, 1, Number(e.target.value))}
-                    className="w-14 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-2 py-1 text-xs text-white tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/50 transition-colors"
+                    className="w-14 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-2 py-1 text-xs text-[var(--color-ink)] tabular-nums text-right focus:outline-none focus:border-[var(--color-accent)]/50 transition-colors"
                   />
-                  <span className="text-[10px] text-white/25 ml-0.5">bpm</span>
+                  <span className="text-[10px] text-[var(--color-ink-3)] ml-0.5">bpm</span>
                 </div>
               ) : (
                 <span className="text-xs font-semibold tabular-nums flex-shrink-0 w-[88px] text-right" style={{color}}>
@@ -303,7 +303,7 @@ function SettingsContent() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-white/60 animate-spin" />
       </div>
     );
   }
@@ -316,7 +316,7 @@ function SettingsContent() {
 
           {/* Page title */}
           <div className="pt-8 pb-1">
-            <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-[var(--color-ink)]">Settings</h1>
           </div>
 
           {/* ── Account ────────────────────────────────────────────────────── */}
@@ -342,10 +342,10 @@ function SettingsContent() {
                       </div>
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white">
+                      <p className="text-sm font-medium text-[var(--color-ink)]">
                         {athlete.firstname} {athlete.lastname}
                       </p>
-                      <p className="text-xs text-white/35 mt-0.5">@{athlete.username}</p>
+                      <p className="text-xs text-[var(--color-ink-3)] mt-0.5">@{athlete.username}</p>
                     </div>
                     <span className="text-[10px] bg-accent-green/10 text-accent-green px-2.5 py-0.5 rounded-full font-medium flex-shrink-0">
                       Connected
@@ -356,12 +356,12 @@ function SettingsContent() {
 
                   {/* Actions */}
                   <div className="flex items-center justify-between gap-4">
-                    <p className="text-xs text-white/30 leading-relaxed">
+                    <p className="text-xs text-[var(--color-ink-3)] leading-relaxed">
                       Activities, segments, and gear sync from your Strava account.
                     </p>
                     <button
                       onClick={logout}
-                      className="text-xs font-medium text-white/35 hover:text-accent-red transition-colors flex-shrink-0"
+                      className="text-xs font-medium text-[var(--color-ink-3)] hover:text-accent-red transition-colors flex-shrink-0"
                     >
                       Disconnect
                     </button>
@@ -370,14 +370,14 @@ function SettingsContent() {
               ) : (
                 <div className="space-y-4">
                   <div>
-                    <p className="text-sm font-medium text-white">Strava</p>
-                    <p className="text-xs text-white/35 mt-1 leading-relaxed">
+                    <p className="text-sm font-medium text-[var(--color-ink)]">Strava</p>
+                    <p className="text-xs text-[var(--color-ink-3)] mt-1 leading-relaxed">
                       Connect your account to sync activities, segments, and gear.
                     </p>
                   </div>
                   <button
                     onClick={login}
-                    className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 text-white font-semibold py-3 rounded-xl transition-colors text-sm"
+                    className="w-full flex items-center justify-center gap-2.5 bg-brand hover:bg-brand/90 text-[var(--color-ink)] font-semibold py-3 rounded-xl transition-colors text-sm"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.599h4.172L10.463 0l-7 13.828h4.169" />
@@ -406,7 +406,7 @@ function SettingsContent() {
           )}
 
           {/* ── Footer note ─────────────────────────────────────────────────── */}
-          <p className="text-xs text-white/20 text-center leading-relaxed px-6">
+          <p className="text-xs text-[var(--color-ink-3)] text-center leading-relaxed px-6">
             Your data lives in your private Supabase database.
             Strava credentials are never stored in the browser.
           </p>
@@ -422,7 +422,7 @@ export default function SettingsPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-screen">
-          <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+          <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-white/60 animate-spin" />
         </div>
       }
     >

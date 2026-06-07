@@ -1,150 +1,164 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-01T00:00:00Z",
-  "title": "Design System: Runiqlo",
+  "generatedAt": "2026-06-07T00:00:00.000Z",
+  "title": "Design System: Runiqlo — The Almanac",
   "extensions": {
     "colorMeta": {
-      "brand":          { "role": "primary",  "displayName": "Strava Orange",  "canonical": "#fc4c02", "tonalRamp": ["#3a1200","#5c1e00","#7d2900","#9e3400","#c04000","#e04e00","#fc4c02","#ff7a3d","#ffa07a","#ffcbb2"] },
-      "accent-green":   { "role": "semantic", "displayName": "Zone Green",     "canonical": "#30d158", "tonalRamp": ["#042d0e","#084d18","#0d6d22","#128d2c","#17ad37","#1ccc41","#30d158","#68db82","#97e8a8","#c5f3ce"] },
-      "accent-yellow":  { "role": "semantic", "displayName": "Zone Yellow",    "canonical": "#ffd60a", "tonalRamp": ["#2d2500","#4a3c00","#6b5600","#8f7200","#b38f00","#d6ac00","#ffd60a","#ffe24d","#ffec84","#fff5bb"] },
-      "accent-red":     { "role": "semantic", "displayName": "Zone Red",       "canonical": "#ff453a", "tonalRamp": ["#2d0504","#4a0908","#6b0c0b","#8f100e","#b31411","#d61815","#ff453a","#ff7a73","#ffaaaa","#ffd0cd"] },
-      "accent-orange":  { "role": "semantic", "displayName": "Zone Orange",    "canonical": "#ff9f0a", "tonalRamp": ["#2d1b00","#4a2c00","#6b3f00","#8f5200","#b36600","#d67b00","#ff9f0a","#ffbc53","#ffd48e","#ffeac5"] },
-      "accent-blue":    { "role": "semantic", "displayName": "Zone Blue",      "canonical": "#0a84ff", "tonalRamp": ["#001833","#002a52","#003b73","#004d94","#005fb5","#0072d7","#0a84ff","#4aa8ff","#84c5ff","#c0e0ff"] },
-      "accent-purple":  { "role": "semantic", "displayName": "Zone Purple",    "canonical": "#bf5af2", "tonalRamp": ["#1e0030","#33004f","#48006f","#5c0090","#7100b0","#9630d1","#bf5af2","#d48df7","#e7b8fb","#f5dffe"] },
-      "accent-cyan":    { "role": "semantic", "displayName": "Zone Cyan",      "canonical": "#64d2ff", "tonalRamp": ["#002233","#003752","#004d73","#006394","#0078b5","#2096d6","#64d2ff","#8ddeff","#b3e9ff","#d9f4ff"] },
-      "base":           { "role": "neutral",  "displayName": "Void",           "canonical": "#09090c", "tonalRamp": ["#09090c","#101013","#17171b","#1e1e23","#2c2c33","#3a3a42","#484851","#7a7a88","#a0a0ae","#d0d0da"] },
-      "text-2":         { "role": "neutral",  "displayName": "Text Secondary", "canonical": "#888896" },
-      "text-3":         { "role": "neutral",  "displayName": "Text Tertiary",  "canonical": "#404050" }
+      "rust": { "role": "primary", "displayName": "Race-Day Rust", "canonical": "#c93f1d", "tonalRamp": ["#3a120a", "#5e1d0e", "#822814", "#a83518", "#c93f1d", "#dc6b4d", "#e89a82", "#f4cabb"] },
+      "rust-dim": { "role": "primary", "displayName": "Rust Pressed", "canonical": "#a83518", "tonalRamp": ["#330f07", "#54190c", "#762311", "#962f15", "#a83518", "#c66145", "#dd917c", "#f0c3b3"] },
+      "paper": { "role": "neutral", "displayName": "Almanac Paper", "canonical": "#f2ede2", "tonalRamp": ["#2a261d", "#4a4336", "#6e6552", "#968b73", "#bcb29a", "#d8d0bd", "#ebe4d3", "#f2ede2"] },
+      "paper-2": { "role": "neutral", "displayName": "Recessed Paper", "canonical": "#ebe4d3", "tonalRamp": ["#262318", "#45402f", "#675f49", "#8d836a", "#b4a98e", "#d2c9b1", "#e3dac3", "#ebe4d3"] },
+      "paper-3": { "role": "neutral", "displayName": "Deep Paper", "canonical": "#e3dac3", "tonalRamp": ["#242115", "#42402c", "#635c44", "#897f63", "#afa486", "#cdc3a8", "#dbd1b8", "#e3dac3"] },
+      "ink": { "role": "neutral", "displayName": "Press Ink", "canonical": "#1a1814", "tonalRamp": ["#1a1814", "#33302a", "#4a4136", "#615747", "#786e5b", "#9a8f78", "#c2b9a3", "#e3dcca"] },
+      "ink-2": { "role": "neutral", "displayName": "Ink Supporting", "canonical": "#4a4136", "tonalRamp": ["#1a1712", "#2f2a21", "#4a4136", "#665a48", "#857761", "#a99c83", "#cdc2aa", "#ebe4d3"] },
+      "ink-3": { "role": "neutral", "displayName": "Ink Muted", "canonical": "#786e5b", "tonalRamp": ["#221f18", "#3a3528", "#544c3a", "#6e644e", "#786e5b", "#9c9078", "#c2b8a0", "#e6dfcd"] },
+      "rule": { "role": "neutral", "displayName": "Contour Rule", "canonical": "#c9c1ad", "tonalRamp": ["#2a271f", "#484335", "#665f4c", "#8a8268", "#aea688", "#c9c1ad", "#dcd6c5", "#efebdf"] },
+      "zone-green": { "role": "secondary", "displayName": "Easy Green", "canonical": "#6b8a76", "tonalRamp": ["#16201a", "#26392d", "#385343", "#4c6f5a", "#6b8a76", "#8ba896", "#b0c6b8", "#d8e4dd"] },
+      "zone-yellow": { "role": "secondary", "displayName": "Tempo Gold", "canonical": "#b08550", "tonalRamp": ["#241a0e", "#3e2f18", "#5b4524", "#7c5e31", "#b08550", "#c8a578", "#dcc4a4", "#efe2d1"] },
+      "zone-orange": { "role": "secondary", "displayName": "Threshold Orange", "canonical": "#dc8a5b", "tonalRamp": ["#2e1810", "#4c281a", "#6e3b27", "#945237", "#dc8a5b", "#e7aa86", "#f0c8b1", "#f8e4d8"] },
+      "zone-blue": { "role": "secondary", "displayName": "Aerobic Slate", "canonical": "#4a6079", "tonalRamp": ["#11171e", "#1f2a36", "#2f3f51", "#3e526b", "#4a6079", "#7385a0", "#a0aec2", "#d2d9e3"] },
+      "zone-purple": { "role": "secondary", "displayName": "Anaerobic Mauve", "canonical": "#7a6a86", "tonalRamp": ["#1c1820", "#322c3a", "#4b4255", "#645872", "#7a6a86", "#9c8fa6", "#c0b6c8", "#e3dde8"] },
+      "zone-cyan": { "role": "secondary", "displayName": "Recovery Teal", "canonical": "#6b9c9c", "tonalRamp": ["#16201f", "#263937", "#385351", "#4c6f6d", "#6b9c9c", "#8db8b8", "#b2d0d0", "#dae8e8"] }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display Metric", "purpose": "TSB/CTL/ATL hero numbers on dashboard. Once per page." },
-      "headline": { "displayName": "Headline",      "purpose": "Card titles, section labels, page headings." },
-      "body":     { "displayName": "Body",          "purpose": "Coach messages, descriptions. Max 65ch." },
-      "label":    { "displayName": "Label",         "purpose": "Metric units, uppercase short labels. ≤4 words." },
-      "mono":     { "displayName": "Mono Data",     "purpose": "All pace, HR, duration, percentage values. tabular-nums always." }
+      "display": { "displayName": "Display (Newsreader Italic)", "purpose": "Page nameplate headlines, once per page. Italic; em flips upright weight 200." },
+      "headline": { "displayName": "Section Headline (Newsreader Italic)", "purpose": "Section titles." },
+      "deck": { "displayName": "Deck / Standfirst (Newsreader Italic)", "purpose": "Subhead under a headline, ink-2." },
+      "body": { "displayName": "Body (Newsreader)", "purpose": "Coach messages, descriptions, notes; max 65-75ch, ink-2." },
+      "label": { "displayName": "Label (Geist Sans)", "purpose": "Uppercase labels, kickers, nav, buttons only. Never headlines or numbers." },
+      "num": { "displayName": "Numeral (JetBrains Mono)", "purpose": "All data: pace, HR, distance, CTL/ATL/TSB. tabular-nums always." }
     },
     "shadows": [
-      { "name": "base",       "value": "0 1px 3px rgba(0,0,0,0.6)",     "purpose": "Cards at rest. Ambient anchoring." },
-      { "name": "elevated",   "value": "0 4px 20px rgba(0,0,0,0.7)",    "purpose": "Legacy glassmorphic cards only." },
-      { "name": "inset-edge", "value": "0 1px 0 0 rgba(255,255,255,0.07) inset", "purpose": "Top-edge LED rim on all surface-card elements. Non-negotiable." }
+      { "name": "none", "value": "none", "purpose": "The Print Rule. No surface lifts; --shadow-base/elevated/slab are all none. Depth is ink hairlines + paper-tone steps only." }
     ],
     "motion": [
-      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default easing for state transitions." },
-      { "name": "ease-out",      "value": "ease",                          "purpose": "Short reveals, opacity fades." },
-      { "name": "duration-fast", "value": "150ms",                         "purpose": "Hover state feedback." },
-      { "name": "duration-base", "value": "200ms",                         "purpose": "State changes, selections." },
-      { "name": "duration-slow", "value": "300ms",                         "purpose": "Panel open/close, menu transitions." }
+      { "name": "surface-transition", "value": "background 0.15s ease", "purpose": "Hover paper-tone step on cards/buttons/rows." },
+      { "name": "nav-indicator", "value": "opacity 0.25s ease", "purpose": "Active nav underline fades in via opacity, never animates width." },
+      { "name": "icon-bounce", "value": "iconBounce 0.45s ease", "purpose": "Mobile tab icon bounce on activate." },
+      { "name": "dot-breathe", "value": "breath 2s ease-in-out infinite", "purpose": "Refresh/sync status dot pulse." }
     ],
     "breakpoints": [
-      { "name": "md", "value": "768px",  "purpose": "Mobile → desktop layout switch. Primary breakpoint." },
-      { "name": "lg", "value": "1024px", "purpose": "Wide desktop layout." }
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" }
     ]
   },
   "components": [
     {
-      "name": "Primary Button",
+      "name": "Ink Button (Primary)",
       "kind": "button",
-      "refersTo": "button-primary",
-      "description": "Primary action — nav to coach, save, confirm. Strava orange fill.",
-      "html": "<button class=\"ds-btn-primary\">Save Plan</button>",
-      "css": ".ds-btn-primary { background: #fc4c02; color: #efeff3; padding: 8px 16px; font-size: 0.875rem; font-weight: 600; letter-spacing: -0.01em; border: none; border-radius: 10px; cursor: pointer; transition: background 0.15s ease, transform 0.1s ease; font-family: system-ui, -apple-system, sans-serif; } .ds-btn-primary:hover { background: #e04400; } .ds-btn-primary:active { transform: scale(0.98); background: #cc3d00; } .ds-btn-primary:focus-visible { outline: 2px solid #fc4c02; outline-offset: 2px; }"
+      "refersTo": "button-ink",
+      "description": "Standard primary action. Square, ink fill, uppercase sans label.",
+      "html": "<button class=\"ds-btn-ink\">Save changes</button>",
+      "css": ".ds-btn-ink { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border: 1.5px solid #1a1814; background: #1a1814; color: #f2ede2; cursor: pointer; border-radius: 0; transition: background 0.15s ease, color 0.15s ease; } .ds-btn-ink:hover { background: #4a4136; } .ds-btn-ink:focus-visible { outline: 2px solid #c93f1d; outline-offset: 2px; }"
+    },
+    {
+      "name": "Rust Button (Race-Day)",
+      "kind": "button",
+      "refersTo": "button-rust",
+      "description": "The one rationed primary per screen. Rust fill, paper text.",
+      "html": "<button class=\"ds-btn-rust\">Start workout</button>",
+      "css": ".ds-btn-rust { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border: 1.5px solid #c93f1d; background: #c93f1d; color: #f2ede2; cursor: pointer; border-radius: 0; transition: background 0.15s ease; } .ds-btn-rust:hover { background: #a83518; } .ds-btn-rust:focus-visible { outline: 2px solid #1a1814; outline-offset: 2px; }"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Secondary actions — export, cancel, navigate. Surface-tinted, minimal.",
-      "html": "<button class=\"ds-btn-ghost\">Export .ics</button>",
-      "css": ".ds-btn-ghost { background: #17171b; color: #888896; padding: 8px 12px; font-size: 0.875rem; font-weight: 500; border: none; border-radius: 10px; cursor: pointer; transition: background 0.15s ease, color 0.15s ease; font-family: system-ui, -apple-system, sans-serif; } .ds-btn-ghost:hover { background: #1e1e23; color: #efeff3; } .ds-btn-ghost:focus-visible { outline: 2px solid rgba(255,255,255,0.3); outline-offset: 2px; }"
+      "description": "Secondary action. Paper fill, ink border, steps to paper-2 on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Export</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border: 1.5px solid #1a1814; background: #f2ede2; color: #1a1814; cursor: pointer; border-radius: 0; transition: background 0.15s ease; } .ds-btn-ghost:hover { background: #ebe4d3; } .ds-btn-ghost:focus-visible { outline: 2px solid #c93f1d; outline-offset: 2px; }"
     },
     {
-      "name": "Icon Button",
-      "kind": "button",
-      "refersTo": "button-ghost",
-      "description": "Icon-only controls — nav arrows, calendar, download. 40px mobile / 28px desktop.",
-      "html": "<button class=\"ds-btn-icon\" aria-label=\"Previous week\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polyline points=\"15 18 9 12 15 6\"/></svg></button>",
-      "css": ".ds-btn-icon { width: 40px; height: 40px; background: #17171b; color: #888896; border: none; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s ease, color 0.15s ease; } @media (min-width: 768px) { .ds-btn-icon { width: 28px; height: 28px; } } .ds-btn-icon:hover { background: #1e1e23; color: #efeff3; } .ds-btn-icon:focus-visible { outline: 2px solid rgba(255,255,255,0.3); outline-offset: 2px; }"
+      "name": "Field Input",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Fill-in-the-blank line. Ink border, Newsreader italic text.",
+      "html": "<input class=\"ds-field\" placeholder=\"Add a note...\" />",
+      "css": ".ds-field { border: 1px solid #1a1814; padding: 10px 12px; font-family: var(--serif, Newsreader, Georgia, serif); font-style: italic; color: #4a4136; background: #f2ede2; font-size: 14px; border-radius: 0; width: 100%; } .ds-field::placeholder { color: #786e5b; } .ds-field:focus-visible { outline: 2px solid #c93f1d; outline-offset: 2px; }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Square uppercase tag. Variants: default, ink-fill, rust.",
+      "html": "<span class=\"ds-chip\">Tempo</span> <span class=\"ds-chip ds-chip--ink\">Today</span> <span class=\"ds-chip ds-chip--rust\">Race</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid #1a1814; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #1a1814; border-radius: 0; } .ds-chip--ink { background: #1a1814; color: #f2ede2; border-color: #1a1814; } .ds-chip--rust { border-color: #c93f1d; color: #c93f1d; }"
     },
     {
       "name": "Surface Card",
       "kind": "card",
       "refersTo": "card-surface",
-      "description": "Primary container for dashboard widgets, coach panels, activity details.",
-      "html": "<div class=\"ds-surface-card\"><p class=\"ds-card-label\">CTL</p><p class=\"ds-card-metric\">74</p></div>",
-      "css": ".ds-surface-card { background: #101013; border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; box-shadow: 0 1px 0 0 rgba(255,255,255,0.07) inset, 0 1px 3px rgba(0,0,0,0.6); padding: 20px; font-family: system-ui, -apple-system, sans-serif; } .ds-card-label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #888896; margin: 0 0 4px; } .ds-card-metric { font-size: 2rem; font-weight: 800; color: #efeff3; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; margin: 0; font-family: ui-monospace, SF Mono, monospace; }"
+      "description": "Primary container. Paper with a 1px ink hairline. Square, no shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card__label\">Last run</div><div class=\"ds-card__body\">Easy 8.2 km along the canal.</div></div>",
+      "css": ".ds-card { background: #f2ede2; border: 1px solid #1a1814; border-radius: 0; padding: 20px; transition: background 0.18s ease; } .ds-card:hover { background: #ebe4d3; } .ds-card__label { font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #786e5b; margin-bottom: 8px; } .ds-card__body { font-family: var(--serif, Newsreader, Georgia, serif); font-size: 14px; line-height: 1.5; color: #4a4136; }"
     },
     {
-      "name": "Workout Chip — Easy Run",
-      "kind": "chip",
-      "refersTo": "workout-chip-easy",
-      "description": "Color-coded workout type badge. Tinted background, 100% zone color text. Used on plan grid and activity detail.",
-      "html": "<div class=\"ds-chip-easy\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M22 12h-4l-3 9L9 3l-3 9H2\"/></svg> <span>EASY RUN</span></div>",
-      "css": ".ds-chip-easy { display: inline-flex; align-items: center; gap: 6px; background: rgba(48,209,88,0.08); color: #30d158; border: 1px solid rgba(48,209,88,0.3); border-radius: 10px; padding: 6px 12px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-family: system-ui, -apple-system, sans-serif; }"
+      "name": "Scoreboard Tile",
+      "kind": "custom",
+      "refersTo": "tile",
+      "description": "Box-score readout for a single metric (CTL/ATL/TSB). Rust variant marks the live metric.",
+      "html": "<div class=\"ds-tile ds-tile--rust\"><div class=\"ds-tile__label\">TSB<span>FORM</span></div><div class=\"ds-tile__num\">+8.4</div><div class=\"ds-tile__delta\">&#9650; 2.1 vs last week</div></div>",
+      "css": ".ds-tile { border: 1px solid #1a1814; padding: 14px 16px 16px; background: #f2ede2; position: relative; } .ds-tile__label { font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: #4a4136; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; } .ds-tile__num { font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 36px; letter-spacing: -0.03em; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; } .ds-tile__delta { font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 11px; margin-top: 6px; color: #c93f1d; } .ds-tile--rust { border-color: #c93f1d; } .ds-tile--rust .ds-tile__label, .ds-tile--rust .ds-tile__num { color: #c93f1d; }"
     },
     {
-      "name": "Workout Chip — Intervals",
-      "kind": "chip",
-      "refersTo": "workout-chip-interval",
-      "description": "High-intensity workout badge. Red zone variant.",
-      "html": "<div class=\"ds-chip-interval\"><svg width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/></svg> <span>INTERVALS</span></div>",
-      "css": ".ds-chip-interval { display: inline-flex; align-items: center; gap: 6px; background: rgba(255,69,58,0.08); color: #ff453a; border: 1px solid rgba(255,69,58,0.3); border-radius: 10px; padding: 6px 12px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-family: system-ui, -apple-system, sans-serif; }"
-    },
-    {
-      "name": "Text Input",
-      "kind": "input",
-      "refersTo": null,
-      "description": "Form field for Strava activity IDs and text inputs in coach composer.",
-      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"e.g. 14823650471\" />",
-      "css": ".ds-input { background: #17171b; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; color: #efeff3; font-size: 0.875rem; font-family: ui-monospace, SF Mono, monospace; padding: 6px 12px; width: 100%; transition: border-color 0.15s ease; outline: none; } .ds-input::placeholder { color: rgba(255,255,255,0.25); } .ds-input:focus { border-color: rgba(252,76,2,0.5); } .ds-input:disabled { opacity: 0.4; cursor: not-allowed; }"
-    },
-    {
-      "name": "Bottom Navigation",
+      "name": "Masthead",
       "kind": "nav",
       "refersTo": null,
-      "description": "Mobile fixed bottom nav. Active item shows Strava orange animated underline. Touch target 44px min.",
-      "html": "<nav class=\"ds-bottom-nav\"><button class=\"ds-nav-item active\"><svg class=\"ds-nav-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\"/></svg><strong class=\"ds-nav-label\">dashboard</strong></button><button class=\"ds-nav-item\"><svg class=\"ds-nav-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><polyline points=\"22 12 18 12 15 21 9 3 6 12 2 12\"/></svg><strong class=\"ds-nav-label\">activities</strong></button><button class=\"ds-nav-item\"><svg class=\"ds-nav-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"18\" rx=\"2\" ry=\"2\"/><line x1=\"16\" y1=\"2\" x2=\"16\" y2=\"6\"/><line x1=\"8\" y1=\"2\" x2=\"8\" y2=\"6\"/><line x1=\"3\" y1=\"10\" x2=\"21\" y2=\"10\"/></svg><strong class=\"ds-nav-label\">plan</strong></button></nav>",
-      "css": ".ds-bottom-nav { display: flex; align-items: stretch; justify-content: space-around; background: #101013; border-top: 1px solid rgba(255,255,255,0.07); width: 100%; } .ds-nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; flex: 1; background: none; border: none; cursor: pointer; padding: 10px 8px 8px; color: #888896; position: relative; transition: color 0.2s; min-height: 44px; } .ds-nav-item::after { content: ''; position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); width: 32px; height: 2px; border-radius: 999px; background: #fc4c02; opacity: 0; transition: opacity 0.25s ease; } .ds-nav-item.active { color: #fc4c02; } .ds-nav-item.active::after { opacity: 1; } .ds-nav-icon { width: 20px; height: 20px; } .ds-nav-label { font-size: 10px; font-weight: 500; text-transform: capitalize; color: inherit; white-space: nowrap; letter-spacing: 0.02em; line-height: 1; }"
+      "description": "Broadsheet nameplate. Double ink top rule, italic serif brand with rust mono superscript, sans dateline.",
+      "html": "<div class=\"ds-masthead\"><span class=\"ds-masthead__brand\">Runiqlo<sup>No.7</sup></span><span class=\"ds-masthead__line\">Mon 7 Jun<span>&middot;</span>Week 23<span>&middot;</span>Build</span></div>",
+      "css": ".ds-masthead { border-bottom: 2px solid #1a1814; border-top: 6px double #1a1814; padding: 16px 24px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 18px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #4a4136; } .ds-masthead__brand { font-family: var(--serif, Newsreader, Georgia, serif); font-style: italic; font-weight: 600; font-size: 26px; letter-spacing: -0.02em; text-transform: none; color: #1a1814; } .ds-masthead__brand sup { font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 9px; font-style: normal; letter-spacing: 0.1em; color: #c93f1d; margin-left: 6px; top: -0.9em; } .ds-masthead__line span { margin: 0 12px; color: #c9c1ad; }"
+    },
+    {
+      "name": "Ledger Table",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Efforts log set as an almanac records page. Mono cells, dotted row rules, italic first column.",
+      "html": "<table class=\"ds-ledger\"><thead><tr><th>Date</th><th>Session</th><th class=\"ds-num\">Dist</th><th class=\"ds-num\">Pace</th></tr></thead><tbody><tr><td>06 Jun</td><td class=\"ds-key\">Tempo</td><td class=\"ds-num\">10.0</td><td class=\"ds-num\">4:38</td></tr><tr><td>05 Jun</td><td class=\"ds-key\">Easy</td><td class=\"ds-num\">8.2</td><td class=\"ds-num\">5:21</td></tr></tbody></table>",
+      "css": ".ds-ledger { width: 100%; border-collapse: collapse; font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 12px; font-variant-numeric: tabular-nums; } .ds-ledger th { text-align: left; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #786e5b; font-weight: 400; padding: 8px 10px; border-bottom: 1px solid #1a1814; } .ds-ledger td { padding: 10px; border-bottom: 1px dotted #c9c1ad; color: #1a1814; } .ds-ledger tr:hover td { background: #ebe4d3; } .ds-ledger .ds-num { text-align: right; } .ds-ledger .ds-key { font-family: var(--serif, Newsreader, Georgia, serif); font-style: italic; color: #1a1814; }"
     }
   ],
   "narrative": {
-    "northStar": "The Dark Lab",
-    "overview": "Runiqlo is a physiologist's analysis tool, not a fitness app. The interface inherits from sports science workstations and terminal data readers: near-black surfaces with precise numerical readouts, where color serves as signal — zone indicators, effort calibration, trend status — never as decoration. The UI disappears; the data speaks.\n\nThe system rejects fitness-app clichés completely: no streak badges, no motivational gradients, no orange-and-blue activity feeds. It rejects generic SaaS equally: no sidebar-nav card grids, no hero metrics with purple gradients. This is a precision instrument. Every element visible on screen must directly inform a training decision.\n\nDark is not a theme choice — it is the product's identity. The athlete uses this at 6am before a run and at 9pm reviewing a session.",
+    "northStar": "The Runner's Almanac",
+    "overview": "Runiqlo is a printed almanac for a single athlete, not an app skin. The interface is a cream-paper broadsheet: ink-black hairline rules, a serif italic masthead, mono numerals set like a box score, and one hot rust accent reserved for race-day signal. It reads like the front page of a sport gazette that happens to know your CTL. The chrome recedes into paper and rule; the data is the headline. It rejects every fitness-app and SaaS-dashboard reflex, and rejects its own former self: this is not the dark terminal 'Dark Lab' the project once shipped. Warmth is carried by paper, serif, and letterpress detail, never by a near-white tint pretending to be a dark surface. Square corners, no shadows, no blur; depth comes from ink rules and paper tones.",
     "keyCharacteristics": [
-      "Near-black base with four ascending surface tones, no mid-grays",
-      "Color is semantic only: effort zones, sport types, training status — never decoration",
-      "Strava orange as the sole accent; used for active states and primary actions only",
-      "Single typeface (Geist) — hierarchy through weight and scale, not family switching",
-      "Tabular-nums throughout all metric displays — alignment is precision",
-      "No decorative shadows; depth from surface steps only"
+      "Cream paper base (#f2ede2) with two darker paper tones; never a card-on-card stack",
+      "Ink-black hairline borders (1px) and hard rules (2px); square corners everywhere (0px radius)",
+      "One rust accent (#c93f1d), used for race-day signal and primary action only",
+      "Three typefaces with clear jobs: Newsreader serif (display + body), Geist sans (labels), JetBrains Mono (numerals)",
+      "Tabular mono numerals throughout — every metric reads like a box score",
+      "No shadows, no blur; depth from ink rules and paper tone steps"
     ],
     "rules": [
-      { "name": "The One Signal Rule", "body": "Zone colors are the color vocabulary. Each maps to a specific training intensity. Never reassign a zone color to a non-training use case.", "section": "colors" },
-      { "name": "The Rarity Rule", "body": "Strava orange appears once per screen at most. When everything is orange, nothing is urgent.", "section": "colors" },
-      { "name": "The Mono Data Rule", "body": "Every numeric metric uses font-variant-numeric: tabular-nums and Geist Mono when column alignment is needed.", "section": "typography" },
-      { "name": "The No-Scale-Clamp Rule", "body": "Body text and labels use fixed rem, never fluid clamp. Product UI viewed at consistent DPI.", "section": "typography" },
-      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Four surface tones create hierarchy through color, not shadow.", "section": "elevation" },
-      { "name": "The No-Glassmorphism-Default Rule", "body": "Backdrop blur is legacy. New components use solid surface colors.", "section": "elevation" }
+      { "name": "The Rust Rationing Rule", "body": "Rust appears once, maybe twice, per screen. It marks the one thing that matters now: the primary action, today's workout, the live race signal. A page where three things are rust has nothing urgent.", "section": "colors" },
+      { "name": "The Ink-On-Paper Rule", "body": "Structure is drawn with ink rules and paper tone steps, never with shadow, blur, or color fills. If a surface needs to separate from another, it gets a 1px ink hairline or a paper-tone step, not a drop shadow.", "section": "colors" },
+      { "name": "The Muted-Zone Rule", "body": "Zone and phase colors are deliberately desaturated to live on cream paper. Never substitute a bright, full-saturation version; the gazette doesn't print neon. Each hue maps to one training meaning and is never reused decoratively.", "section": "colors" },
+      { "name": "The Box-Score Rule", "body": "Every numeric metric — pace, HR, distance, duration, percentage, CTL/ATL/TSB — is JetBrains Mono with font-variant-numeric: tabular-nums. Numbers in a serif or sans are a bug; they must align in a column like a box score.", "section": "typography" },
+      { "name": "The Italic-Voice Rule", "body": "Display and section headlines are Newsreader italic. The italic is the almanac's voice; an upright serif headline reads as a different publication. Reserve upright weight (200) for the emphasized em inside a display line.", "section": "typography" },
+      { "name": "The Sans-Is-Labels-Only Rule", "body": "Geist appears only as small uppercase labels, kickers, nav, and button text. It never sets a headline, a body paragraph, or a number.", "section": "typography" },
+      { "name": "The Print Rule", "body": "Surfaces never lift. No box-shadow, no backdrop-filter, no blur, anywhere. This is ink on paper, and paper doesn't float.", "section": "elevation" },
+      { "name": "The Tone-Step Rule", "body": "Hover and recessed states step a paper tone (paper to paper-2), never add a shadow and never animate a layout property.", "section": "elevation" }
     ],
     "dos": [
-      "Use tabular-nums and Geist Mono for every pace, HR, duration, and percentage value",
-      "Use zone colors as the sole semantic color vocabulary",
-      "Use --radius-card (14px) on all cards and --radius-inner (10px) on chips, inputs, and buttons",
-      "Step surface colors up one level for hover states, never add a shadow on hover",
-      "Include the box-shadow inset edge highlight on every surface-card",
-      "Use Strava orange exclusively for active nav, primary CTA, and today's workout highlight",
-      "Respect prefers-reduced-motion on all transitions"
+      "Do keep every corner square (0px radius) — the one allowed exception is .pill at 99px.",
+      "Do draw structure with 1px ink hairlines, 2px hard rules, and paper-tone steps. Reach for .rq-rule / .rq-rule.thick / .rq-rule.double.",
+      "Do set every number in JetBrains Mono with tabular-nums. Pace, HR, distance, CTL/ATL/TSB, percentages — all box-score.",
+      "Do set display and section headlines in Newsreader italic; keep Geist for labels/nav/buttons only.",
+      "Do ration rust to one race-day signal per screen: primary action, today's workout, live/peak metric, marginalia.",
+      "Do step a paper tone (paper to paper-2) for hover/recessed states.",
+      "Do desaturate zone and phase colors to sit on cream paper; map each hue to exactly one training meaning.",
+      "Do respect @media (prefers-reduced-motion: reduce) (handled globally) and keep transitions 150-250ms, state-only."
     ],
     "donts": [
-      "Don't add border-left or border-right greater than 1px as a colored stripe on cards or list items",
-      "Don't use gradient text (background-clip: text)",
-      "Don't use glassmorphism (backdrop-blur) on new components",
-      "Don't add shadows on hover",
-      "Don't build a generic SaaS dashboard: no purple gradients, no card-grid hero metrics",
-      "Don't use fitness-influencer aesthetics: no streaks, no bright motivational colors",
-      "Don't replicate Garmin Connect's feature-bloat layouts",
-      "Don't replicate Strava's blue/orange activity feed card grid",
-      "Don't use transition: width or any CSS layout-property animation",
-      "Don't mix font families for hierarchy — one family, weight contrast only"
+      "Don't add any box-shadow, backdrop-filter, or blur. The Print Rule: paper doesn't float. Glassmorphism is banned by name.",
+      "Don't use border-left/border-right >1px as a colored side-stripe on cards, callouts, or list items. Use full ink borders, paper tints, or leading numerals/dots.",
+      "Don't use gradient text (background-clip: text) or any gradient accent. Solid ink or solid rust only; emphasis via weight/size.",
+      "Don't revert to the old dark 'Dark Lab' terminal theme — near-black surfaces, Geist-everywhere, orange-only. This app is light editorial paper now.",
+      "Don't build a generic SaaS dashboard: no purple gradients, no glowing hero-metric cards, no identical-card grids.",
+      "Don't use fitness-influencer aesthetics: no streaks UI, no bright motivational palettes, no badge gamification.",
+      "Don't build Garmin Connect: no feature-bloat, no everything-everywhere screens.",
+      "Don't replicate Strava's blue/orange activity feed card grid — the explicit anti-reference.",
+      "Don't set numbers in serif or sans, or headlines in Geist. Three faces, three jobs.",
+      "Don't animate layout properties (width, height, top). Use transform, opacity, clip-path (e.g. nav underline animates opacity, not width).",
+      "Don't nest a bordered card inside a bordered card; use .surface-raised for inner blocks."
     ]
   }
 }

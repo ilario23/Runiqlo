@@ -24,7 +24,7 @@ export function AskCoachBar({view, weekStart}: AskCoachBarProps) {
         'border-t border-[var(--color-border)] bg-[var(--color-surface-0)]',
       ].join(' ')}
     >
-      <div className="flex items-center gap-2 text-xs text-white/40">
+      <div className="flex items-center gap-2 text-xs text-[var(--color-ink-3)]">
         <svg
           width="14"
           height="14"

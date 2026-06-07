@@ -40,11 +40,11 @@ export function GoalBanner({goal, currentPhase}: GoalBannerProps) {
       <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] flex-shrink-0" />
 
       {/* Goal type + event name */}
-      <span className="text-xs font-semibold text-white">
+      <span className="text-xs font-semibold text-[var(--color-ink)]">
         {GOAL_LABELS[goal.goalType] ?? goal.goalType}
       </span>
       {goal.targetEventName && (
-        <span className="text-xs text-white/35 truncate max-w-[120px]">
+        <span className="text-xs text-[var(--color-ink-3)] truncate max-w-[120px]">
           — {goal.targetEventName}
         </span>
       )}
@@ -55,27 +55,27 @@ export function GoalBanner({goal, currentPhase}: GoalBannerProps) {
       {/* Phase */}
       {currentPhase ? (
         <div className="flex items-center gap-1.5">
-          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PHASE_DOT[currentPhase] ?? 'bg-white/30'}`} />
-          <span className={`text-[10px] font-semibold uppercase tracking-widest ${PHASE_TEXT[currentPhase] ?? 'text-white/40'}`}>
+          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${PHASE_DOT[currentPhase] ?? 'bg-[var(--color-paper)]/30'}`} />
+          <span className={`text-[10px] font-semibold uppercase tracking-widest ${PHASE_TEXT[currentPhase] ?? 'text-[var(--color-ink-3)]'}`}>
             {currentPhase}
           </span>
         </div>
       ) : (
-        <span className="text-[10px] text-white/25 uppercase tracking-wider">No plan</span>
+        <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wider">No plan</span>
       )}
 
       <span className="text-[var(--color-border)] select-none">|</span>
 
       {/* Weeks away */}
       {weeksAway != null && (
-        <span className={`text-xs tabular-nums ${weeksAway > 0 ? 'text-white/35' : 'text-[var(--color-accent)]'}`}>
+        <span className={`text-xs tabular-nums ${weeksAway > 0 ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-accent)]'}`}>
           {weeksAway > 0 ? `${weeksAway}w out` : weeksAway === 0 ? 'Race week' : 'Race passed'}
         </span>
       )}
 
       {/* Experience level — far right, desktop only */}
       {goal.experienceLevel && (
-        <span className="ml-auto text-[10px] text-white/20 uppercase tracking-wider hidden md:block">
+        <span className="ml-auto text-[10px] text-[var(--color-ink-3)] uppercase tracking-wider hidden md:block">
           {goal.experienceLevel}
         </span>
       )}

@@ -8,14 +8,14 @@ import type {Components} from 'react-markdown';
 
 const markdownComponents: Components = {
   p: ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
-  strong: ({children}) => <strong className="font-semibold text-white">{children}</strong>,
+  strong: ({children}) => <strong className="font-semibold text-[var(--color-ink)]">{children}</strong>,
   em: ({children}) => <em className="italic">{children}</em>,
   ul: ({children}) => <ul className="list-disc list-outside pl-4 mb-2 space-y-1">{children}</ul>,
   ol: ({children}) => <ol className="list-decimal list-outside pl-4 mb-2 space-y-1">{children}</ol>,
   li: ({children}) => <li className="text-[var(--color-text-2)] leading-relaxed">{children}</li>,
-  h1: ({children}) => <h1 className="font-bold text-white text-base mb-2 mt-4 first:mt-0">{children}</h1>,
-  h2: ({children}) => <h2 className="font-semibold text-white text-sm mb-1.5 mt-3 first:mt-0">{children}</h2>,
-  h3: ({children}) => <h3 className="font-medium text-white/90 text-sm mb-1 mt-2 first:mt-0">{children}</h3>,
+  h1: ({children}) => <h1 className="font-bold text-[var(--color-ink)] text-base mb-2 mt-4 first:mt-0">{children}</h1>,
+  h2: ({children}) => <h2 className="font-semibold text-[var(--color-ink)] text-sm mb-1.5 mt-3 first:mt-0">{children}</h2>,
+  h3: ({children}) => <h3 className="font-medium text-[var(--color-ink)] text-sm mb-1 mt-2 first:mt-0">{children}</h3>,
   pre: ({children}) => {
     const child = Array.isArray(children) ? children[0] : children;
     const codeEl = child as React.ReactElement<{className?: string; children?: unknown}> | null;
@@ -59,7 +59,7 @@ const markdownComponents: Components = {
     </div>
   ),
   th: ({children}) => (
-    <th className="border-b border-[var(--color-border)] px-3 py-2 text-left font-semibold text-white/80 bg-[var(--color-surface-2)]">
+    <th className="border-b border-[var(--color-border)] px-3 py-2 text-left font-semibold text-[var(--color-ink)] bg-[var(--color-surface-2)]">
       {children}
     </th>
   ),

@@ -4,37 +4,27 @@ import {useState, useMemo, useEffect, useRef, useCallback} from 'react';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import {ConnectPrompt} from '@/components/ConnectPrompt';
-import {motion, AnimatePresence} from 'framer-motion';
-import {
-  ComposedChart,
-  Area,
-  Line,
-  XAxis,
-  YAxis,
-  ReferenceLine,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from 'recharts';
-import {ArrowRight, ChevronRight} from 'lucide-react';
+import {motion} from 'framer-motion';
+import {ArrowRight} from 'lucide-react';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {
   useDashboardActivities,
   useFitnessData,
   useForceRefreshActivities,
 } from '@/hooks/useStrava';
-import {formatPace, formatDuration, SPORT_COLORS, COLORS} from '@/lib/activityModel';
+import {formatPace} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
+import {TopoFitnessChart} from '@/components/rq/TopoFitnessChart';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
 import type {WeeklyPlan} from '@/lib/coachTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-const fmtDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-
 const fmtNum = (n: number | undefined, dec = 1) =>
   typeof n === 'number' ? n.toFixed(dec) : '—';
+
+const signed = (n: number, dec = 1) => `${n > 0 ? '+' : ''}${n.toFixed(dec)}`;
 
 function localDateISO(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -64,6 +54,8 @@ const WORKOUT_LABELS: Record<string, string> = {
   hike: 'Hike',
 };
 
+const QUALITY_TYPES = new Set(['tempo_run', 'interval_run']);
+
 function useCountUp(target: number | undefined, duration = 550): number | undefined {
   const [display, setDisplay] = useState<number | undefined>(target);
   const prev = useRef<number | undefined>(undefined);
@@ -76,7 +68,6 @@ function useCountUp(target: number | undefined, duration = 550): number | undefi
     }
     const from = prev.current;
     prev.current = target;
-    // First real value (or unchanged): show it immediately, no tween.
     if (from === undefined || from === target) {
       setDisplay(target);
       return;
@@ -95,213 +86,83 @@ function useCountUp(target: number | undefined, duration = 550): number | undefi
   return display;
 }
 
-// ── Section label ──
+// ── TSB → editorial form copy ──
 
-function SectionLabel({children}: {children: React.ReactNode}) {
-  return <p className="metric-label mb-3 px-0.5">{children}</p>;
-}
+type FormState = {word: string; deck: string; rust: boolean};
 
-// ── TSB → status mapping (single source of truth) ──
-
-type TsbStatus = {label: string; sub: string; color: string};
-
-function tsbStatus(tsb: number | undefined): TsbStatus | null {
+function formState(tsb: number | undefined): FormState | null {
   if (tsb === undefined) return null;
-  if (tsb > 5) return {label: 'Fresh', sub: 'Good day to push hard', color: COLORS.green};
-  if (tsb > -10) return {label: 'Building', sub: 'Productive training load', color: COLORS.blue};
-  if (tsb > -20) return {label: 'Loaded', sub: 'High training stress', color: COLORS.orange};
-  return {label: 'Fatigued', sub: 'Recovery is the priority', color: COLORS.red};
+  if (tsb > 15) return {word: 'Rested.', deck: 'Form is high — fitness may be slipping. Time to put work back in.', rust: false};
+  if (tsb > 5) return {word: 'Fresh.', deck: 'Fatigue is settled and fitness holds. The window for hard work is open — and short.', rust: true};
+  if (tsb > -10) return {word: 'Building.', deck: 'Productive load. Fitness is rising faster than fatigue can catch it.', rust: false};
+  if (tsb > -20) return {word: 'Loaded.', deck: 'High training stress. Hold the line, but watch the recovery.', rust: false};
+  return {word: 'Fatigued.', deck: 'Deep in the work. Recovery is the priority now, not another hard day.', rust: false};
 }
 
-// ── PMC tooltip — all three series at the hovered day ──
+// ── [hero tiles] CTL / ATL / TSB / Ramp from real fitness data ──
 
-interface PmcTooltipProps {
-  active?: boolean;
-  payload?: Array<{value: number; dataKey: string}>;
-  label?: string;
-}
+function HeroTiles({fitnessData, loading}: {fitnessData: FitnessDataPoint[] | undefined; loading: boolean}) {
+  const stats = useMemo(() => {
+    if (!fitnessData || fitnessData.length === 0) return null;
+    const last = fitnessData[fitnessData.length - 1];
+    const wk = fitnessData[Math.max(0, fitnessData.length - 8)];
+    const ctlRamp = last.ctl - wk.ctl;
+    return {
+      ctl: last.ctl,
+      atl: last.atl,
+      tsb: last.tsb,
+      ctlDelta: last.ctl - wk.ctl,
+      atlDelta: last.atl - wk.atl,
+      ramp: ctlRamp,
+    };
+  }, [fitnessData]);
 
-function PmcTooltip({active, payload, label}: PmcTooltipProps) {
-  if (!active || !payload?.length || !label) return null;
-  const get = (k: string) => payload.find((p) => p.dataKey === k)?.value;
-  const tsbVal = get('tsb');
-  const rows: Array<{name: string; value: number | undefined; color: string; signed?: boolean}> = [
-    {name: 'Fitness · CTL', value: get('ctl'), color: COLORS.blue},
-    {name: 'Fatigue · ATL', value: get('atl'), color: COLORS.orange},
-    {name: 'Form · TSB', value: tsbVal, color: tsbStatus(tsbVal)?.color ?? COLORS.green, signed: true},
-  ];
-  return (
-    <div className="surface-card px-3 py-2.5 text-xs space-y-1.5 min-w-[156px]">
-      <p style={{color: 'var(--color-text-2)'}}>{fmtDate(label)}</p>
-      {rows.map((r) => (
-        <div key={r.name} className="flex items-center justify-between gap-4">
-          <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full inline-block" style={{background: r.color}} />
-            <span style={{color: 'var(--color-text-2)'}}>{r.name}</span>
-          </span>
-          <span className="font-mono font-medium tabular-nums" style={{color: 'var(--color-text-1)'}}>
-            {typeof r.value === 'number'
-              ? `${r.signed && r.value > 0 ? '+' : ''}${r.value.toFixed(1)}`
-              : '—'}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── [1a] Form & Fitness — Performance Management Chart (CTL · ATL · TSB over time) ──
-
-const PMC_RANGES = [
-  {key: '6w', label: '6W', days: 42},
-  {key: '3m', label: '3M', days: 90},
-  {key: '1y', label: '1Y', days: 365},
-] as const;
-type PmcRangeKey = (typeof PMC_RANGES)[number]['key'];
-
-function FormFitnessChart({
-  fitnessData,
-  fitnessLoading,
-}: {
-  fitnessData: FitnessDataPoint[] | undefined;
-  fitnessLoading: boolean;
-}) {
-  const [range, setRange] = useState<PmcRangeKey>('3m');
-  const days = PMC_RANGES.find((r) => r.key === range)!.days;
-
-  const last = fitnessData?.[fitnessData.length - 1];
-  const tsb = last?.tsb;
-  const ctl = last?.ctl;
-  const atl = last?.atl;
-  const status = tsbStatus(tsb);
-  const animatedTSB = useCountUp(tsb);
-  const formColor = status?.color ?? COLORS.green;
-
-  const data = useMemo(() => fitnessData?.slice(-days) ?? [], [fitnessData, days]);
+  if (loading && !stats) {
+    return (
+      <div className="grid grid-cols-2 gap-3">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="tile"><Skeleton className="h-16 w-full" /></div>
+        ))}
+      </div>
+    );
+  }
+  if (!stats) return null;
 
   return (
-    <div className="surface-card h-full p-6 md:p-7 flex flex-col" style={{minHeight: 340}}>
-      {/* Header — current form readout + time range */}
-      <div className="flex items-start justify-between gap-3 flex-wrap">
-        <div>
-          <p className="metric-label">Form &amp; Fitness</p>
-          {fitnessLoading && tsb === undefined ? (
-            <Skeleton className="h-9 w-28 mt-2" />
-          ) : (
-            <div className="mt-2 flex items-baseline gap-2.5 flex-wrap">
-              <span
-                className="text-[2.75rem] font-bold font-mono tabular-nums leading-none"
-                style={{color: formColor, letterSpacing: '-0.03em'}}
-              >
-                {typeof animatedTSB === 'number' ? `${animatedTSB > 0 ? '+' : ''}${animatedTSB.toFixed(1)}` : '—'}
-              </span>
-              {status && (
-                <span className="text-base font-semibold" style={{color: 'var(--color-text-1)'}}>
-                  {status.label}
-                </span>
-              )}
-            </div>
-          )}
-          {status && (
-            <p className="text-sm mt-1" style={{color: 'var(--color-text-2)'}}>
-              {status.sub} · Training Stress Balance
-            </p>
-          )}
-        </div>
-
-        <div className="flex gap-0.5 surface-raised p-0.5" role="group" aria-label="Chart time range">
-          {PMC_RANGES.map((r) => {
-            const selected = range === r.key;
-            return (
-              <button
-                key={r.key}
-                type="button"
-                onClick={() => setRange(r.key)}
-                aria-pressed={selected}
-                className="px-2.5 py-1 rounded-[7px] text-xs font-medium transition-colors"
-                style={
-                  selected
-                    ? {background: 'var(--color-surface-2)', color: 'var(--color-text-1)'}
-                    : {color: 'var(--color-text-2)'}
-                }
-              >
-                {r.label}
-              </button>
-            );
-          })}
+    <div className="grid grid-cols-2 gap-3">
+      <div className="tile">
+        <div className="tile-label"><span>Fitness · CTL</span><span className="mono">42d</span></div>
+        <div className="tile-num">{fmtNum(stats.ctl)}</div>
+        <div className={`tile-delta ${stats.ctlDelta >= 0 ? 'up' : 'down'}`}>
+          {stats.ctlDelta >= 0 ? '▲' : '▼'} {signed(stats.ctlDelta)} in last 7d
         </div>
       </div>
-
-      {/* Legend — current CTL / ATL values, Form series key */}
-      <div className="flex items-center gap-5 mt-4 text-xs flex-wrap">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 rounded inline-block" style={{background: COLORS.blue}} />
-          <span style={{color: 'var(--color-text-2)'}}>Fitness</span>
-          <span className="font-mono font-semibold tabular-nums" style={{color: 'var(--color-text-1)'}}>{fmtNum(ctl)}</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-0.5 rounded inline-block opacity-70" style={{background: COLORS.orange}} />
-          <span style={{color: 'var(--color-text-2)'}}>Fatigue</span>
-          <span className="font-mono font-semibold tabular-nums" style={{color: 'var(--color-text-1)'}}>{fmtNum(atl)}</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 inline-block border-t border-dashed" style={{borderColor: formColor}} />
-          <span style={{color: 'var(--color-text-2)'}}>Form</span>
-        </span>
+      <div className="tile">
+        <div className="tile-label"><span>Fatigue · ATL</span><span className="mono">7d</span></div>
+        <div className="tile-num">{fmtNum(stats.atl)}</div>
+        <div className={`tile-delta ${stats.atlDelta >= 0 ? 'up' : 'down'}`}>
+          {stats.atlDelta >= 0 ? '▲' : '▼'} {signed(stats.atlDelta)} since last week
+        </div>
       </div>
-
-      {/* Chart — CTL area, ATL line (left axis); TSB line (right axis, 0-baseline) */}
-      <div className="flex-1 mt-4 min-h-[200px]">
-        {fitnessLoading || data.length === 0 ? (
-          <Skeleton className="h-full w-full" />
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{top: 6, right: 0, left: 0, bottom: 0}}>
-              <defs>
-                <linearGradient id="gradCTL" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS.blue} stopOpacity={0.28} />
-                  <stop offset="95%" stopColor={COLORS.blue} stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="date"
-                tickFormatter={fmtDate}
-                tick={{fill: 'var(--color-text-3)', fontSize: 10}}
-                axisLine={false}
-                tickLine={false}
-                interval="preserveStartEnd"
-                minTickGap={44}
-              />
-              <YAxis yAxisId="load" hide domain={[0, 'dataMax + 8']} />
-              <YAxis yAxisId="tsb" hide domain={['dataMin - 5', 'dataMax + 5']} />
-              <ReferenceLine yAxisId="tsb" y={0} stroke="var(--color-border)" strokeDasharray="3 3" />
-              <RechartsTooltip content={<PmcTooltip />} cursor={{stroke: 'var(--color-border)', strokeWidth: 1}} />
-              <Area
-                yAxisId="load" type="monotone" dataKey="ctl" name="CTL"
-                stroke={COLORS.blue} strokeWidth={2.5} fill="url(#gradCTL)"
-                dot={false} activeDot={{r: 4, fill: COLORS.blue}}
-              />
-              <Line
-                yAxisId="load" type="monotone" dataKey="atl" name="ATL"
-                stroke={COLORS.orange} strokeWidth={1.5} strokeOpacity={0.75}
-                dot={false} activeDot={{r: 3, fill: COLORS.orange}}
-              />
-              <Line
-                yAxisId="tsb" type="monotone" dataKey="tsb" name="TSB"
-                stroke={formColor} strokeWidth={2} strokeDasharray="4 3"
-                dot={false} activeDot={{r: 4, fill: formColor}}
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        )}
+      <div className="tile rust">
+        <div className="tile-label"><span>Form · TSB</span><span className="mono">today</span></div>
+        <div className="tile-num">{signed(stats.tsb)}</div>
+        <div className="tile-delta up">Optimal: +5 to +15</div>
+      </div>
+      <div className="tile">
+        <div className="tile-label"><span>Ramp · 7d</span><span className="mono">load</span></div>
+        <div className="tile-num">{signed(stats.ramp)}</div>
+        <div className="tile-delta">
+          {Math.abs(stats.ramp) <= 8 ? 'healthy · cap +8.0/wk' : 'steep · ease back'}
+        </div>
       </div>
     </div>
   );
 }
 
-// ── [1b] Today's Workout (promoted to actionable card) ──
+// ── [coach's prescription] today's planned workout ──
 
-function TodayWorkoutCard() {
+function CoachPrescription() {
   const {athlete} = useStravaAuth();
   const [plan, setPlan] = useState<WeeklyPlan | null | undefined>(undefined);
   const [error, setError] = useState(false);
@@ -324,43 +185,35 @@ function TodayWorkoutCard() {
     load();
   }, [load]);
 
-  const todayLabel = new Date().toLocaleDateString('en-US', {weekday: 'long', month: 'short', day: 'numeric'});
+  const todayLabel = new Date().toLocaleDateString('en-US', {weekday: 'long'});
 
-  // Network / server error — distinct from "no plan"
+  const Frame = ({children}: {children: React.ReactNode}) => (
+    <div className="p-5 md:p-7 relative flex flex-col" style={{borderRight: '1px solid var(--color-ink)', minHeight: 280}}>
+      <div className="flex items-baseline justify-between">
+        <div className="kicker">Today · {todayLabel}</div>
+        <div className="label" style={{color: 'var(--color-rust)'}}>From the Coach</div>
+      </div>
+      {children}
+    </div>
+  );
+
   if (error) {
     return (
-      <div className="surface-card h-full p-6 flex flex-col" style={{minHeight: 230}}>
-        <SectionLabel>Today · {todayLabel}</SectionLabel>
-        <div className="flex-1 flex flex-col justify-center">
-          <p className="text-base font-semibold" style={{color: 'var(--color-text-1)'}}>
-            Couldn&apos;t load today&apos;s workout
-          </p>
-          <p className="text-sm mt-1.5" style={{color: 'var(--color-text-2)'}}>
-            Check your connection and try again.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={load}
-          className="inline-flex items-center gap-1.5 text-sm font-medium mt-4 w-fit transition-colors hover:text-[var(--color-text-1)]"
-          style={{color: 'var(--color-accent)'}}
-        >
-          Retry
-          <ArrowRight size={15} />
-        </button>
-      </div>
+      <Frame>
+        <div className="h-section mt-2" style={{fontSize: 30}}>Couldn&apos;t reach the coach.</div>
+        <p className="body-serif mt-3">Check your connection and try again.</p>
+        <button type="button" onClick={load} className="btn mt-5 w-fit">Retry →</button>
+      </Frame>
     );
   }
 
-  // Loading
   if (plan === undefined) {
     return (
-      <div className="surface-card h-full p-6 flex flex-col" style={{minHeight: 230}}>
-        <SectionLabel>Today · {todayLabel}</SectionLabel>
-        <Skeleton className="h-8 w-44 mt-2" />
+      <Frame>
+        <Skeleton className="h-9 w-3/4 mt-3" />
         <Skeleton className="h-4 w-full mt-4" />
         <Skeleton className="h-4 w-2/3 mt-2" />
-      </div>
+      </Frame>
     );
   }
 
@@ -368,320 +221,173 @@ function TodayWorkoutCard() {
   const todayEntry = plan?.days?.find((d) => d.date === todayISO);
   const firstWorkout = todayEntry?.workouts?.[0];
 
-  // No plan
   if (!plan) {
     return (
-      <Link
-        href="/coach"
-        className="surface-card group h-full p-6 flex flex-col transition-colors hover:border-[var(--color-accent)]/30"
-        style={{minHeight: 230}}
-      >
-        <SectionLabel>Today · {todayLabel}</SectionLabel>
-        <div className="flex-1 flex flex-col justify-center">
-          <p className="text-xl font-bold" style={{color: 'var(--color-text-1)', letterSpacing: '-0.01em'}}>
-            No training plan yet
-          </p>
-          <p className="text-sm mt-2 max-w-xs" style={{color: 'var(--color-text-2)'}}>
-            Chat with your AI coach to build a plan around your goal and current fitness.
-          </p>
+      <Frame>
+        <div className="h-display mt-2" style={{fontSize: 48}}>
+          No plan <em style={{color: 'var(--color-rust)'}}>yet.</em>
         </div>
-        <span className="inline-flex items-center gap-1.5 text-sm font-medium mt-4" style={{color: 'var(--color-accent)'}}>
-          Set up with coach
-          <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
-        </span>
-      </Link>
+        <p className="body-serif mt-4 max-w-md" style={{fontSize: 15}}>
+          Sit down with the coach and lay out a block around your goal and current form.
+        </p>
+        <Link href="/coach" className="btn ink mt-6 w-fit">Set up with coach →</Link>
+        <Seal />
+      </Frame>
     );
   }
 
-  // Rest day
   if (!firstWorkout) {
     return (
-      <div className="surface-card h-full p-6 flex flex-col" style={{minHeight: 230}}>
-        <SectionLabel>Today · {todayLabel}</SectionLabel>
-        <div className="flex-1 flex flex-col justify-center">
-          <p className="text-2xl font-bold" style={{color: 'var(--color-text-1)', letterSpacing: '-0.01em'}}>
-            Rest day
-          </p>
-          <p className="text-sm mt-2" style={{color: 'var(--color-text-2)'}}>
-            Recovery is where adaptation happens. Take it easy.
-          </p>
+      <Frame>
+        <div className="h-display mt-2" style={{fontSize: 56}}>
+          Rest<span style={{color: 'var(--color-rust)'}}>.</span>
         </div>
-        <Link
-          href="/plan"
-          className="inline-flex items-center gap-1.5 text-sm font-medium mt-4 group w-fit"
-          style={{color: 'var(--color-text-2)'}}
-        >
-          View this week
-          <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
-        </Link>
-      </div>
+        <p className="body-serif mt-3 max-w-md" style={{fontSize: 15, fontStyle: 'italic'}}>
+          Nothing today. That is the workout. Recovery is where the adaptation happens.
+        </p>
+        <Link href="/plan" className="btn mt-6 w-fit">View this week →</Link>
+        <Seal />
+      </Frame>
     );
   }
 
   const label = WORKOUT_LABELS[firstWorkout.type] ?? firstWorkout.type;
-  const duration = firstWorkout.durationMinutes ? `${firstWorkout.durationMinutes} min` : null;
-  const distance = firstWorkout.distanceKm ? `${firstWorkout.distanceKm} km` : null;
-  const target = [duration, distance].filter(Boolean).join(' · ');
+  const distance = firstWorkout.distanceKm ? `${firstWorkout.distanceKm}` : null;
+  const duration = firstWorkout.durationMinutes ?? null;
 
   return (
-    <Link
-      href="/plan"
-      className="surface-card group h-full p-6 flex flex-col transition-colors hover:border-[var(--color-accent)]/30"
-      style={{minHeight: 230}}
-    >
-      <div className="flex items-center gap-2">
-        <span className="dot-breathe w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: 'var(--color-accent)'}} />
-        <SectionLabel>Today · {todayLabel}</SectionLabel>
-      </div>
-      <div className="flex-1 flex flex-col justify-center">
-        <h2 className="text-2xl font-bold leading-tight" style={{color: 'var(--color-text-1)', letterSpacing: '-0.01em'}}>
-          {label}
-        </h2>
-        {target && (
-          <p className="text-sm font-mono mt-1.5" style={{color: 'var(--color-accent)'}}>{target}</p>
-        )}
-        {firstWorkout.intensityDescription && (
-          <p className="text-sm mt-3 leading-relaxed line-clamp-3" style={{color: 'var(--color-text-2)'}}>
-            {firstWorkout.intensityDescription}
-          </p>
-        )}
-      </div>
-      <span className="inline-flex items-center gap-1.5 text-sm font-medium mt-4" style={{color: 'var(--color-text-2)'}}>
-        Open workout
-        <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
-      </span>
-    </Link>
-  );
-}
-
-// ── [2a] Featured Last Run ──
-
-function LastRunCard({
-  activities,
-  isLoading,
-}: {
-  activities: ActivitySummary[] | undefined;
-  isLoading: boolean;
-}) {
-  const run = activities?.[0];
-  const color = run ? (SPORT_COLORS[run.type] ?? 'var(--color-text-2)') : 'var(--color-accent)';
-
-  if (isLoading) {
-    return (
-      <div className="surface-card p-6 h-full">
-        <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-7 w-64 mt-3" />
-        <div className="flex gap-8 mt-6">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="space-y-1.5">
-              <Skeleton className="h-2.5 w-10" />
-              <Skeleton className="h-5 w-14" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (!run) {
-    return (
-      <div className="surface-card p-6 h-full flex flex-col items-center justify-center text-center" style={{minHeight: 160}}>
-        <p className="text-sm" style={{color: 'var(--color-text-2)'}}>No activities synced yet</p>
-        <p className="text-xs mt-1" style={{color: 'var(--color-text-3)'}}>Your latest run will appear here.</p>
-      </div>
-    );
-  }
-
-  const dateStr = new Date(run.date).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
-
-  const stats = [
-    {label: 'Distance', value: `${run.distance.toFixed(2)} km`},
-    {label: 'Avg Pace', value: run.avgPace > 0 ? `${formatPace(run.avgPace)}/km` : '—'},
-    {label: 'Avg HR', value: run.avgHr > 0 ? `${Math.round(run.avgHr)} bpm` : '—'},
-    {label: 'Elevation', value: run.elevationGain > 0 ? `+${Math.round(run.elevationGain)} m` : '—'},
-  ];
-
-  return (
-    <Link
-      href={`/activities/${run.id}`}
-      className="surface-card group block p-6 h-full transition-colors hover:border-[rgba(255,255,255,0.09)]"
-    >
-      <div className="flex items-start gap-3 mb-5">
-        <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{background: color}} />
-        <div className="flex-1 min-w-0">
-          <p className="metric-label mb-1">Latest · {dateStr} · {run.type}</p>
-          <h2 className="text-xl font-bold truncate group-hover:opacity-80 transition-opacity" style={{color: 'var(--color-text-1)', letterSpacing: '-0.02em'}}>
-            {run.name}
-          </h2>
-        </div>
-        <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" style={{color: 'var(--color-text-2)'}} />
+    <Frame>
+      <div className="h-display mt-2" style={{fontSize: 38, lineHeight: 1}}>
+        {label}<span style={{color: 'var(--color-rust)'}}>.</span>
       </div>
 
-      <div className="flex gap-6 md:gap-10 flex-wrap">
-        {stats.map((s) => (
-          <div key={s.label}>
-            <p className="metric-label mb-1">{s.label}</p>
-            <p className="text-base font-semibold font-mono tabular-nums" style={{color: 'var(--color-text-1)'}}>{s.value}</p>
+      <div className="flex gap-7 mt-5 flex-wrap">
+        {distance && (
+          <div>
+            <div className="label">Distance</div>
+            <div className="num" style={{fontSize: 30}}>{distance}<span style={{fontSize: 13, color: 'var(--color-ink-3)'}}> km</span></div>
           </div>
-        ))}
+        )}
+        {duration && (
+          <div>
+            <div className="label">Duration</div>
+            <div className="num" style={{fontSize: 30}}>{duration}<span style={{fontSize: 13, color: 'var(--color-ink-3)'}}> min</span></div>
+          </div>
+        )}
+        <div>
+          <div className="label">Type</div>
+          <div className="num" style={{fontSize: 30, color: 'var(--color-rust)'}}>{label.split(' ')[0]}</div>
+        </div>
       </div>
-    </Link>
+
+      {firstWorkout.intensityDescription && (
+        <p className="body-serif mt-5 max-w-xl" style={{fontSize: 14.5, color: 'var(--color-ink)'}}>
+          {firstWorkout.intensityDescription}
+        </p>
+      )}
+
+      <div className="flex gap-2.5 mt-auto pt-6">
+        <Link href="/plan" className="btn ink">Open workout →</Link>
+        <Link href="/coach" className="btn">Ask the coach</Link>
+      </div>
+      <Seal />
+    </Frame>
   );
 }
 
-// ── [2b] This Week summary ──
+function Seal() {
+  return (
+    <div className="seal hidden md:flex" style={{position: 'absolute', right: 28, top: 24}}>
+      THE<br />ALMANAC
+    </div>
+  );
+}
 
-function ThisWeekCard({
-  activities,
-  isLoading,
-}: {
-  activities: ActivitySummary[] | undefined;
-  isLoading: boolean;
-}) {
-  const stats = useMemo(() => {
+// ── [recent ledger] activities table + 7-day rolling summary ──
+
+function RecentLedger({activities, loading}: {activities: ActivitySummary[] | undefined; loading: boolean}) {
+  const all = activities ?? [];
+  const rows = all.slice(0, 7);
+
+  const rolling = useMemo(() => {
     if (!activities) return null;
     const monday = new Date(getMondayISO() + 'T00:00:00');
     const week = activities.filter((a) => new Date(a.date) >= monday);
     const km = week.reduce((s, a) => s + a.distance, 0);
     const secs = week.reduce((s, a) => s + a.duration, 0);
     const elev = week.reduce((s, a) => s + a.elevationGain, 0);
-    return {km, secs, elev, count: week.length};
+    const paced = week.filter((a) => a.avgPace > 0);
+    const avgPace = paced.length ? paced.reduce((s, a) => s + a.avgPace, 0) / paced.length : 0;
+    return {km, secs, elev, avgPace, count: week.length};
   }, [activities]);
 
   return (
-    <div className="surface-card p-6 h-full flex flex-col">
-      <SectionLabel>This week</SectionLabel>
+    <div className="p-5 md:p-7 flex flex-col">
+      <div className="flex items-baseline justify-between">
+        <span className="h-section" style={{fontSize: 22}}>Recent in the field</span>
+        <Link href="/activities" className="label" style={{color: 'var(--color-rust)'}}>All activities →</Link>
+      </div>
 
-      {isLoading && !stats ? (
-        <div className="space-y-3 mt-1">
-          <Skeleton className="h-10 w-28" />
-          <Skeleton className="h-4 w-40" />
+      {loading && rows.length === 0 ? (
+        <div className="mt-4 space-y-3">
+          {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-7 w-full" />)}
         </div>
+      ) : rows.length === 0 ? (
+        <p className="body-serif mt-6" style={{fontStyle: 'italic'}}>No activities synced yet — your latest run will appear here.</p>
       ) : (
-        <>
-          <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold font-mono tabular-nums leading-none" style={{color: 'var(--color-text-1)'}}>
-              {stats ? stats.km.toFixed(1) : '0.0'}
-            </span>
-            <span className="metric-label">km</span>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2 mt-6 pt-5 border-t border-[var(--color-border)]">
-            <div>
-              <p className="text-lg font-semibold font-mono tabular-nums" style={{color: 'var(--color-text-1)'}}>
-                {stats?.count ?? 0}
-              </p>
-              <p className="metric-label mt-0.5">{stats?.count === 1 ? 'session' : 'sessions'}</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold font-mono tabular-nums" style={{color: 'var(--color-text-1)'}}>
-                {stats ? formatDuration(stats.secs) : '0:00'}
-              </p>
-              <p className="metric-label mt-0.5">time</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold font-mono tabular-nums" style={{color: 'var(--color-text-1)'}}>
-                {stats ? `${Math.round(stats.elev)}` : '0'}
-              </p>
-              <p className="metric-label mt-0.5">m elev</p>
-            </div>
-          </div>
-
-          <Link
-            href="/fitness"
-            className="inline-flex items-center gap-1 text-xs font-medium mt-auto pt-5 group w-fit transition-colors"
-            style={{color: 'var(--color-text-2)'}}
-          >
-            Zone & efficiency analysis
-            <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-        </>
+        <table className="ledger mt-3">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Title</th>
+              <th style={{textAlign: 'right'}}>km</th>
+              <th style={{textAlign: 'right'}}>Pace</th>
+              <th style={{textAlign: 'right'}}>HR</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((a) => {
+              const d = new Date(a.date);
+              const isLong = a.distance >= 20;
+              return (
+                <tr key={a.id} style={{cursor: 'pointer'}} onClick={() => (window.location.href = `/activities/${a.id}`)}>
+                  <td className="mono">{`${String(d.getMonth() + 1).padStart(2, '0')}·${String(d.getDate()).padStart(2, '0')}`}</td>
+                  <td className="kicker-cell">
+                    {isLong && <span className="star">★ </span>}
+                    {a.name}
+                  </td>
+                  <td className="num-cell">{a.distance > 0 ? a.distance.toFixed(1) : '—'}</td>
+                  <td className="num-cell">{a.avgPace > 0 ? formatPace(a.avgPace) : '—'}</td>
+                  <td className="num-cell">{a.avgHr > 0 ? Math.round(a.avgHr) : '—'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       )}
-    </div>
-  );
-}
 
-// ── [4] Recent Activities ──
-
-function ActivityRow({activity}: {activity: ActivitySummary}) {
-  const color = SPORT_COLORS[activity.type] ?? 'var(--color-text-3)';
-  const dateStr = new Date(activity.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-
-  return (
-    <Link
-      href={`/activities/${activity.id}`}
-      className="flex items-center gap-3 py-3 px-5 transition-colors cursor-pointer hover:bg-[var(--color-surface-1)]"
-      style={{borderBottom: '1px solid var(--color-border)'}}
-    >
-      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{background: color}} />
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate leading-tight" style={{color: 'var(--color-text-1)'}}>{activity.name}</p>
-        <p className="text-xs mt-0.5" style={{color: 'var(--color-text-2)'}}>{dateStr} · {activity.type}</p>
-      </div>
-      <div className="text-right flex-shrink-0">
-        <p className="text-sm font-mono tabular-nums" style={{color: 'var(--color-text-1)'}}>{activity.distance.toFixed(1)} km</p>
-        <p className="text-xs font-mono tabular-nums" style={{color: 'var(--color-text-2)'}}>
-          {activity.avgPace > 0 ? `${formatPace(activity.avgPace)}/km` : ''}
-          {activity.avgPace > 0 && activity.avgHr > 0 ? ' · ' : ''}
-          {activity.avgHr > 0 ? `${Math.round(activity.avgHr)} bpm` : ''}
-        </p>
-      </div>
-    </Link>
-  );
-}
-
-function RecentActivitiesCard({
-  activities,
-  isLoading,
-}: {
-  activities: ActivitySummary[] | undefined;
-  isLoading: boolean;
-}) {
-  const PAGE = 6;
-  const all = activities ?? [];
-  const displayed = all.slice(0, PAGE);
-
-  return (
-    <div className="surface-card overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4" style={{borderBottom: '1px solid var(--color-border)'}}>
-        <h2 className="text-sm font-semibold" style={{color: 'var(--color-text-1)'}}>Recent Activities</h2>
-        <Link href="/activities" className="inline-flex items-center gap-1 text-xs transition-colors group" style={{color: 'var(--color-text-2)'}}>
-          View all
-          <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
-        </Link>
-      </div>
-
-      {isLoading ? (
-        <div className="px-5 py-2">
-          {Array.from({length: 5}).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 py-3" style={{borderBottom: '1px solid var(--color-border)'}}>
-              <Skeleton className="w-2 h-2 rounded-full" />
-              <div className="flex-1 space-y-1.5">
-                <Skeleton className="h-3 w-3/4" />
-                <Skeleton className="h-2.5 w-1/3" />
-              </div>
-              <Skeleton className="h-3 w-12" />
+      {rolling && (
+        <>
+          <div className="rq-rule thick" style={{margin: '16px 0 12px'}} />
+          <div className="flex justify-between flex-wrap gap-4">
+            <div>
+              <div className="label">7-day rolling</div>
+              <div className="num" style={{fontSize: 22, marginTop: 4}}>{rolling.km.toFixed(1)} <span style={{fontSize: 12, color: 'var(--color-ink-3)'}}>km</span></div>
             </div>
-          ))}
-        </div>
-      ) : all.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <p className="text-xs" style={{color: 'var(--color-text-3)'}}>No activities yet</p>
-        </div>
-      ) : (
-        <AnimatePresence initial={false}>
-          {displayed.map((a, i) => (
-            <motion.div
-              key={a.id}
-              initial={{opacity: 0}}
-              animate={{opacity: 1}}
-              exit={{opacity: 0}}
-              transition={{duration: 0.2, delay: i * 0.02}}
-            >
-              <ActivityRow activity={a} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+            <div>
+              <div className="label">Sessions</div>
+              <div className="num" style={{fontSize: 22, marginTop: 4}}>{rolling.count}</div>
+            </div>
+            <div>
+              <div className="label">Avg pace</div>
+              <div className="num" style={{fontSize: 22, marginTop: 4}}>{rolling.avgPace > 0 ? formatPace(rolling.avgPace) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}>/km</span></div>
+            </div>
+            <div>
+              <div className="label">Elevation</div>
+              <div className="num" style={{fontSize: 22, marginTop: 4, color: 'var(--color-rust)'}}>{Math.round(rolling.elev)}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}> m</span></div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
@@ -696,10 +402,26 @@ export default function DashboardPage() {
   const {data: activities, isLoading: activitiesLoading} = useDashboardActivities();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
 
+  const last = fitnessData?.[fitnessData.length - 1];
+  const form = formState(last?.tsb);
+  const animatedTSB = useCountUp(last?.tsb);
+
+  const weekStats = useMemo(() => {
+    if (!activities) return null;
+    const monday = new Date(getMondayISO() + 'T00:00:00');
+    const week = activities.filter((a) => new Date(a.date) >= monday);
+    const km = week.reduce((s, a) => s + a.distance, 0);
+    const quality = week.filter((a) => QUALITY_TYPES.has(a.type)).length;
+    return {km, count: week.length, quality};
+  }, [activities]);
+
+  const today = new Date();
+  const dateLine = today.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
+
   if (authLoading) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{borderColor: 'var(--color-surface-1)', borderTopColor: COLORS.blue}} />
+        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{borderColor: 'var(--color-rule)', borderTopColor: 'var(--color-rust)'}} />
       </div>
     );
   }
@@ -712,44 +434,72 @@ export default function DashboardPage() {
     <>
       <AppHeader onRefresh={forceRefresh} />
 
-      <main className="pt-[72px] pb-24 md:pb-10 px-5 min-h-dvh" style={{background: 'var(--color-base)'}}>
+      <main className="pt-14 pb-24 md:pb-12 min-h-dvh" style={{background: 'var(--color-paper)'}}>
         <motion.div
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           transition={{duration: 0.4}}
-          className="max-w-[1200px] mx-auto space-y-8"
+          className="max-w-[1280px] mx-auto"
+          style={{border: '1px solid var(--color-ink)', borderTop: 'none'}}
         >
-          {/* ── Band 1 · Right now ─────────────────────────────────────── */}
-          <section>
-            <SectionLabel>Right now</SectionLabel>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-7">
-                <FormFitnessChart fitnessData={fitnessData} fitnessLoading={fitnessLoading} />
-              </div>
-              <div className="lg:col-span-5">
-                <TodayWorkoutCard />
-              </div>
+          {/* ── Masthead ──────────────────────────────────────────────────── */}
+          <div className="masthead">
+            <div className="line">
+              <span>{dateLine}</span>
             </div>
-          </section>
-
-          {/* ── Band 2 · Latest ────────────────────────────────────────── */}
-          <section>
-            <SectionLabel>Latest</SectionLabel>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-7">
-                <LastRunCard activities={activities} isLoading={activitiesLoading} />
-              </div>
-              <div className="lg:col-span-5">
-                <ThisWeekCard activities={activities} isLoading={activitiesLoading} />
-              </div>
+            <div className="brand">Today&apos;s Form<sup>The Runner&apos;s Almanac</sup></div>
+            <div className="line">
+              <span>{weekStats ? `${weekStats.km.toFixed(0)} km · this wk` : '— km'}</span>
+              <span>{weekStats ? `${weekStats.count} sessions` : '—'}</span>
+              <span>{weekStats ? `${weekStats.quality} quality` : '—'}</span>
             </div>
-          </section>
+          </div>
 
-          {/* ── Band 4 · Feed ──────────────────────────────────────────── */}
-          <section>
-            <SectionLabel>Activity</SectionLabel>
-            <RecentActivitiesCard activities={activities} isLoading={activitiesLoading} />
-          </section>
+          {/* ── Hero row ──────────────────────────────────────────────────── */}
+          <div
+            className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-0"
+            style={{borderBottom: '1px solid var(--color-ink)'}}
+          >
+            <div className="p-5 md:p-8" style={{borderRight: '1px solid var(--color-rule)'}}>
+              <div className="kicker rust">
+                Today&apos;s Form {last ? `· TSB ${signed(last.tsb)}` : ''}
+              </div>
+              {fitnessLoading && !form ? (
+                <Skeleton className="h-32 w-64 mt-3" />
+              ) : form ? (
+                <>
+                  <div className="h-display mt-2" style={{fontSize: 'clamp(64px, 11vw, 132px)'}}>
+                    {form.word.replace('.', '')}
+                    <span style={{color: 'var(--color-rust)'}}>.</span>
+                  </div>
+                  <div className="deck mt-4 max-w-xl">{form.deck}</div>
+                  {typeof animatedTSB === 'number' && (
+                    <div className="flex gap-3 mt-6 items-center">
+                      <span className="chip ink">TSB {signed(animatedTSB)}</span>
+                      <span className="chip">CTL {fmtNum(last?.ctl)}</span>
+                      <span className="chip">ATL {fmtNum(last?.atl)}</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="deck mt-4 max-w-xl">No fitness data yet. Sync your activities to see your form.</div>
+              )}
+            </div>
+            <div className="p-5 md:p-8">
+              <HeroTiles fitnessData={fitnessData} loading={fitnessLoading} />
+            </div>
+          </div>
+
+          {/* ── Topographic fitness chart ─────────────────────────────────── */}
+          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--color-rule)'}}>
+            <TopoFitnessChart fitnessData={fitnessData} loading={fitnessLoading} />
+          </div>
+
+          {/* ── Footer: prescription + ledger ─────────────────────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
+            <CoachPrescription />
+            <RecentLedger activities={activities} loading={activitiesLoading} />
+          </div>
         </motion.div>
       </main>
     </>

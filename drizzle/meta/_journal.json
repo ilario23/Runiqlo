@@ -50,6 +50,13 @@
       "when": 1780009917240,
       "tag": "0006_early_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1749254400000,
+      "tag": "0007_rls_athlete_isolation",
+      "breakpoints": true
     }
   ]
 }

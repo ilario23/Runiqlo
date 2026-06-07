@@ -406,8 +406,8 @@ function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
                 tickFormatter={(v) => `${v as number}%`}
                 domain={['auto', 'auto']}
               />
-              <ReferenceLine y={5} stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
-              <ReferenceLine y={8} stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
+              <ReferenceLine y={5} stroke="rgba(26,24,20,0.08)" strokeDasharray="3 3" />
+              <ReferenceLine y={8} stroke="rgba(26,24,20,0.06)" strokeDasharray="3 3" />
               <RechartsTooltip content={<DecouplingTooltip />} cursor={{strokeDasharray: '3 3', stroke: 'var(--color-border)'}} />
               <Scatter
                 data={chartData}
@@ -434,7 +434,7 @@ export default function FitnessPage() {
   if (authLoading) {
     return (
       <div className="min-h-dvh flex items-center justify-center" style={{background: 'var(--color-base)'}}>
-        <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+        <div className="w-5 h-5 rounded-full border-2 border-[var(--color-rule)] border-t-white/60 animate-spin" />
       </div>
     );
   }

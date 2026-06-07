@@ -204,7 +204,7 @@ export function SessionHistoryDrawer({
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
-        <span className="text-sm font-semibold text-white flex-1">Conversations</span>
+        <span className="text-sm font-semibold text-[var(--color-ink)] flex-1">Conversations</span>
         {sessions && (
           <span className="text-[11px] bg-[var(--color-surface-2)] text-[var(--color-text-3)] px-1.5 py-0.5 rounded-full tabular-nums">
             {sessions.length}
@@ -226,7 +226,7 @@ export function SessionHistoryDrawer({
       <div className="flex-1 overflow-y-auto">
         {sessions === null ? (
           <div className="flex items-center justify-center h-full">
-            <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white/60 animate-spin" />
+            <div className="w-5 h-5 rounded-full border-2 border-[var(--color-rule)] border-t-white/60 animate-spin" />
           </div>
         ) : sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
