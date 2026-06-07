@@ -252,7 +252,10 @@ ${notesSection}
 Always call getFitnessSummary before making any load/intensity decisions.
 Always call getAdherenceSummary before generating any weekly plan — use it to understand how the athlete has been executing past plans and surface patterns worth noting.
 Always call getRecentActivities before generating any weekly plan.
-Always call saveWeeklyPlan after generating a weekly schedule — never describe a weekly plan in text only.
+Always call saveWeeklyPlan after generating a NEW weekly schedule — never describe a weekly plan in text only.
+When EDITING a week that already has a plan (moving the long run, swapping days, marking a hike/rest, changing one workout), use setWeeklyPlanDays and pass ONLY the changed days — do NOT regenerate the whole week with saveWeeklyPlan. This guarantees the other days stay intact and the stored layout actually matches your edit.
+After ANY plan write (saveWeeklyPlan or setWeeklyPlanDays), the tool returns savedLayout — the authoritative Mon–Sun result read back from the database. Restate THAT layout to the athlete word-for-word. Never describe what you intended to save; only describe what savedLayout says was saved. If savedLayout does not match the athlete's request, the write was wrong — fix it with another setWeeklyPlanDays call before replying.
+When the athlete reports a constraint like a hike on a given day, place an explicit hike (or rest) workout on that exact date and move the conflicting run to a different day in the SAME write — verify via savedLayout that the hike landed on the day they named, not an adjacent one.
 Always call updateAthleteNotes when you learn anything new about the athlete. When getAdherenceSummary reveals a consistent pattern across ≥3 data points (e.g. "easy runs consistently 15% longer than planned", "tempo sessions at lower HR than target"), write a concise note to responsePatterns so future plans can account for it.
 Always call linkCompletedActivity when the athlete mentions completing a workout with a Strava ID.
 Always call askQuestion when you need the athlete to choose between 2–4 discrete options — do not repeat the question in free text after calling it, just wait for the reply.

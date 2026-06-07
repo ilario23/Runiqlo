@@ -8,6 +8,106 @@ import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from '
 import {invalidateCoachPromptCache} from './coachContext';
 import type {ActivityWeatherData} from './weather';
 
+const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+const structuredStepSchema = z.union([
+  z.object({
+    stepType: z.enum(['warmup', 'training', 'rest', 'cooldown']),
+    durationSeconds: z.number().int().positive(),
+    zoneName: z.string(),
+    zoneNumber: z.number().int().min(1).max(6).optional(),
+    intensityMin: z.number().min(0).max(200),
+    intensityMax: z.number().min(0).max(200),
+    bpmMin: z.number().int().positive().optional(),
+    bpmMax: z.number().int().positive().optional(),
+    notes: z.string().optional(),
+  }),
+  z.object({
+    repeatCount: z.number().int().positive(),
+    steps: z.array(
+      z.object({
+        stepType: z.enum(['warmup', 'training', 'rest', 'cooldown']),
+        durationSeconds: z.number().int().positive(),
+        zoneName: z.string(),
+        zoneNumber: z.number().int().min(1).max(6).optional(),
+        intensityMin: z.number().min(0).max(200),
+        intensityMax: z.number().min(0).max(200),
+        bpmMin: z.number().int().positive().optional(),
+        bpmMax: z.number().int().positive().optional(),
+        notes: z.string().optional(),
+      }),
+    ),
+  }),
+]);
+
+const plannedWorkoutSchema = z.object({
+  type: z.string().describe(
+    'easy_run|long_run|tempo_run|interval_run|recovery_run|gym|cycling|yoga|cross_training|hike|rest',
+  ),
+  durationMinutes: z.number().nullable().optional(),
+  distanceKm: z.number().nullable().optional(),
+  intensityDescription: z.string().describe(
+    'One-line effort summary. MUST include the target HR zone using the 6-zone model (Zone 1–6), e.g. "Zone 2 · Easy aerobic · conversational pace" or "Zone 4 · Threshold · comfortably hard" or "Zone 6 · Neuromuscular · max sprint effort". Never omit the zone number.',
+  ),
+  specificInstructions: z.string().describe(
+    'Structured session breakdown using newlines between phases. Start each phase label in ALL CAPS followed by a colon. EVERY phase must include its target zone from the 6-zone model (Zone 1–6). Zone guide: Z1 recovery, Z2 easy aerobic, Z3 aerobic/tempo, Z4 threshold, Z5 VO2max, Z6 neuromuscular/max sprint. e.g.:\nWARM-UP: 10 min Zone 1–2 · easy jog, conversational\nMAIN SET: 3 × 8 min Zone 3–4 · tempo at half-marathon effort, 2 min Zone 1 jog recovery\nCOOL-DOWN: 5 min Zone 1 · easy walk/jog\nFor strides: "4 × 20 sec Zone 6 · max sprint, 90 sec Zone 1 walk recovery". For easy runs with no phases, still state the zone: "Zone 2 throughout · nasal breathing, fully conversational".',
+  ),
+  completed: z.boolean().default(false),
+  linkedStravaActivityId: z.number().nullable().optional(),
+  structuredSteps: z
+    .array(structuredStepSchema)
+    .optional()
+    .describe(
+      'Structured step-by-step blocks for interval_run and tempo_run workouts. Each block is a WorkoutStep (warmup/training/rest/cooldown) or a RepeatBlock with repeatCount and nested steps. intensityMin/Max are % of LTHR. Include bpmMin/bpmMax when LTHR is known. Omit this field entirely for easy_run, long_run, and rest days.',
+    ),
+});
+
+const plannedDaySchema = z.object({
+  date: z.string(),
+  dayOfWeek: z.number().describe('0=Mon…6=Sun'),
+  dayNotes: z.string().nullable().optional(),
+  workouts: z.array(plannedWorkoutSchema),
+});
+
+type PlannedDayInput = z.infer<typeof plannedDaySchema>;
+
+/**
+ * Normalize a day patch into the stored PlannedDay shape (fill optional fields).
+ */
+function normalizeDay(d: PlannedDayInput) {
+  return {
+    ...d,
+    dayNotes: d.dayNotes ?? null,
+    workouts: d.workouts.map(w => ({
+      ...w,
+      linkedStravaActivityId: w.linkedStravaActivityId ?? null,
+      completed: w.completed ?? false,
+    })),
+  };
+}
+
+/**
+ * Ground-truth layout the model MUST echo back to the athlete after any plan write.
+ * Prevents the coach from narrating its intent instead of what was actually saved.
+ */
+function summarizeWeek(days: Array<{date: string; dayOfWeek: number; dayNotes?: string | null; workouts: Array<{type: string; distanceKm?: number | null; durationMinutes?: number | null; completed?: boolean}>}>): string {
+  const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
+  return sorted
+    .map(d => {
+      const name = DAY_NAMES[d.dayOfWeek] ?? d.date;
+      const w = d.workouts.length === 0
+        ? 'rest'
+        : d.workouts
+            .map(x => {
+              const amt = x.distanceKm != null ? ` ${x.distanceKm}km` : x.durationMinutes != null ? ` ${x.durationMinutes}min` : '';
+              return `${x.type}${amt}${x.completed ? ' [done]' : ''}`;
+            })
+            .join(' + ');
+      return `${name} ${d.date}: ${w}`;
+    })
+    .join(' | ');
+}
+
 export function getCoachTools(athleteId: number) {
   const db = getDb();
 
@@ -482,68 +582,7 @@ export function getCoachTools(athleteId: number) {
         weekNumber: z.number(),
         targetWeeklyKm: z.number().nullable().optional(),
         coachNotes: z.string().nullable().optional().describe("Coach's explanation and reasoning for this week"),
-        days: z
-          .array(
-            z.object({
-              date: z.string(),
-              dayOfWeek: z.number().describe('0=Mon…6=Sun'),
-              dayNotes: z.string().nullable().optional(),
-              workouts: z.array(
-                z.object({
-                  type: z.string().describe(
-                    'easy_run|long_run|tempo_run|interval_run|recovery_run|gym|cycling|yoga|cross_training|rest',
-                  ),
-                  durationMinutes: z.number().nullable().optional(),
-                  distanceKm: z.number().nullable().optional(),
-                  intensityDescription: z.string().describe(
-                    'One-line effort summary. MUST include the target HR zone using the 6-zone model (Zone 1–6), e.g. "Zone 2 · Easy aerobic · conversational pace" or "Zone 4 · Threshold · comfortably hard" or "Zone 6 · Neuromuscular · max sprint effort". Never omit the zone number.',
-                  ),
-                  specificInstructions: z.string().describe(
-                    'Structured session breakdown using newlines between phases. Start each phase label in ALL CAPS followed by a colon. EVERY phase must include its target zone from the 6-zone model (Zone 1–6). Zone guide: Z1 recovery, Z2 easy aerobic, Z3 aerobic/tempo, Z4 threshold, Z5 VO2max, Z6 neuromuscular/max sprint. e.g.:\nWARM-UP: 10 min Zone 1–2 · easy jog, conversational\nMAIN SET: 3 × 8 min Zone 3–4 · tempo at half-marathon effort, 2 min Zone 1 jog recovery\nCOOL-DOWN: 5 min Zone 1 · easy walk/jog\nFor strides: "4 × 20 sec Zone 6 · max sprint, 90 sec Zone 1 walk recovery". For easy runs with no phases, still state the zone: "Zone 2 throughout · nasal breathing, fully conversational".',
-                  ),
-                  completed: z.boolean().default(false),
-                  linkedStravaActivityId: z.number().nullable().optional(),
-                  structuredSteps: z
-                    .array(
-                      z.union([
-                        z.object({
-                          stepType: z.enum(['warmup', 'training', 'rest', 'cooldown']),
-                          durationSeconds: z.number().int().positive(),
-                          zoneName: z.string(),
-                          zoneNumber: z.number().int().min(1).max(6).optional(),
-                          intensityMin: z.number().min(0).max(200),
-                          intensityMax: z.number().min(0).max(200),
-                          bpmMin: z.number().int().positive().optional(),
-                          bpmMax: z.number().int().positive().optional(),
-                          notes: z.string().optional(),
-                        }),
-                        z.object({
-                          repeatCount: z.number().int().positive(),
-                          steps: z.array(
-                            z.object({
-                              stepType: z.enum(['warmup', 'training', 'rest', 'cooldown']),
-                              durationSeconds: z.number().int().positive(),
-                              zoneName: z.string(),
-                              zoneNumber: z.number().int().min(1).max(6).optional(),
-                              intensityMin: z.number().min(0).max(200),
-                              intensityMax: z.number().min(0).max(200),
-                              bpmMin: z.number().int().positive().optional(),
-                              bpmMax: z.number().int().positive().optional(),
-                              notes: z.string().optional(),
-                            }),
-                          ),
-                        }),
-                      ]),
-                    )
-                    .optional()
-                    .describe(
-                      'Structured step-by-step blocks for interval_run and tempo_run workouts. Each block is a WorkoutStep (warmup/training/rest/cooldown) or a RepeatBlock with repeatCount and nested steps. intensityMin/Max are % of LTHR. Include bpmMin/bpmMax when LTHR is known. Omit this field entirely for easy_run, long_run, and rest days.',
-                    ),
-                }),
-              ),
-            }),
-          )
-          .describe('Exactly 7 days Mon–Sun'),
+        days: z.array(plannedDaySchema).describe('Exactly 7 days Mon–Sun'),
       }),
       execute: async input => {
         const now = Date.now();
@@ -553,15 +592,7 @@ export function getCoachTools(athleteId: number) {
           .delete(schema.weeklyPlan)
           .where(and(eq(schema.weeklyPlan.athleteId, athleteId), eq(schema.weeklyPlan.weekStart, input.weekStart)));
 
-        const days = input.days.map(d => ({
-          ...d,
-          dayNotes: d.dayNotes ?? null,
-          workouts: d.workouts.map(w => ({
-            ...w,
-            linkedStravaActivityId: w.linkedStravaActivityId ?? null,
-            completed: w.completed ?? false,
-          })),
-        }));
+        const days = input.days.map(normalizeDay);
 
         const [row] = await db
           .insert(schema.weeklyPlan)
@@ -579,7 +610,77 @@ export function getCoachTools(athleteId: number) {
           })
           .returning();
 
-        return {success: true, weeklyPlanId: row.id, weekStart: row.weekStart};
+        invalidateCoachPromptCache(athleteId);
+
+        // Return the authoritative saved layout — the coach MUST restate this to the
+        // athlete rather than its own recollection of what it intended to save.
+        return {
+          success: true,
+          weeklyPlanId: row.id,
+          weekStart: row.weekStart,
+          savedLayout: summarizeWeek(days),
+        };
+      },
+    }),
+
+    setWeeklyPlanDays: tool({
+      description:
+        "Edit specific days of an EXISTING weekly plan without rewriting the whole week. Use this for any small change — moving the long run, swapping two days, marking a day as a hike/rest, adjusting one workout. Only the days you pass are replaced; every other day is left exactly as stored. Prefer this over saveWeeklyPlan whenever a plan already exists for the week. Refuses to overwrite a day that contains a completed [done] workout. Returns the full resulting Mon–Sun layout, which you MUST restate to the athlete verbatim instead of describing your intent.",
+      inputSchema: z.object({
+        weekStart: z.string().describe('Monday date YYYY-MM-DD of the existing plan'),
+        coachNotes: z
+          .string()
+          .nullable()
+          .optional()
+          .describe('Optional updated coach explanation. MUST match the actual resulting layout. Omit to leave unchanged.'),
+        days: z
+          .array(plannedDaySchema)
+          .min(1)
+          .describe('Only the days to change (1–7). Each must carry the correct date and dayOfWeek (0=Mon…6=Sun).'),
+      }),
+      execute: async input => {
+        const rows = await db
+          .select()
+          .from(schema.weeklyPlan)
+          .where(and(eq(schema.weeklyPlan.athleteId, athleteId), eq(schema.weeklyPlan.weekStart, input.weekStart)))
+          .limit(1);
+
+        const existing = rows[0];
+        if (!existing) {
+          return {error: `No weekly plan exists for ${input.weekStart}. Generate it first with saveWeeklyPlan.`};
+        }
+
+        const current = (existing.days as PlannedDayInput[]).map(normalizeDay);
+        const byDate = new Map(current.map(d => [d.date, d]));
+
+        for (const patch of input.days) {
+          const target = byDate.get(patch.date);
+          if (target && target.workouts.some(w => w.completed)) {
+            return {
+              error: `Refusing to edit ${patch.date}: it contains a completed [done] workout. Completed days are fixed.`,
+            };
+          }
+          byDate.set(patch.date, normalizeDay(patch));
+        }
+
+        const days = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date));
+
+        await db
+          .update(schema.weeklyPlan)
+          .set({
+            days,
+            ...(input.coachNotes !== undefined ? {coachNotes: input.coachNotes} : {}),
+          })
+          .where(eq(schema.weeklyPlan.id, existing.id));
+
+        invalidateCoachPromptCache(athleteId);
+
+        return {
+          success: true,
+          weekStart: input.weekStart,
+          changedDates: input.days.map(d => d.date),
+          savedLayout: summarizeWeek(days),
+        };
       },
     }),
 
