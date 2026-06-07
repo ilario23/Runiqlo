@@ -78,7 +78,7 @@ export function TopoFitnessChart({
         <div className="flex items-baseline gap-3 flex-wrap">
           <span className="h-section" style={{fontSize: 26}}>The Last 90 Days</span>
           <span className="deck" style={{fontSize: 14}}>
-            — fitness, fatigue, form, plotted as a topographic ridge.
+            Fitness, fatigue, form, plotted as a topographic ridge.
           </span>
         </div>
         <div className="flex" role="group" aria-label="Chart time range" style={{border: '1px solid var(--color-ink)'}}>
@@ -109,15 +109,15 @@ export function TopoFitnessChart({
       <div className="flex items-center gap-4 mt-3 flex-wrap">
         <span className="label" style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
           <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke={RQ.ink} strokeWidth={1.6} /></svg>
-          CTL — fitness
+          CTL · fitness
         </span>
         <span className="label" style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
           <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke={RQ.ink} strokeWidth={1.1} strokeDasharray="4 3" /></svg>
-          ATL — fatigue
+          ATL · fatigue
         </span>
         <span className="label" style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
           <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke={RQ.rust} strokeWidth={1.6} /></svg>
-          TSB — form
+          TSB · form
         </span>
       </div>
 

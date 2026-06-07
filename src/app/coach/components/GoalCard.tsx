@@ -40,7 +40,7 @@ export function GoalCard({goal, currentPhase}: GoalCardProps) {
                 {GOAL_LABELS[goal.goalType] ?? goal.goalType}
               </span>
               {goal.targetEventName && (
-                <span className="text-[var(--color-ink-3)] text-sm truncate">— {goal.targetEventName}</span>
+                <span className="text-[var(--color-ink-3)] text-sm truncate">{goal.targetEventName}</span>
               )}
               {currentPhase && (
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_COLORS[currentPhase] ?? 'text-[var(--color-ink-2)] bg-[var(--color-paper-2)]'}`}>

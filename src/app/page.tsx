@@ -92,8 +92,8 @@ type FormState = {word: string; deck: string; rust: boolean};
 
 function formState(tsb: number | undefined): FormState | null {
   if (tsb === undefined) return null;
-  if (tsb > 15) return {word: 'Rested.', deck: 'Form is high — fitness may be slipping. Time to put work back in.', rust: false};
-  if (tsb > 5) return {word: 'Fresh.', deck: 'Fatigue is settled and fitness holds. The window for hard work is open — and short.', rust: true};
+  if (tsb > 15) return {word: 'Rested.', deck: 'Form is high; fitness may be slipping. Time to put work back in.', rust: false};
+  if (tsb > 5) return {word: 'Fresh.', deck: 'Fatigue is settled and fitness holds. The window for hard work is open, and short.', rust: true};
   if (tsb > -10) return {word: 'Building.', deck: 'Productive load. Fitness is rising faster than fatigue can catch it.', rust: false};
   if (tsb > -20) return {word: 'Loaded.', deck: 'High training stress. Hold the line, but watch the recovery.', rust: false};
   return {word: 'Fatigued.', deck: 'Deep in the work. Recovery is the priority now, not another hard day.', rust: false};
@@ -333,7 +333,7 @@ function RecentLedger({activities, loading}: {activities: ActivitySummary[] | un
           {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-7 w-full" />)}
         </div>
       ) : rows.length === 0 ? (
-        <p className="body-serif mt-6" style={{fontStyle: 'italic'}}>No activities synced yet — your latest run will appear here.</p>
+        <p className="body-serif mt-6" style={{fontStyle: 'italic'}}>No activities synced yet. Your latest run will appear here.</p>
       ) : (
         <table className="ledger mt-3">
           <thead>

@@ -45,7 +45,7 @@ export function GoalBanner({goal, currentPhase}: GoalBannerProps) {
       </span>
       {goal.targetEventName && (
         <span className="text-xs text-[var(--color-ink-3)] truncate max-w-[120px]">
-          — {goal.targetEventName}
+          {goal.targetEventName}
         </span>
       )}
 

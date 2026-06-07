@@ -197,6 +197,17 @@ body {
   color: var(--color-rule);
 }
 
+/* Mobile: stack the broadsheet nameplate so the brand keeps its own line */
+@media (max-width: 640px) {
+  .masthead {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px 20px 12px;
+  }
+  .masthead .brand { font-size: 24px; white-space: nowrap; }
+}
+
 /* Kicker — sans eyebrow above headlines */
 .kicker {
   font-family: var(--sans);

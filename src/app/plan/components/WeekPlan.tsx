@@ -163,7 +163,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                 onClick={handleExport}
                 disabled={exporting}
                 title={exportError ? 'Export failed' : 'Export to calendar (.ics)'}
-                className={`w-10 h-10 md:w-7 md:h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40 ${exportError ? 'bg-red-500/20 text-red-400' : 'bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)]'}`}
+                className={`w-10 h-10 md:w-7 md:h-7 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40 ${exportError ? 'bg-[var(--color-accent-dim)] text-[var(--color-accent-red)]' : 'bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)]'}`}
               >
                 <Download style={{width: '12px', height: '12px'}} />
               </button>

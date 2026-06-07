@@ -168,9 +168,9 @@ function GearItem({
 
   const barColor = pct == null
     ? 'var(--color-accent)'
-    : pct >= 100 ? '#ef4444'
-    : pct >= 80 ? '#f59e0b'
-    : '#4ade80';
+    : pct >= 100 ? 'var(--color-accent-red)'
+    : pct >= 80 ? 'var(--color-accent-yellow)'
+    : 'var(--color-accent-green)';
 
   const estimatedRetirement = (() => {
     if (!thresholdMeters || avgWeeklyMeters <= 0) return null;

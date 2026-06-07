@@ -340,7 +340,7 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
       {/* Week-by-week table */}
       {sketches.length > 0 && (
         <div className="mb-6">
-          <div className="text-xs text-[var(--color-ink-3)] mb-2">Block overview — all weeks</div>
+          <div className="text-xs text-[var(--color-ink-3)] mb-2">Block overview · all weeks</div>
           <div className="rounded-xl border border-[var(--color-border)] overflow-hidden">
             <div className="max-h-72 overflow-y-auto">
               <table className="w-full text-xs">
@@ -600,7 +600,7 @@ function PastPlansSection({
                       onClick={() => onDelete(p.id)}
                       disabled={isDeleting || isRestoring}
                       title="Delete plan"
-                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-500/20 text-[var(--color-ink-3)] hover:text-red-400 border border-[var(--color-rule)] hover:border-red-500/30 transition-colors disabled:opacity-40"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-accent-dim)] text-[var(--color-ink-3)] hover:text-[var(--color-accent-red)] border border-[var(--color-rule)] hover:border-[var(--color-accent-red)] transition-colors disabled:opacity-40"
                     >
                       {isDeleting ? (
                         <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -78,7 +78,7 @@ export function ToolCallRow({name, status, input, output}: ToolCallRowProps) {
         {/* Status icon */}
         <span className="flex-shrink-0 w-4 h-4 flex items-center justify-center">
           {isDone ? (
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-emerald-400" stroke="currentColor" strokeWidth="2.5">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="text-[var(--color-accent-green)]" stroke="currentColor" strokeWidth="2.5">
               <polyline points="20 6 9 17 4 12" />
             </svg>
           ) : (

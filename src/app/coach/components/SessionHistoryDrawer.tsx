@@ -110,7 +110,7 @@ function SessionItem({
       {isConfirming ? (
         <button
           onClick={onDelete}
-          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 h-6 flex items-center justify-center rounded-md bg-red-500/20 text-red-400 text-[10px] font-semibold hover:bg-red-500/30 transition-colors"
+          className="absolute right-2 top-1/2 -translate-y-1/2 px-2 h-6 flex items-center justify-center rounded-md bg-[var(--color-accent-dim)] text-[var(--color-accent-red)] text-[10px] font-semibold hover:bg-[var(--color-accent-dim)] transition-colors"
         >
           Delete?
         </button>
@@ -119,7 +119,7 @@ function SessionItem({
           onClick={onDeleteClick}
           disabled={isDeleting}
           title="Delete"
-          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-[var(--color-surface-2)] text-[var(--color-text-3)] hover:text-red-400 transition-all disabled:opacity-30"
+          className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 hover:bg-[var(--color-surface-2)] text-[var(--color-text-3)] hover:text-[var(--color-accent-red)] transition-all disabled:opacity-30"
         >
           {isDeleting ? (
             <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

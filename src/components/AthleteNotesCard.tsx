@@ -37,7 +37,7 @@ export default function AthleteNotesCard() {
       await saveNotes({freeformNotes: freeformDraft || null, injuryHistory: injuriesDraft});
       setEditing(false);
     } catch {
-      setError('Failed to save — please try again.');
+      setError('Failed to save. Please try again.');
     }
   };
 
@@ -148,7 +148,7 @@ export default function AthleteNotesCard() {
             <textarea
               value={freeformDraft}
               onChange={e => setFreeformDraft(e.target.value)}
-              placeholder="Anything the coach should know — training preferences, lifestyle constraints, goals…"
+              placeholder="Anything the coach should know: training preferences, lifestyle constraints, goals…"
               rows={5}
               className="w-full bg-[var(--color-paper-2)] border border-[var(--color-rule)] rounded-xl px-3 py-2.5 text-[12px] text-[var(--color-ink)] placeholder:text-[var(--color-ink-3)] focus:outline-none focus:border-accent-blue/40 transition-colors resize-none leading-relaxed"
             />
@@ -190,7 +190,7 @@ export default function AthleteNotesCard() {
 
           {(!notes || (!notes.freeformNotes && (!notes.injuryHistory || notes.injuryHistory.length === 0))) && (
             <p className="text-xs text-[var(--color-ink-3)] py-2">
-              No notes yet — add context the AI coach should know about you.
+              No notes yet. Add context the AI coach should know about you.
             </p>
           )}
         </div>

@@ -2,9 +2,32 @@ import {NextRequest, NextResponse} from 'next/server';
 import {eq, inArray, gte, desc} from 'drizzle-orm';
 import {sql} from 'drizzle-orm';
 import {getDb} from '@/db';
+import type {PostgresJsDatabase} from 'drizzle-orm/postgres-js';
 import * as schema from '@/db/schema';
 
 const DB_ROUTE_ENFORCE_AUTH = process.env.DB_ROUTE_ENFORCE_AUTH === 'true';
+
+type Db = PostgresJsDatabase<typeof schema>;
+
+// RLS context: tables have row-level security keyed on
+// current_setting('app.current_athlete_id'). Run all queries inside a
+// transaction that sets it (txn-local, so it resets on commit/rollback and is
+// safe with transaction-pooled connections). Without this, every policy check
+// fails and queries 500.
+const withRls = async <T>(
+  athleteId: number | null,
+  fn: (db: Db) => Promise<T>,
+): Promise<T> => {
+  const db = getDb();
+  return db.transaction(async (tx) => {
+    if (athleteId != null) {
+      await tx.execute(
+        sql`select set_config('app.current_athlete_id', ${String(athleteId)}, true)`,
+      );
+    }
+    return fn(tx as unknown as Db);
+  });
+};
 
 // ---- Auth helpers ----
 
@@ -94,9 +117,10 @@ export async function GET(
   const authErr = enforceAuth(req, athleteId);
   if (authErr) return authErr;
 
-  const db = getDb();
+  const rlsAthleteId = parseAthleteIdHeader(req) ?? athleteId;
 
   try {
+    return await withRls(rlsAthleteId, async (db) => {
     switch (table as TableName) {
       case 'activities': {
         const t = schema.activities;
@@ -283,6 +307,7 @@ export async function GET(
       default:
         return NextResponse.json({error: 'Unknown table'}, {status: 400});
     }
+    });
   } catch (err) {
     console.error(`[db/${table}] GET error:`, err);
     return NextResponse.json({error: 'Database error'}, {status: 500});
@@ -318,9 +343,10 @@ export async function POST(
   const authErr = enforceAuth(req, authAthleteId);
   if (authErr) return authErr;
 
-  const db = getDb();
+  const rlsAthleteId = parseAthleteIdHeader(req) ?? authAthleteId;
 
   try {
+    return await withRls(rlsAthleteId, async (db) => {
     switch (table as TableName) {
       case 'activities': {
         const records = (Array.isArray(body) ? body : [body]) as Array<{
@@ -524,6 +550,7 @@ export async function POST(
       default:
         return NextResponse.json({error: 'Unknown table'}, {status: 400});
     }
+    });
   } catch (err) {
     console.error(`[db/${table}] POST error:`, err);
     return NextResponse.json({error: 'Database error'}, {status: 500});
@@ -546,9 +573,10 @@ export async function PATCH(
   const authErr = enforceAuth(req, athleteId);
   if (authErr) return authErr;
 
-  const db = getDb();
+  const rlsAthleteId = parseAthleteIdHeader(req) ?? athleteId;
 
   try {
+    return await withRls(rlsAthleteId, async (db) => {
     if (table === 'user-settings' && athleteId) {
       const patch: Record<string, unknown> = {};
       if ('weight' in body) patch.weight = body.weight;
@@ -562,6 +590,7 @@ export async function PATCH(
       return NextResponse.json({ok: true});
     }
     return NextResponse.json({error: 'PATCH not supported for this table'}, {status: 400});
+    });
   } catch (err) {
     console.error(`[db/${table}] PATCH error:`, err);
     return NextResponse.json({error: 'Database error'}, {status: 500});

@@ -764,10 +764,10 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                 ) : !decouplingResult || decouplingPct === null || decouplingPct === undefined ? (
                   <p className="text-sm text-[var(--color-ink-3)]">
                     {decouplingResult?.reason === 'too_short'
-                      ? 'n/a — run shorter than 45 min'
+                      ? 'n/a, run shorter than 45 min'
                       : decouplingResult?.reason === 'asymmetric'
-                      ? 'n/a — terrain too asymmetric (big climb one way, descent back)'
-                      : 'n/a — no HR or pace data'}
+                      ? 'n/a, terrain too asymmetric (big climb one way, descent back)'
+                      : 'n/a, no HR or pace data'}
                   </p>
                 ) : (
                   <div className="flex items-center gap-3">
@@ -788,12 +788,12 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                     <div>
                       <p className="text-xs text-[var(--color-ink-2)]">
                         {decouplingPct < 0
-                          ? 'HR fell vs pace — improving or easy effort'
+                          ? 'HR fell vs pace, improving or easy effort'
                           : decouplingPct < 5
-                          ? 'Well coupled — strong aerobic base'
+                          ? 'Well coupled, strong aerobic base'
                           : decouplingPct < 8
-                          ? 'Mild decoupling — acceptable'
-                          : 'High decoupling — HR drifted vs pace'}
+                          ? 'Mild decoupling, acceptable'
+                          : 'High decoupling, HR drifted vs pace'}
                       </p>
                       <p className="text-[10px] text-[var(--color-ink-3)] mt-0.5">Pa:Hr ratio, first vs second half</p>
                     </div>

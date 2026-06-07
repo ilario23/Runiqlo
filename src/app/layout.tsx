@@ -3,20 +3,20 @@ import {Geist, JetBrains_Mono, Newsreader} from 'next/font/google';
 import './globals.css';
 import {Providers} from './providers';
 
-// Sans — small uppercase labels, nav, UI chrome (Helvetica-ish)
+// Sans: small uppercase labels, nav, UI chrome (Helvetica-ish)
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
 });
 
-// Mono — all numerals (tabular)
+// Mono: all numerals (tabular)
 const jetbrainsMono = JetBrains_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
   weight: ['400', '500', '600'],
 });
 
-// Display/serif face — Newsreader italic for editorial headlines & body
+// Display/serif face: Newsreader italic for editorial headlines & body
 const newsreader = Newsreader({
   variable: '--font-display',
   subsets: ['latin'],

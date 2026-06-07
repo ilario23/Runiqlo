@@ -131,8 +131,8 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
           width={48}
         />
         <RechartsTooltip
-          contentStyle={{background: '#1c1c1e', border: '1px solid rgba(26,24,20,0.08)', borderRadius: 10, fontSize: 12}}
-          labelStyle={{color: 'rgba(26,24,20,0.5)', marginBottom: 4}}
+          contentStyle={{background: 'var(--color-paper)', border: '1px solid var(--color-ink)', borderRadius: 0, fontSize: 12, color: 'var(--color-ink)'}}
+          labelStyle={{color: 'var(--color-ink-3)', marginBottom: 4}}
           formatter={(val) => [fmtTime(Number(val)), 'Time']}
         />
         <Line
