@@ -90,12 +90,13 @@ export const COLORS = {
   gold: '#f59e0b',
 } as const;
 
+// Muted almanac accents (defined in globals.css) — keep dots in palette, not neon.
 export const SPORT_COLORS: Record<string, string> = {
-  Run: COLORS.green,
-  Ride: COLORS.blue,
-  Hike: COLORS.orange,
-  Swim: COLORS.purple,
-  Walk: COLORS.yellow,
+  Run: 'var(--color-accent-green)',
+  Ride: 'var(--color-accent-blue)',
+  Hike: 'var(--color-accent-orange)',
+  Swim: 'var(--color-accent-purple)',
+  Walk: 'var(--color-accent-yellow)',
 };
 
 export const ZONE_COLORS: Record<number, string> = {

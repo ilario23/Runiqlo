@@ -116,6 +116,14 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         </p>
         <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">
           {fmtDate(activity.date)} · {activity.type}
+          {activity.distance > 0 && (
+            <span className="sm:hidden">
+              {' · '}
+              <span className="font-mono tabular-nums text-[var(--color-ink-2)]">
+                {activity.distance.toFixed(1)} km
+              </span>
+            </span>
+          )}
         </p>
       </div>
       <div className="hidden sm:flex items-center gap-6 text-right flex-shrink-0">
