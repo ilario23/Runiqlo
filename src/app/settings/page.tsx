@@ -1,6 +1,7 @@
 'use client';
 
 import {useEffect, Suspense, useState} from 'react';
+import pkg from '../../../package.json';
 import Image from 'next/image';
 import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
@@ -447,6 +448,17 @@ function SettingsContent() {
                   </button>
                 </div>
               )}
+            </div>
+          </section>
+
+          {/* ── App info ────────────────────────────────────────────────────── */}
+          <section>
+            <SectionLabel>App</SectionLabel>
+            <div className="surface-card p-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-[var(--color-ink)]">Version</p>
+                <span className="text-xs font-mono text-[var(--color-ink-3)]">v{pkg.version}</span>
+              </div>
             </div>
           </section>
 
