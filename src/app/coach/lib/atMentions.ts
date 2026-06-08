@@ -84,8 +84,52 @@ async function resolveFitnessMention(athleteId: number): Promise<string> {
   return `[fitness: CTL ${data.ctl} | ATL ${data.atl} | TSB ${data.tsb} | ACWR ${data.acwr} | Risk: ${data.riskLevel}]`;
 }
 
-// Pattern: @prefix or @prefix:arg
-const MENTION_RE = /@(week|today|plan|fitness)(?::([^\s@]+))?/g;
+// Pattern: @prefix or @prefix:arg — only at start or after whitespace so emails
+// (foo@week.com) and mid-word @ don't get treated as references.
+const MENTION_RE = /(^|\s)@(week|today|plan|fitness)(?::([^\s@]+))?/g;
+
+async function resolveOne(prefix: string, arg: string, athleteId: number): Promise<string> {
+  switch (prefix) {
+    case 'week': return resolveWeekMention(arg, athleteId);
+    case 'today': return resolveTodayMention(athleteId);
+    case 'plan': return resolvePlanMention(athleteId);
+    case 'fitness': return resolveFitnessMention(athleteId);
+    default: return `@${prefix}`;
+  }
+}
+
+// In-memory cache so live preview + send don't refetch the same token repeatedly.
+const cache = new Map<string, {value: string; at: number}>();
+const CACHE_TTL = 30_000;
+
+async function resolveCached(prefix: string, arg: string, athleteId: number): Promise<string> {
+  const key = `${athleteId}:${prefix}:${arg}`;
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_TTL) return hit.value;
+  const value = await resolveOne(prefix, arg, athleteId);
+  cache.set(key, {value, at: Date.now()});
+  return value;
+}
+
+export interface ResolvedMention {
+  /** Matched token, e.g. "@week:2025-06-09" (no leading whitespace). */
+  token: string;
+  prefix: string;
+  resolved: string;
+}
+
+/** Find every completed reference in the text and resolve each (cached). */
+export async function resolveMentionList(text: string, athleteId: number): Promise<ResolvedMention[]> {
+  const matches = [...text.matchAll(MENTION_RE)];
+  return Promise.all(
+    matches.map(async m => {
+      const [, , prefix, arg] = m;
+      const token = `@${prefix}${arg ? `:${arg}` : ''}`;
+      const resolved = await resolveCached(prefix, arg ?? '', athleteId);
+      return {token, prefix, resolved};
+    }),
+  );
+}
 
 export async function resolveAtMentions(text: string, athleteId: number): Promise<string> {
   const matches = [...text.matchAll(MENTION_RE)];
@@ -93,23 +137,17 @@ export async function resolveAtMentions(text: string, athleteId: number): Promis
 
   const resolutions = await Promise.all(
     matches.map(async m => {
-      const [full, prefix, arg] = m;
-      let resolved: string;
-      switch (prefix) {
-        case 'week': resolved = await resolveWeekMention(arg ?? '', athleteId); break;
-        case 'today': resolved = await resolveTodayMention(athleteId); break;
-        case 'plan': resolved = await resolvePlanMention(athleteId); break;
-        case 'fitness': resolved = await resolveFitnessMention(athleteId); break;
-        default: resolved = full;
-      }
-      return {full, resolved};
+      const [full, lead, prefix, arg] = m;
+      const resolved = await resolveCached(prefix, arg ?? '', athleteId);
+      // Preserve the leading boundary char (space / line start) when swapping in.
+      return {full, replacement: `${lead}${resolved}`};
     }),
   );
 
   let result = text;
   // Replace in reverse order to preserve positions
-  for (const {full, resolved} of resolutions.reverse()) {
-    result = result.replace(full, resolved);
+  for (const {full, replacement} of resolutions.reverse()) {
+    result = result.replace(full, replacement);
   }
   return result;
 }

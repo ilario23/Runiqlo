@@ -3,7 +3,7 @@
 import {useRef, useEffect, useCallback, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {COMMANDS, findCommand} from '../lib/chatCommands';
-import {MENTION_DEFS, resolveAtMentions} from '../lib/atMentions';
+import {MENTION_DEFS, resolveAtMentions, resolveMentionList, type ResolvedMention} from '../lib/atMentions';
 
 // ── Command palette popover ────────────────────────────────────────────────────
 
@@ -80,6 +80,50 @@ function MentionDropdown({
   );
 }
 
+// ── Live reference preview ──────────────────────────────────────────────────────
+// Shows what @references / a slash command will expand to BEFORE sending, so the
+// user can see the data they are attaching while still typing.
+
+function ReferencePreview({
+  loading,
+  mentions,
+  command,
+}: {
+  loading: boolean;
+  mentions: ResolvedMention[];
+  command: {name: string; resolved: string} | null;
+}) {
+  if (!loading && !mentions.length && !command) return null;
+
+  return (
+    <div className="absolute bottom-full left-0 right-0 mb-2 border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-2xl z-40 bg-[var(--color-surface-1)] max-h-56 overflow-y-auto">
+      <div className="px-3.5 py-2 border-b border-[var(--color-border)] flex items-center gap-2">
+        <span className="text-[11px] text-[var(--color-text-2)] font-medium uppercase tracking-wider">
+          {command ? 'Will send' : 'Attached context'}
+        </span>
+        {loading && <span className="text-[11px] text-[var(--color-text-3)]">resolving…</span>}
+      </div>
+      {command ? (
+        <div className="px-3.5 py-2.5">
+          <span className="text-xs font-mono text-[var(--color-accent)]">/{command.name}</span>
+          <pre className="mt-1.5 text-[11px] text-[var(--color-text-2)] whitespace-pre-wrap font-sans leading-relaxed">
+            {command.resolved}
+          </pre>
+        </div>
+      ) : (
+        mentions.map(m => (
+          <div key={m.token} className="px-3.5 py-2.5 border-b border-[var(--color-border)] last:border-b-0">
+            <span className="text-xs font-mono text-[var(--color-accent)]">{m.token}</span>
+            <pre className="mt-1 text-[11px] text-[var(--color-text-2)] whitespace-pre-wrap font-sans leading-relaxed">
+              {m.resolved}
+            </pre>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 // ── Composer ───────────────────────────────────────────────────────────────────
 
 interface ComposerProps {
@@ -103,7 +147,57 @@ export function Composer({athleteId, isLoading, input, setInput, onSend, onStop}
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionActiveIdx, setMentionActiveIdx] = useState(0);
 
+  // Live preview of resolved references / command (shown while typing)
+  const [previewMentions, setPreviewMentions] = useState<ResolvedMention[]>([]);
+  const [previewCommand, setPreviewCommand] = useState<{name: string; resolved: string} | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
   const isBusy = isLoading || resolving;
+
+  // Debounced live resolution. Skipped while a popover is open (the dropdown is
+  // the relevant affordance then) and while the message is being sent.
+  useEffect(() => {
+    if (showCommands || showMentions || isBusy) {
+      setPreviewMentions([]);
+      setPreviewCommand(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    const cmd = findCommand(input);
+    const hasMentions = /(^|\s)@(week|today|plan|fitness)/.test(input);
+    if (!cmd && !hasMentions) {
+      setPreviewMentions([]);
+      setPreviewCommand(null);
+      setPreviewLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPreviewLoading(true);
+    const handle = setTimeout(async () => {
+      try {
+        if (cmd) {
+          const resolved = await cmd.command.resolve(cmd.args, athleteId);
+          if (cancelled) return;
+          setPreviewCommand({name: cmd.command.name, resolved});
+          setPreviewMentions([]);
+        } else {
+          const list = await resolveMentionList(input, athleteId);
+          if (cancelled) return;
+          setPreviewMentions(list);
+          setPreviewCommand(null);
+        }
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [input, athleteId, showCommands, showMentions, isBusy]);
 
   // Reset textarea height when input is cleared
   useEffect(() => {
@@ -129,7 +223,10 @@ export function Composer({athleteId, isLoading, input, setInput, onSend, onStop}
     setShowCommands(false);
 
     const lastAt = value.lastIndexOf('@');
-    if (lastAt !== -1) {
+    // Only treat '@' as a reference trigger at line start or after whitespace —
+    // avoids firing inside emails (foo@bar) or mid-word.
+    const atBoundary = lastAt === 0 || (lastAt > 0 && /\s/.test(value[lastAt - 1]));
+    if (lastAt !== -1 && atBoundary) {
       const afterAt = value.slice(lastAt + 1);
       if (!afterAt.includes(' ')) {
         setMentionQuery(afterAt.split(':')[0]);
@@ -263,6 +360,15 @@ export function Composer({athleteId, isLoading, input, setInput, onSend, onStop}
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Live reference / command preview (only when no dropdown is open) */}
+        {!showCommands && !showMentions && (
+          <ReferencePreview
+            loading={previewLoading}
+            mentions={previewMentions}
+            command={previewCommand}
+          />
+        )}
 
         {/* Input pill */}
         <form onSubmit={handleSubmit}>
