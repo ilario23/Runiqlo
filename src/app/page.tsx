@@ -5,19 +5,17 @@ import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import {ConnectPrompt} from '@/components/ConnectPrompt';
 import {motion} from 'framer-motion';
-import {ArrowRight} from 'lucide-react';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {
   useDashboardActivities,
   useFitnessData,
   useForceRefreshActivities,
 } from '@/hooks/useStrava';
-import {formatPace} from '@/lib/activityModel';
+import {formatPace, formatDuration} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
-import {TopoFitnessChart} from '@/components/rq/TopoFitnessChart';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
-import type {WeeklyPlan} from '@/lib/coachTypes';
+import type {WeeklyPlan, PlannedWorkout} from '@/lib/coachTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -54,7 +52,24 @@ const WORKOUT_LABELS: Record<string, string> = {
   hike: 'Hike',
 };
 
+const WORKOUT_SHORT: Record<string, string> = {
+  easy_run: 'Easy',
+  long_run: 'Long',
+  tempo_run: 'Tempo',
+  interval_run: 'Reps',
+  recovery_run: 'Recov',
+  gym: 'Gym',
+  cycling: 'Bike',
+  yoga: 'Yoga',
+  cross_training: 'Cross',
+  rest: 'Rest',
+  swim: 'Swim',
+  walk: 'Walk',
+  hike: 'Hike',
+};
+
 const QUALITY_TYPES = new Set(['tempo_run', 'interval_run']);
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function useCountUp(target: number | undefined, duration = 550): number | undefined {
   const [display, setDisplay] = useState<number | undefined>(target);
@@ -99,92 +114,209 @@ function formState(tsb: number | undefined): FormState | null {
   return {word: 'Fatigued.', deck: 'Deep in the work. Recovery is the priority now, not another hard day.', rust: false};
 }
 
-// ── [hero tiles] CTL / ATL / TSB / Ramp from real fitness data ──
+// ── [today's form] daily readout, links to deep analytics ──
 
-function HeroTiles({fitnessData, loading}: {fitnessData: FitnessDataPoint[] | undefined; loading: boolean}) {
-  const stats = useMemo(() => {
-    if (!fitnessData || fitnessData.length === 0) return null;
-    const last = fitnessData[fitnessData.length - 1];
-    const wk = fitnessData[Math.max(0, fitnessData.length - 8)];
-    const ctlRamp = last.ctl - wk.ctl;
-    return {
-      ctl: last.ctl,
-      atl: last.atl,
-      tsb: last.tsb,
-      ctlDelta: last.ctl - wk.ctl,
-      atlDelta: last.atl - wk.atl,
-      ramp: ctlRamp,
-    };
-  }, [fitnessData]);
-
-  if (loading && !stats) {
-    return (
-      <div className="grid grid-cols-2 gap-3">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="tile"><Skeleton className="h-16 w-full" /></div>
-        ))}
-      </div>
-    );
-  }
-  if (!stats) return null;
+function FormHero({
+  fitnessData,
+  loading,
+}: {
+  fitnessData: FitnessDataPoint[] | undefined;
+  loading: boolean;
+}) {
+  const last = fitnessData?.[fitnessData.length - 1];
+  const form = formState(last?.tsb);
+  const animatedTSB = useCountUp(last?.tsb);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      <div className="tile">
-        <div className="tile-label"><span>Fitness · CTL</span><span className="mono">42d</span></div>
-        <div className="tile-num">{fmtNum(stats.ctl)}</div>
-        <div className={`tile-delta ${stats.ctlDelta >= 0 ? 'up' : 'down'}`}>
-          {stats.ctlDelta >= 0 ? '▲' : '▼'} {signed(stats.ctlDelta)} in last 7d
+    <div className="p-5 md:p-8 flex flex-col" style={{borderRight: '1px solid var(--color-rule)'}}>
+      <div className="flex items-baseline justify-between">
+        <div className="kicker rust">Today&apos;s Form {last ? `· TSB ${signed(last.tsb)}` : ''}</div>
+        <Link href="/fitness" className="label" style={{color: 'var(--color-rust)'}}>Analytics →</Link>
+      </div>
+      {loading && !form ? (
+        <Skeleton className="h-28 w-64 mt-3" />
+      ) : form ? (
+        <>
+          <div className="h-display mt-2" style={{fontSize: 'clamp(56px, 9vw, 104px)'}}>
+            {form.word.replace('.', '')}
+            <span style={{color: 'var(--color-rust)'}}>.</span>
+          </div>
+          <div className="deck mt-3 max-w-xl">{form.deck}</div>
+          {typeof animatedTSB === 'number' && (
+            <div className="flex gap-2.5 mt-5 items-center flex-wrap">
+              <span className="chip ink">TSB {signed(animatedTSB)}</span>
+              <span className="chip">CTL {fmtNum(last?.ctl)}</span>
+              <span className="chip">ATL {fmtNum(last?.atl)}</span>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="deck mt-4 max-w-xl">No fitness data yet. Sync your activities to see your form.</div>
+      )}
+    </div>
+  );
+}
+
+// ── [last in the field] most recent activity ──
+
+function LastActivity({activities, loading}: {activities: ActivitySummary[] | undefined; loading: boolean}) {
+  const a = activities?.[0];
+
+  return (
+    <div className="p-5 md:p-8 flex flex-col">
+      <div className="flex items-baseline justify-between">
+        <div className="kicker">Last in the field</div>
+        {a && <Link href={`/activities/${a.id}`} className="label" style={{color: 'var(--color-rust)'}}>Open →</Link>}
+      </div>
+
+      {loading && !a ? (
+        <div className="mt-4 space-y-3">
+          <Skeleton className="h-8 w-3/4" />
+          <Skeleton className="h-12 w-full" />
         </div>
+      ) : !a ? (
+        <p className="body-serif mt-6" style={{fontStyle: 'italic'}}>No activity synced yet. Your latest run lands here.</p>
+      ) : (
+        <Link href={`/activities/${a.id}`} className="flex flex-col flex-1">
+          <div className="h-section mt-2" style={{fontSize: 24}}>{a.name}</div>
+          <div className="label mt-1">
+            {new Date(a.date).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}
+            {a.type ? ` · ${a.type}` : ''}
+          </div>
+
+          <div className="grid grid-cols-2 gap-x-7 gap-y-4 mt-auto pt-6">
+            <div>
+              <div className="label">Distance</div>
+              <div className="num" style={{fontSize: 26}}>{a.distance > 0 ? a.distance.toFixed(1) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}> km</span></div>
+            </div>
+            <div>
+              <div className="label">Duration</div>
+              <div className="num" style={{fontSize: 26}}>{a.duration > 0 ? formatDuration(a.duration) : '—'}</div>
+            </div>
+            <div>
+              <div className="label">Avg pace</div>
+              <div className="num" style={{fontSize: 26}}>{a.avgPace > 0 ? formatPace(a.avgPace) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}>/km</span></div>
+            </div>
+            <div>
+              <div className="label">Avg HR</div>
+              <div className="num" style={{fontSize: 26, color: 'var(--color-rust)'}}>{a.avgHr > 0 ? Math.round(a.avgHr) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}> bpm</span></div>
+            </div>
+          </div>
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// ── [this week] compact 7-day plan strip ──
+
+function workoutSummary(w: PlannedWorkout | undefined): {label: string; detail: string} | null {
+  if (!w) return null;
+  const label = WORKOUT_SHORT[w.type] ?? w.type;
+  const parts: string[] = [];
+  if (w.distanceKm) parts.push(`${w.distanceKm}k`);
+  else if (w.durationMinutes) parts.push(`${w.durationMinutes}m`);
+  return {label, detail: parts.join(' ')};
+}
+
+function WeekStrip({plan, loading}: {plan: WeeklyPlan | null | undefined; loading: boolean}) {
+  const todayISO = localDateISO();
+  const weekStart = plan?.weekStart ?? getMondayISO();
+
+  const cells = useMemo(() => {
+    const byDate = new Map((plan?.days ?? []).map((d) => [d.date, d]));
+    return Array.from({length: 7}, (_, i) => {
+      const d = new Date(weekStart + 'T00:00:00');
+      d.setDate(d.getDate() + i);
+      const iso = localDateISO(d);
+      const day = byDate.get(iso);
+      const first = day?.workouts?.[0];
+      return {
+        iso,
+        weekday: WEEKDAYS[i],
+        dayNum: d.getDate(),
+        isToday: iso === todayISO,
+        isPast: iso < todayISO,
+        isRest: !first || first.type === 'rest',
+        completed: !!first?.completed,
+        summary: workoutSummary(first),
+      };
+    });
+  }, [plan, weekStart, todayISO]);
+
+  return (
+    <div className="p-5 md:p-7">
+      <div className="flex items-baseline justify-between">
+        <span className="h-section" style={{fontSize: 22}}>This week</span>
+        <Link href="/plan" className="label" style={{color: 'var(--color-rust)'}}>Full plan →</Link>
       </div>
-      <div className="tile">
-        <div className="tile-label"><span>Fatigue · ATL</span><span className="mono">7d</span></div>
-        <div className="tile-num">{fmtNum(stats.atl)}</div>
-        <div className={`tile-delta ${stats.atlDelta >= 0 ? 'up' : 'down'}`}>
-          {stats.atlDelta >= 0 ? '▲' : '▼'} {signed(stats.atlDelta)} since last week
+
+      {loading && !plan ? (
+        <div className="grid grid-cols-7 gap-2 mt-4">
+          {WEEKDAYS.map((d) => <Skeleton key={d} className="h-24 w-full" />)}
         </div>
-      </div>
-      <div className="tile rust">
-        <div className="tile-label"><span>Form · TSB</span><span className="mono">today</span></div>
-        <div className="tile-num">{signed(stats.tsb)}</div>
-        <div className="tile-delta up">Optimal: +5 to +15</div>
-      </div>
-      <div className="tile">
-        <div className="tile-label"><span>Ramp · 7d</span><span className="mono">load</span></div>
-        <div className="tile-num">{signed(stats.ramp)}</div>
-        <div className="tile-delta">
-          {Math.abs(stats.ramp) <= 8 ? 'healthy · cap +8.0/wk' : 'steep · ease back'}
+      ) : plan === null ? (
+        <div className="flex items-center justify-between gap-4 mt-5 flex-wrap">
+          <p className="body-serif" style={{fontStyle: 'italic'}}>No plan set. Build a block with the coach around your goal and form.</p>
+          <Link href="/coach" className="btn ink">Set up with coach →</Link>
         </div>
-      </div>
+      ) : (
+        <div className="flex gap-2 mt-4 overflow-x-auto sm:grid sm:grid-cols-7 sm:overflow-visible -mx-1 px-1 sm:mx-0 sm:px-0">
+          {cells.map((c) => {
+            const accent = c.isToday;
+            return (
+              <Link
+                key={c.iso}
+                href="/plan"
+                className={`day ${c.isRest ? 'rest' : ''} p-2 gap-1 shrink-0 w-[84px] sm:w-auto`}
+                style={{
+                  minHeight: 92,
+                  borderColor: accent ? 'var(--color-rust)' : 'var(--color-ink)',
+                  borderWidth: accent ? 2 : 1,
+                  opacity: c.isPast && !c.completed ? 0.6 : 1,
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="label" style={{color: accent ? 'var(--color-rust)' : 'var(--color-ink-3)'}}>{c.weekday}</span>
+                  <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>{c.dayNum}</span>
+                </div>
+                <div className="flex-1 flex flex-col justify-end">
+                  {c.summary ? (
+                    <>
+                      <span
+                        className="num"
+                        style={{fontSize: 13, lineHeight: 1.1, color: accent ? 'var(--color-rust)' : 'var(--color-ink)'}}
+                      >
+                        {c.summary.label}
+                      </span>
+                      {c.summary.detail && (
+                        <span className="num" style={{fontSize: 10, color: 'var(--color-ink-3)'}}>{c.summary.detail}</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>Rest</span>
+                  )}
+                  {c.completed && (
+                    <span className="label" style={{color: 'var(--color-rust)', marginTop: 2}}>✓ done</span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
 
 // ── [coach's prescription] today's planned workout ──
 
-function CoachPrescription() {
-  const {athlete} = useStravaAuth();
-  const [plan, setPlan] = useState<WeeklyPlan | null | undefined>(undefined);
-  const [error, setError] = useState(false);
-
-  const load = useCallback(() => {
-    if (!athlete?.id) return;
-    setError(false);
-    setPlan(undefined);
-    const weekStart = getMondayISO();
-    fetch(`/api/coach/week?athleteId=${athlete.id}&weekStart=${weekStart}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => setPlan(data ?? null))
-      .catch(() => setError(true));
-  }, [athlete?.id]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
+function CoachPrescription({plan, loading, onRetry, error}: {
+  plan: WeeklyPlan | null | undefined;
+  loading: boolean;
+  onRetry: () => void;
+  error: boolean;
+}) {
   const todayLabel = new Date().toLocaleDateString('en-US', {weekday: 'long'});
 
   const Frame = ({children}: {children: React.ReactNode}) => (
@@ -202,12 +334,12 @@ function CoachPrescription() {
       <Frame>
         <div className="h-section mt-2" style={{fontSize: 30}}>Couldn&apos;t reach the coach.</div>
         <p className="body-serif mt-3">Check your connection and try again.</p>
-        <button type="button" onClick={load} className="btn mt-5 w-fit">Retry →</button>
+        <button type="button" onClick={onRetry} className="btn mt-5 w-fit">Retry →</button>
       </Frame>
     );
   }
 
-  if (plan === undefined) {
+  if (loading || plan === undefined) {
     return (
       <Frame>
         <Skeleton className="h-9 w-3/4 mt-3" />
@@ -236,7 +368,7 @@ function CoachPrescription() {
     );
   }
 
-  if (!firstWorkout) {
+  if (!firstWorkout || firstWorkout.type === 'rest') {
     return (
       <Frame>
         <div className="h-display mt-2" style={{fontSize: 56}}>
@@ -396,15 +528,32 @@ function RecentLedger({activities, loading}: {activities: ActivitySummary[] | un
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const {isAuthenticated, isLoading: authLoading} = useStravaAuth();
+  const {isAuthenticated, isLoading: authLoading, athlete} = useStravaAuth();
   const forceRefresh = useForceRefreshActivities();
 
   const {data: activities, isLoading: activitiesLoading} = useDashboardActivities();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
 
+  // ── shared weekly plan (one fetch for strip + prescription) ──
+  const [plan, setPlan] = useState<WeeklyPlan | null | undefined>(undefined);
+  const [planError, setPlanError] = useState(false);
+
+  const loadPlan = useCallback(() => {
+    if (!athlete?.id) return;
+    setPlanError(false);
+    setPlan(undefined);
+    fetch(`/api/coach/week?athleteId=${athlete.id}&weekStart=${getMondayISO()}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => setPlan(data ?? null))
+      .catch(() => setPlanError(true));
+  }, [athlete?.id]);
+
+  useEffect(() => { loadPlan(); }, [loadPlan]);
+
   const last = fitnessData?.[fitnessData.length - 1];
-  const form = formState(last?.tsb);
-  const animatedTSB = useCountUp(last?.tsb);
 
   const weekStats = useMemo(() => {
     if (!activities) return null;
@@ -439,7 +588,7 @@ export default function DashboardPage() {
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           transition={{duration: 0.4}}
-          className="max-w-[1280px] mx-auto"
+          className="max-w-[1100px] mx-auto"
           style={{border: '1px solid var(--color-ink)', borderTop: 'none'}}
         >
           {/* ── Masthead ──────────────────────────────────────────────────── */}
@@ -455,49 +604,23 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* ── Hero row ──────────────────────────────────────────────────── */}
+          {/* ── Form + last activity ──────────────────────────────────────── */}
           <div
-            className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-0"
+            className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr]"
             style={{borderBottom: '1px solid var(--color-ink)'}}
           >
-            <div className="p-5 md:p-8" style={{borderRight: '1px solid var(--color-rule)'}}>
-              <div className="kicker rust">
-                Today&apos;s Form {last ? `· TSB ${signed(last.tsb)}` : ''}
-              </div>
-              {fitnessLoading && !form ? (
-                <Skeleton className="h-32 w-64 mt-3" />
-              ) : form ? (
-                <>
-                  <div className="h-display mt-2" style={{fontSize: 'clamp(64px, 11vw, 132px)'}}>
-                    {form.word.replace('.', '')}
-                    <span style={{color: 'var(--color-rust)'}}>.</span>
-                  </div>
-                  <div className="deck mt-4 max-w-xl">{form.deck}</div>
-                  {typeof animatedTSB === 'number' && (
-                    <div className="flex gap-3 mt-6 items-center">
-                      <span className="chip ink">TSB {signed(animatedTSB)}</span>
-                      <span className="chip">CTL {fmtNum(last?.ctl)}</span>
-                      <span className="chip">ATL {fmtNum(last?.atl)}</span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="deck mt-4 max-w-xl">No fitness data yet. Sync your activities to see your form.</div>
-              )}
-            </div>
-            <div className="p-5 md:p-8">
-              <HeroTiles fitnessData={fitnessData} loading={fitnessLoading} />
-            </div>
+            <FormHero fitnessData={fitnessData} loading={fitnessLoading} />
+            <LastActivity activities={activities} loading={activitiesLoading} />
           </div>
 
-          {/* ── Topographic fitness chart ─────────────────────────────────── */}
-          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--color-rule)'}}>
-            <TopoFitnessChart fitnessData={fitnessData} loading={fitnessLoading} />
+          {/* ── This week strip ───────────────────────────────────────────── */}
+          <div style={{borderBottom: '1px solid var(--color-ink)'}}>
+            <WeekStrip plan={plan} loading={plan === undefined && !planError} />
           </div>
 
-          {/* ── Footer: prescription + ledger ─────────────────────────────── */}
+          {/* ── Prescription + recent ledger ──────────────────────────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
-            <CoachPrescription />
+            <CoachPrescription plan={plan} loading={plan === undefined && !planError} onRetry={loadPlan} error={planError} />
             <RecentLedger activities={activities} loading={activitiesLoading} />
           </div>
         </motion.div>
