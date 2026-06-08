@@ -10,6 +10,24 @@ import type {ActivitySummary, UserSettings} from '@/lib/activityModel';
 import {getZoneForHr} from '@/lib/activityModel';
 import {hashZoneSettings} from '@/lib/zoneCompute';
 
+// ----- Date helpers -----
+
+/**
+ * Format a Date as YYYY-MM-DD using its LOCAL calendar components.
+ *
+ * IMPORTANT: do NOT use `date.toISOString().slice(0, 10)` for this. That reads
+ * the UTC date, so a Date built at local midnight (`new Date('2026-06-07T00:00:00')`)
+ * resolves to the PREVIOUS day in any UTC+ timezone (e.g. CEST). Mixing local
+ * and UTC date strings drifts the daily-load grid by a day, duplicates days, and
+ * silently drops activities whose date no longer matches the shifted grid keys.
+ */
+export const toLocalDateStr = (d: Date): string => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 // ----- Types -----
 
 export interface DailyLoad {
@@ -136,21 +154,61 @@ export const calcTrainingLoad = (
   return durationMin * hrReserveRatio;
 };
 
+/** Per-zone time totals for one activity, keyed by zone number (1–6). */
+export type ActivityZoneTotals = Record<number, {time: number}>;
+
+/** Map of activity id → per-zone time totals, used for accurate time-in-zone TL. */
+export type ZoneTotalsByActivity = Map<number, ActivityZoneTotals>;
+
+/**
+ * Calculate Training Load from an activity's actual per-zone time distribution
+ * (derived from the HR stream). This is the true COROS-style formula:
+ *
+ *   TL = Σ (minutes in zone × zone intensity weight)
+ *
+ * Far more accurate than the avg-HR single-zone approximation for variable
+ * efforts (intervals, progressions, long runs with surges), where average HR
+ * hides time spent in higher zones.
+ */
+export const calcTrainingLoadFromZones = (
+  zoneTotals: ActivityZoneTotals,
+): number => {
+  let tl = 0;
+  for (let z = 1; z <= 6; z++) {
+    const seconds = zoneTotals[z]?.time ?? 0;
+    if (seconds <= 0) continue;
+    tl += (seconds / 60) * (ZONE_WEIGHTS[z] ?? 1);
+  }
+  return tl;
+};
+
 /**
  * Aggregate activities into daily Training Load totals.
  * Multiple activities on the same day are summed.
+ *
+ * When `zoneTotalsById` contains an entry for an activity, TL is computed from
+ * its true per-zone time distribution. Otherwise we fall back to the avg-HR
+ * single-zone approximation (e.g. activities whose HR stream hasn't been
+ * processed yet, or legacy activities with no HR data).
  */
 export const buildDailyLoads = (
   activities: ActivitySummary[],
   restHR: number,
   maxHR: number,
   zones?: UserSettings['zones'],
+  zoneTotalsById?: ZoneTotalsByActivity,
 ): DailyLoad[] => {
   const dailyMap = new Map<string, number>();
 
   for (const a of activities) {
-    if (!a.avgHr || a.avgHr <= 0) continue;
-    const tl = calcTrainingLoad(a.duration, a.avgHr, restHR, maxHR, zones);
+    const zoneTotals = zoneTotalsById?.get(Number(a.id));
+    let tl: number;
+    if (zoneTotals) {
+      tl = calcTrainingLoadFromZones(zoneTotals);
+    } else {
+      if (!a.avgHr || a.avgHr <= 0) continue;
+      tl = calcTrainingLoad(a.duration, a.avgHr, restHR, maxHR, zones);
+    }
     const existing = dailyMap.get(a.date) ?? 0;
     dailyMap.set(a.date, existing + tl);
   }
@@ -176,7 +234,7 @@ const fillDailyGaps = (
   const end = new Date(endDate + 'T00:00:00');
 
   while (current <= end) {
-    const dateStr = current.toISOString().slice(0, 10);
+    const dateStr = toLocalDateStr(current);
     filled.push({date: dateStr, tl: loadMap.get(dateStr) ?? 0});
     current.setDate(current.getDate() + 1);
   }
@@ -215,15 +273,16 @@ export const calcFitnessData = (
   maxHR: number,
   daysBack = 180,
   zones?: UserSettings['zones'],
+  zoneTotalsById?: ZoneTotalsByActivity,
 ): FitnessResult => {
-  const rawLoads = buildDailyLoads(activities, restHR, maxHR, zones);
+  const rawLoads = buildDailyLoads(activities, restHR, maxHR, zones, zoneTotalsById);
   if (rawLoads.length === 0) {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = toLocalDateStr(new Date());
     return {data: [], continuation: {ctl: 0, atl: 0, lastDate: todayStr}};
   }
 
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toLocalDateStr(today);
 
   // Go back further than daysBack to warm up the EWMA
   const warmupDays = CTL_DAYS * 2;
@@ -231,10 +290,8 @@ export const calcFitnessData = (
 
   const startDate = new Date(today);
   startDate.setDate(startDate.getDate() - daysBack - warmupDays);
-  const startStr =
-    startDate.toISOString().slice(0, 10) < earliest
-      ? startDate.toISOString().slice(0, 10)
-      : earliest;
+  const startDateStr = toLocalDateStr(startDate);
+  const startStr = startDateStr < earliest ? startDateStr : earliest;
 
   const dailyLoads = fillDailyGaps(rawLoads, startStr, todayStr);
 
@@ -247,7 +304,7 @@ export const calcFitnessData = (
 
   const cutoffDate = new Date(today);
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-  const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+  const cutoffStr = toLocalDateStr(cutoffDate);
 
   for (const day of dailyLoads) {
     ctl = ctl + ctlDecay * (day.tl - ctl);
@@ -293,14 +350,15 @@ export const appendFitnessData = (
   maxHR: number,
   daysBack = 365,
   zones?: UserSettings['zones'],
+  zoneTotalsById?: ZoneTotalsByActivity,
 ): FitnessResult => {
   const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toLocalDateStr(today);
 
   // Nothing new to process — just extend rest days to today
   const nextDate = new Date(continuation.lastDate + 'T00:00:00');
   nextDate.setDate(nextDate.getDate() + 1);
-  const nextDateStr = nextDate.toISOString().slice(0, 10);
+  const nextDateStr = toLocalDateStr(nextDate);
 
   if (nextDateStr > todayStr) {
     // Already up to date
@@ -308,7 +366,7 @@ export const appendFitnessData = (
   }
 
   // Build daily loads for ONLY the new activities
-  const rawLoads = buildDailyLoads(newActivities, restHR, maxHR, zones);
+  const rawLoads = buildDailyLoads(newActivities, restHR, maxHR, zones, zoneTotalsById);
 
   // Fill gaps from the day after lastDate through today
   const dailyLoads = fillDailyGaps(rawLoads, nextDateStr, todayStr);
@@ -339,7 +397,7 @@ export const appendFitnessData = (
 
   const cutoffDate = new Date(today);
   cutoffDate.setDate(cutoffDate.getDate() - daysBack);
-  const cutoffStr = cutoffDate.toISOString().slice(0, 10);
+  const cutoffStr = toLocalDateStr(cutoffDate);
 
   const trimmed = combined.filter((d) => d.date >= cutoffStr);
 
@@ -562,14 +620,14 @@ export const calcStreak = (
   const check = new Date(today);
 
   while (true) {
-    const dateStr = check.toISOString().slice(0, 10);
+    const dateStr = toLocalDateStr(check);
     if (activityDates.has(dateStr)) {
       days++;
       check.setDate(check.getDate() - 1);
     } else if (days === 0) {
       // Allow today to not have an activity yet — check yesterday
       check.setDate(check.getDate() - 1);
-      const yesterdayStr = check.toISOString().slice(0, 10);
+      const yesterdayStr = toLocalDateStr(check);
       if (activityDates.has(yesterdayStr)) {
         days++;
         check.setDate(check.getDate() - 1);

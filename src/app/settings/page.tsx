@@ -5,6 +5,7 @@ import Image from 'next/image';
 import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
+import {useBackfillZoneData} from '@/hooks/useStrava';
 import {ZONE_COLORS, ZONE_NAMES, defaultSettings} from '@/lib/activityModel';
 import type {UserSettings} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
@@ -284,6 +285,66 @@ function HrZonesEditor() {
   );
 }
 
+// ─── Zone data backfill ───────────────────────────────────────────────────────
+
+function BackfillZoneCard() {
+  const {run, status, progress, hrActivityCount} = useBackfillZoneData();
+  const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  const running = status === 'running';
+
+  return (
+    <div className="surface-card p-5 space-y-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-[var(--color-ink)]">Training Load accuracy</p>
+          <p className="text-xs text-[var(--color-ink-3)] mt-0.5 leading-relaxed">
+            Recompute Training Load from full heart-rate streams (true time-in-zone)
+            instead of average HR. Processes {hrActivityCount} activities — may fetch
+            from Strava and take a few minutes.
+          </p>
+        </div>
+        <button
+          onClick={run}
+          disabled={running || hrActivityCount === 0}
+          className={`text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex-shrink-0 ${
+            running || hrActivityCount === 0
+              ? 'opacity-40 cursor-not-allowed bg-[var(--color-surface-1)] text-[var(--color-ink-3)]'
+              : 'text-[var(--color-ink)] hover:opacity-85'
+          }`}
+          style={running || hrActivityCount === 0 ? undefined : {background: 'var(--color-accent)'}}
+        >
+          {running ? 'Processing…' : status === 'done' ? 'Run again' : 'Backfill'}
+        </button>
+      </div>
+
+      {running && (
+        <div className="space-y-1.5">
+          <div className="h-1.5 rounded-full bg-[var(--color-surface-1)] overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-300"
+              style={{width: `${pct}%`, background: 'var(--color-accent)'}}
+            />
+          </div>
+          <p className="text-[10px] text-[var(--color-ink-3)] tabular-nums">
+            {progress.done} / {progress.total} ({pct}%)
+          </p>
+        </div>
+      )}
+
+      {status === 'done' && (
+        <p className="text-[11px] text-accent-green font-medium">
+          Done — Training Load updated from heart-rate streams.
+        </p>
+      )}
+      {status === 'error' && (
+        <p className="text-[11px] text-accent-red font-medium">
+          Some activities failed (likely Strava rate limit). Wait a few minutes and run again.
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ─── Main settings content ────────────────────────────────────────────────────
 
 function SettingsContent() {
@@ -391,9 +452,10 @@ function SettingsContent() {
 
           {/* ── Training ───────────────────────────────────────────────────── */}
           {isAuthenticated && (
-            <section>
+            <section className="space-y-4">
               <SectionLabel>Training</SectionLabel>
               <HrZonesEditor />
+              <BackfillZoneCard />
             </section>
           )}
 

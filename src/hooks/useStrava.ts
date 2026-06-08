@@ -201,6 +201,52 @@ export const useFitnessData = () => {
   });
 };
 
+/**
+ * One-shot backfill: compute & cache HR-stream zone breakdowns for every loaded
+ * activity that has HR, then force a full fitness recompute so all Training Load
+ * values use true time-in-zone instead of the avg-HR fallback.
+ *
+ * Reuses batchGetZoneBreakdowns (cached-stream reuse, concurrency, in-flight dedup).
+ * Activities whose HR stream isn't cached are fetched from Strava — this can be
+ * many requests, so it runs in the browser session and reports progress.
+ */
+export const useBackfillZoneData = () => {
+  const {athlete} = useStravaAuth();
+  const {settings} = useSettings();
+  const {data: activities} = useDashboardActivities();
+  const queryClient = useQueryClient();
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [progress, setProgress] = useState<ZoneBreakdownProgress>({done: 0, total: 0});
+
+  const hrActivityCount = useMemo(
+    () => (activities ?? []).filter((a) => a.avgHr > 0).length,
+    [activities],
+  );
+
+  const run = async () => {
+    if (!athlete?.id || !activities || status === 'running') return;
+    const ids = activities.filter((a) => a.avgHr > 0).map((a) => Number(a.id));
+    if (ids.length === 0) { setStatus('done'); return; }
+    setStatus('running');
+    setProgress({done: 0, total: ids.length});
+    try {
+      await batchGetZoneBreakdowns(athlete.id, ids, settings.zones, (done, total) =>
+        setProgress({done, total}),
+      );
+      // Breakdowns now cached — force a full recompute so TL picks them up,
+      // then refresh every fitness-derived query.
+      await cachedCalcFitnessData(athlete.id, activities, settings, {force: true});
+      await queryClient.invalidateQueries({queryKey: ['dashboard', 'fitness']});
+      await queryClient.invalidateQueries({queryKey: ['dashboard', 'zone-breakdowns']});
+      setStatus('done');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return {run, status, progress, hrActivityCount};
+};
+
 export const useAdvancedMetricsData = (): AdvancedMetricsDataPoint[] => {
   const {data: fitnessData} = useFitnessData();
   const {data: activities} = useDashboardActivities();

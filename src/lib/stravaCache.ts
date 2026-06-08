@@ -19,8 +19,8 @@ import type {ActivitySummary, StreamPoint, UserSettings} from './activityModel';
 import {computeZoneBreakdown, hashZoneSettings} from './zoneCompute';
 import type {ZoneBreakdown} from './zoneCompute';
 import {computeDecoupling} from './aerobicDecoupling';
-import {calcFitnessData, appendFitnessData, hashTrainingSettings} from '@/utils/trainingLoad';
-import type {FitnessDataPoint} from '@/utils/trainingLoad';
+import {calcFitnessData, appendFitnessData, hashTrainingSettings, toLocalDateStr} from '@/utils/trainingLoad';
+import type {FitnessDataPoint, ZoneTotalsByActivity} from '@/utils/trainingLoad';
 import {
   dbGetActivities,
   dbGetRecentActivities,
@@ -434,19 +434,43 @@ export const cachedCalcFitnessData = async (
   athleteId: number,
   activities: ActivitySummary[],
   settings: UserSettings,
+  opts?: {force?: boolean},
 ): Promise<FitnessDataPoint[]> => {
   const currentHash = hashTrainingSettings(settings.zones, settings.maxHr, settings.restingHr);
   const latestId = activities[0]?.id ? Number(activities[0].id) : 0;
   const actCount = activities.length;
-  const cacheKey = `fitness:v2:${athleteId}`;
+  // v4: TL now computed from true HR-stream time-in-zone (zone_breakdowns) instead
+  // of the avg-HR single-zone approximation. v3 fixed local/UTC date drift.
+  const cacheKey = `fitness:v4:${athleteId}`;
 
-  const cached = await dbGetDashboardCache(cacheKey);
+  // Load cached per-activity zone breakdowns and build an id → per-zone-time map.
+  // Only breakdowns matching the current zone boundaries are used; activities
+  // without a (fresh) breakdown fall back to the avg-HR approximation inside
+  // buildDailyLoads. No streams are fetched here — read-only from cache.
+  const zoneHash = hashZoneSettings(settings.zones);
+  const buildZoneMap = async (acts: ActivitySummary[]): Promise<ZoneTotalsByActivity> => {
+    const map: ZoneTotalsByActivity = new Map();
+    if (acts.length === 0) return map;
+    const ids = acts.map((a) => Number(a.id)).filter((id) => id > 0);
+    const rows = await dbGetZoneBreakdownsBulk(athleteId, ids);
+    for (const row of rows) {
+      if (row.hrHash !== zoneHash) continue; // stale boundaries — let it fall back
+      map.set(Number(row.activityId), row.zones);
+    }
+    return map;
+  };
+
+  // force=true skips all incremental fast paths and fully recomputes. Used after a
+  // zone-breakdown backfill, where activity count/hash/date are unchanged but the
+  // underlying per-zone TL inputs have changed.
+  const cached = opts?.force ? null : await dbGetDashboardCache(cacheKey);
 
   if (cached) {
     if (cached.hrHash === currentHash && cached.lastActivityId === latestId && cached.lastActivityCount === actCount) {
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = toLocalDateStr(new Date());
       if (cached.lastDate === todayStr) return cached.data;
 
+      // Only rest-day extension here (no new activities) — no zone map needed.
       const result = appendFitnessData([], {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
       const {ctl, atl} = result.continuation;
       await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
@@ -460,7 +484,8 @@ export const cachedCalcFitnessData = async (
       // the cached date (e.g. today's run when lastDate=today). appendFitnessData can't go back,
       // so fall through to full recompute.
       if (newActivityDelta === newActivities.length) {
-        const result = appendFitnessData(newActivities, {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
+        const zoneMap = await buildZoneMap(newActivities);
+        const result = appendFitnessData(newActivities, {...cached.continuationState, lastDate: cached.lastDate}, cached.data, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones, zoneMap);
         const {ctl, atl} = result.continuation;
         await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
         return result.data;
@@ -468,7 +493,8 @@ export const cachedCalcFitnessData = async (
     }
   }
 
-  const result = calcFitnessData(activities, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones);
+  const zoneMap = await buildZoneMap(activities);
+  const result = calcFitnessData(activities, settings.restingHr, settings.maxHr, FITNESS_DAYS_BACK, settings.zones, zoneMap);
   const {ctl, atl} = result.continuation;
   await dbSyncDashboardCache({key: cacheKey, athleteId, hrHash: currentHash, lastActivityId: latestId, lastActivityCount: actCount, lastDate: result.continuation.lastDate, continuationState: {ctl, atl}, data: result.data, computedAt: Date.now()});
   return result.data;
