@@ -78,25 +78,26 @@ export function getZoneForHr(hr: number, zones: UserSettings['zones']): number {
   return 6;
 }
 
+// Muted almanac palette — mirrors --color-* tokens in globals.css.
+// Hex (not CSS vars) so values resolve in SVG/recharts attributes too.
 export const COLORS = {
-  brand: '#fc4c02',
-  blue: '#0a84ff',
-  green: '#30d158',
-  yellow: '#ffd60a',
-  orange: '#ff9f0a',
-  red: '#ff453a',
-  purple: '#bf5af2',
-  cyan: '#64d2ff',
-  gold: '#f59e0b',
+  brand: '#c93f1d',
+  blue: '#4a6079',
+  green: '#6b8a76',
+  yellow: '#b08550',
+  orange: '#dc8a5b',
+  red: '#c93f1d',
+  purple: '#7a6a86',
+  cyan: '#6b9c9c',
+  gold: '#b08550',
 } as const;
 
-// Muted almanac accents (defined in globals.css) — keep dots in palette, not neon.
 export const SPORT_COLORS: Record<string, string> = {
-  Run: 'var(--color-accent-green)',
-  Ride: 'var(--color-accent-blue)',
-  Hike: 'var(--color-accent-orange)',
-  Swim: 'var(--color-accent-purple)',
-  Walk: 'var(--color-accent-yellow)',
+  Run: COLORS.green,
+  Ride: COLORS.blue,
+  Hike: COLORS.orange,
+  Swim: COLORS.purple,
+  Walk: COLORS.yellow,
 };
 
 export const ZONE_COLORS: Record<number, string> = {
