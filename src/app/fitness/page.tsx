@@ -21,18 +21,22 @@ import {
   usePerActivityZoneBreakdowns,
   useDashboardActivities,
   useAdvancedMetricsData,
+  useAthleteStats,
 } from '@/hooks/useStrava';
 import {
   formatDuration,
+  formatPace,
   ZONE_COLORS,
   ZONE_NAMES,
   COLORS,
 } from '@/lib/activityModel';
 import {aggregateZoneBreakdowns} from '@/lib/zoneCompute';
 import {getLatestMetricsSnapshot, calcRiskIntelligence} from '@/utils/trainingLoad';
+import {RQ, scaleTo, smoothPath, type Pt} from '@/components/rq/charts';
 import type {AggregatedZoneTotals, ZoneBreakdown} from '@/lib/zoneCompute';
 import type {ActivitySummary} from '@/lib/activityModel';
-import type {FitnessDataPoint, RiskLevel} from '@/utils/trainingLoad';
+import type {FitnessDataPoint, RiskLevel, AdvancedMetricsDataPoint} from '@/utils/trainingLoad';
+import type {StravaActivityTotal} from '@/lib/strava';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -669,6 +673,288 @@ function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
   );
 }
 
+// ─── Editorial line-trend chart ────────────────────────────────────────────────
+
+type TrendPt = {date: string; value: number};
+
+const fmtMonth = (iso: string) =>
+  new Date(iso + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+
+function TrendChart({
+  points,
+  color,
+  band,
+  thresholds,
+  height = 150,
+  invert = false,
+}: {
+  points: TrendPt[];
+  color: string;
+  band?: {lo: number; hi: number};
+  thresholds?: {y: number; color: string}[];
+  height?: number;
+  invert?: boolean; // lower-is-better series (fill below color reads as "good")
+}) {
+  const X = 40, Y = 14, pad = 40;
+  const W = 560, H = height - pad, VB_W = 620, VB_H = height;
+
+  const geom = useMemo(() => {
+    if (points.length < 2) return null;
+    const vals = points.map((p) => p.value);
+    let yMin = Math.min(...vals, band?.lo ?? Infinity);
+    let yMax = Math.max(...vals, band?.hi ?? -Infinity);
+    if (thresholds) for (const t of thresholds) { yMin = Math.min(yMin, t.y); yMax = Math.max(yMax, t.y); }
+    const span = (yMax - yMin) || 1;
+    yMin -= span * 0.12;
+    yMax += span * 0.12;
+    const n = points.length - 1;
+    const opts = {x0: X, y0: Y, w: W, h: H, xMin: 0, xMax: n, yMin, yMax};
+    const scaled = scaleTo(points.map((p, i): Pt => [i, p.value]), opts);
+    const yPos = (v: number) => Y + H - ((v - yMin) / (yMax - yMin)) * H;
+    const xTicks = [0, 0.5, 1].map((p) => ({
+      pos: p,
+      label: p === 1 ? 'Today' : fmtMonth(points[Math.round(p * n)].date),
+    }));
+    return {d: smoothPath(scaled), yPos, yMin, yMax, xTicks};
+  }, [points, band, thresholds, H]);
+
+  if (!geom) {
+    return (
+      <div className="flex items-center justify-center" style={{height}}>
+        <p className="body-serif" style={{fontStyle: 'italic'}}>Not enough qualifying runs yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <svg viewBox={`0 0 ${VB_W} ${VB_H}`} style={{width: '100%', height, display: 'block'}} preserveAspectRatio="none">
+      {/* safe band */}
+      {band && (
+        <rect
+          x={X} width={W}
+          y={geom.yPos(band.hi)} height={Math.max(0, geom.yPos(band.lo) - geom.yPos(band.hi))}
+          fill={COLORS.green} fillOpacity={0.1}
+        />
+      )}
+      {/* threshold lines */}
+      {thresholds?.map((t, i) => (
+        <line key={i} x1={X} y1={geom.yPos(t.y)} x2={X + W} y2={geom.yPos(t.y)} stroke={t.color} strokeWidth={0.8} strokeDasharray="3 3" strokeOpacity={0.7} />
+      ))}
+      {/* fill under line */}
+      <path d={`${geom.d} L ${X + W},${Y + H} L ${X},${Y + H} Z`} fill={color} fillOpacity={invert ? 0.05 : 0.08} />
+      <path d={geom.d} stroke={color} strokeWidth={1.6} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      {/* y labels */}
+      {[geom.yMax, (geom.yMin + geom.yMax) / 2, geom.yMin].map((v, i) => (
+        <text key={i} x={X - 6} y={geom.yPos(v) + 3} fontSize={9} fontFamily="var(--mono)" fill={RQ.ink3} textAnchor="end">
+          {Math.abs(v) >= 100 ? Math.round(v) : v.toFixed(1)}
+        </text>
+      ))}
+      {/* x labels */}
+      {geom.xTicks.map((t, i) => (
+        <text key={i} x={X + t.pos * W} y={Y + H + 18} fontSize={9} fontFamily="var(--mono)" fill={RQ.ink3} textAnchor={i === 0 ? 'start' : i === 2 ? 'end' : 'middle'}>
+          {t.label}
+        </text>
+      ))}
+      {/* today marker */}
+      <line x1={X + W} y1={Y - 4} x2={X + W} y2={Y + H + 4} stroke={RQ.rust} strokeWidth={1} strokeDasharray="2 2" />
+    </svg>
+  );
+}
+
+function DeltaTag({delta, goodWhenNegative = false, unit = '', windowLabel = '4w'}: {delta: number | null; goodWhenNegative?: boolean; unit?: string; windowLabel?: string}) {
+  if (delta == null) return null;
+  const improving = goodWhenNegative ? delta < 0 : delta > 0;
+  const flat = Math.abs(delta) < (unit === 'pace' ? 0.5 : 0.05);
+  return (
+    <span className={`tile-delta ${flat ? '' : improving ? 'up' : 'down'}`} style={{display: 'inline-block', marginTop: 0}}>
+      {flat ? '–' : improving ? '▲' : '▼'} {delta > 0 ? '+' : ''}{delta.toFixed(unit === 'pace' ? 0 : 1)}{unit === 'pace' ? 's' : unit} · {windowLabel}
+    </span>
+  );
+}
+
+// ─── Performance: aerobic efficiency + threshold pace ───────────────────────────
+
+function seriesDelta(pts: TrendPt[], back = 28): number | null {
+  if (pts.length < 2) return null;
+  const last = pts[pts.length - 1].value;
+  const ref = pts[Math.max(0, pts.length - 1 - back)].value;
+  return Number((last - ref).toFixed(4));
+}
+
+function PerformanceCard({adv, loading}: {adv: AdvancedMetricsDataPoint[]; loading: boolean}) {
+  const ef = useMemo(
+    () => adv.filter((d) => d.efficiencyFactor != null).map((d) => ({date: d.date, value: d.efficiencyFactor! * 1000})).slice(-90),
+    [adv],
+  );
+  const thr = useMemo(
+    () => adv.filter((d) => d.thresholdPace != null).map((d) => ({date: d.date, value: d.thresholdPace!})).slice(-90),
+    [adv],
+  );
+  const efNow = ef.at(-1)?.value ?? null;
+  const efDelta = seriesDelta(ef);
+  const thrNow = thr.at(-1)?.value ?? null;
+  const thrDelta = seriesDelta(thr, 42);
+
+  return (
+    <div className="surface-card p-5 flex flex-col h-full">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <span className="h-section" style={{fontSize: 20}}>Aerobic efficiency</span>
+          <p className="label" style={{marginTop: 4}}>Speed per heartbeat · higher is fitter</p>
+        </div>
+        <div className="flex gap-6">
+          <div style={{textAlign: 'right'}}>
+            <div className="label">EF ×10³</div>
+            <div className="num" style={{fontSize: 22}}>{efNow == null ? '—' : efNow.toFixed(1)}</div>
+            <DeltaTag delta={efDelta} />
+          </div>
+          <div style={{textAlign: 'right'}}>
+            <div className="label">Threshold</div>
+            <div className="num" style={{fontSize: 22}}>{thrNow == null ? '—' : formatPace(thrNow)}<span style={{fontSize: 11, color: 'var(--color-ink-3)'}}>/km</span></div>
+            <DeltaTag delta={thrDelta} goodWhenNegative unit="pace" windowLabel="6w" />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 mt-4" style={{minHeight: 150}}>
+        {loading && ef.length === 0 ? (
+          <Skeleton className="h-[150px] w-full" />
+        ) : (
+          <TrendChart points={ef} color={COLORS.green} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── ACWR trend ──────────────────────────────────────────────────────────────────
+
+function AcwrTrendCard({adv, loading}: {adv: AdvancedMetricsDataPoint[]; loading: boolean}) {
+  const pts = useMemo(
+    () => adv.filter((d) => d.acwr > 0).map((d) => ({date: d.date, value: d.acwr})).slice(-90),
+    [adv],
+  );
+  const now = pts.at(-1)?.value ?? null;
+
+  return (
+    <div className="surface-card p-5 flex flex-col h-full">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <span className="h-section" style={{fontSize: 20}}>Acute : chronic</span>
+          <p className="label" style={{marginTop: 4}}>Sweet spot 0.8–1.3 · spike &gt; 1.5</p>
+        </div>
+        <div style={{textAlign: 'right'}}>
+          <div className="label">now</div>
+          <div className="num" style={{fontSize: 22, color: now != null && now > 1.5 ? COLORS.red : 'var(--color-ink)'}}>{fmtNum(now, 2)}</div>
+        </div>
+      </div>
+
+      <div className="flex-1 mt-4" style={{minHeight: 150}}>
+        {loading && pts.length === 0 ? (
+          <Skeleton className="h-[150px] w-full" />
+        ) : (
+          <TrendChart points={pts} color={RQ.ink} band={{lo: 0.8, hi: 1.3}} thresholds={[{y: 1.5, color: COLORS.red}]} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Monotony & strain ────────────────────────────────────────────────────────────
+
+function MonotonyStrainCard({adv, loading}: {adv: AdvancedMetricsDataPoint[]; loading: boolean}) {
+  const mon = useMemo(
+    () => adv.filter((d) => d.monotony > 0).map((d) => ({date: d.date, value: d.monotony})).slice(-90),
+    [adv],
+  );
+  const monNow = mon.at(-1)?.value ?? null;
+  const strainNow = adv.at(-1)?.strain ?? null;
+
+  return (
+    <div className="surface-card p-5 flex flex-col h-full">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <span className="h-section" style={{fontSize: 20}}>Monotony &amp; strain</span>
+          <p className="label" style={{marginTop: 4}}>Day-to-day sameness · &gt; 2.0 is high</p>
+        </div>
+        <div className="flex gap-6">
+          <div style={{textAlign: 'right'}}>
+            <div className="label">monotony</div>
+            <div className="num" style={{fontSize: 22, color: monNow != null && monNow > 2 ? COLORS.red : 'var(--color-ink)'}}>{fmtNum(monNow, 2)}</div>
+          </div>
+          <div style={{textAlign: 'right'}}>
+            <div className="label">strain</div>
+            <div className="num" style={{fontSize: 22}}>{strainNow == null ? '—' : Math.round(strainNow)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 mt-4" style={{minHeight: 150}}>
+        {loading && mon.length === 0 ? (
+          <Skeleton className="h-[150px] w-full" />
+        ) : (
+          <TrendChart points={mon} color={COLORS.orange} thresholds={[{y: 2, color: COLORS.red}]} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Season ledger ────────────────────────────────────────────────────────────────
+
+function SeasonLedger() {
+  const {data: stats, isLoading} = useAthleteStats();
+  const year = new Date().getFullYear();
+
+  const rows: {label: string; t: StravaActivityTotal}[] = stats
+    ? [
+        {label: 'Last 4 weeks', t: stats.recent_run_totals},
+        {label: `${year} to date`, t: stats.ytd_run_totals},
+        {label: 'All time', t: stats.all_run_totals},
+      ]
+    : [];
+
+  return (
+    <div className="p-5 md:p-7">
+      <div className="flex items-baseline justify-between">
+        <span className="h-section" style={{fontSize: 22}}>Season record</span>
+        <span className="label">Runs only</span>
+      </div>
+
+      {isLoading && !stats ? (
+        <div className="mt-4 space-y-3">
+          {[0, 1, 2].map((i) => <Skeleton key={i} className="h-8 w-full" />)}
+        </div>
+      ) : !stats ? (
+        <p className="body-serif mt-5" style={{fontStyle: 'italic'}}>No athlete totals available.</p>
+      ) : (
+        <table className="ledger mt-3">
+          <thead>
+            <tr>
+              <th>Window</th>
+              <th style={{textAlign: 'right'}}>Runs</th>
+              <th style={{textAlign: 'right'}}>Distance</th>
+              <th style={{textAlign: 'right'}}>Time</th>
+              <th style={{textAlign: 'right'}}>Elevation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({label, t}) => (
+              <tr key={label}>
+                <td className="kicker-cell">{label}</td>
+                <td className="num-cell">{t.count}</td>
+                <td className="num-cell">{(t.distance / 1000).toFixed(0)} km</td>
+                <td className="num-cell">{Math.round(t.elapsed_time / 3600)} h</td>
+                <td className="num-cell">{Math.round(t.elevation_gain)} m</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function FitnessPage() {
@@ -676,6 +962,7 @@ export default function FitnessPage() {
   const {data: activities} = useDashboardActivities();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
   const {data: breakdownMap, isLoading: zonesLoading, progress} = usePerActivityZoneBreakdowns(12);
+  const adv = useAdvancedMetricsData();
 
   const last = fitnessData?.[fitnessData.length - 1];
   const today = new Date();
@@ -732,6 +1019,11 @@ export default function FitnessPage() {
             <TopoFitnessChart fitnessData={fitnessData} loading={fitnessLoading} />
           </div>
 
+          {/* ── Performance: aerobic efficiency ───────────────────────────── */}
+          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--color-ink)'}}>
+            <PerformanceCard adv={adv} loading={fitnessLoading} />
+          </div>
+
           {/* ── Risk + weekly load ────────────────────────────────────────── */}
           <div
             className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-5 p-5 md:p-6"
@@ -741,8 +1033,20 @@ export default function FitnessPage() {
             <WeeklyLoadCard fitnessData={fitnessData} loading={fitnessLoading} />
           </div>
 
+          {/* ── Risk trends: ACWR + monotony/strain ───────────────────────── */}
+          <div
+            className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 md:p-6"
+            style={{borderBottom: '1px solid var(--color-ink)'}}
+          >
+            <AcwrTrendCard adv={adv} loading={fitnessLoading} />
+            <MonotonyStrainCard adv={adv} loading={fitnessLoading} />
+          </div>
+
           {/* ── Zone distribution + decoupling ────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 md:p-6">
+          <div
+            className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 md:p-6"
+            style={{borderBottom: '1px solid var(--color-ink)'}}
+          >
             <ZoneDistributionCard
               breakdownMap={breakdownMap}
               activities={activities}
@@ -751,6 +1055,9 @@ export default function FitnessPage() {
             />
             <DecouplingCard breakdownsReady={!zonesLoading && !!breakdownMap} />
           </div>
+
+          {/* ── Season record ledger ──────────────────────────────────────── */}
+          <SeasonLedger />
         </motion.div>
       </main>
     </>
