@@ -12,6 +12,8 @@ import {
   useForceRefreshActivities,
 } from '@/hooks/useStrava';
 import {formatPace, formatDuration} from '@/lib/activityModel';
+import {calcPrimaryVdot} from '@/lib/vdot';
+import {useBestEffortsData} from '@/hooks/useStrava';
 import {Skeleton} from '@/components/ui/skeleton';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
@@ -126,6 +128,8 @@ function FormHero({
   const last = fitnessData?.[fitnessData.length - 1];
   const form = formState(last?.tsb);
   const animatedTSB = useCountUp(last?.tsb);
+  const {data: bestEfforts} = useBestEffortsData();
+  const vdot = bestEfforts?.bests ? calcPrimaryVdot(bestEfforts.bests) : null;
 
   return (
     <div className="p-5 md:p-8 flex flex-col" style={{borderRight: '1px solid var(--color-rule)'}}>
@@ -147,6 +151,17 @@ function FormHero({
               <span className="chip ink">TSB {signed(animatedTSB)}</span>
               <span className="chip">CTL {fmtNum(last?.ctl)}</span>
               <span className="chip">ATL {fmtNum(last?.atl)}</span>
+              {vdot && (
+                <span
+                  className="chip"
+                  title={`${vdot.distance} · ${vdot.effortAgeDays}d ago · ${vdot.confidence.replace('_', ' ')}`}
+                  style={vdot.confidence !== 'fresh' ? {color: 'var(--color-ink-3)'} : undefined}
+                >
+                  VDOT {vdot.vdot.toFixed(1)}
+                  {vdot.confidence === 'stale' && <span style={{marginLeft: 3, fontSize: 8}}>~</span>}
+                  {vdot.confidence === 'very_stale' && <span style={{marginLeft: 3, fontSize: 8}}>~~</span>}
+                </span>
+              )}
             </div>
           )}
         </>

@@ -57,6 +57,13 @@
       "when": 1749254400000,
       "tag": "0007_rls_athlete_isolation",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781132312029,
+      "tag": "0008_famous_white_queen",
+      "breakpoints": true
     }
   ]
 }

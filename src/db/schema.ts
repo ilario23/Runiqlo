@@ -185,3 +185,18 @@ export const segmentEfforts = pgTable('segment_efforts', {
   starred: boolean('starred').notNull().default(false),
   syncedAt: bigint('synced_at', {mode: 'number'}).notNull(),
 });
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+// Long-lived login sessions. The browser holds an opaque random session ID in
+// an httpOnly cookie; only its SHA-256 hash is stored here, alongside the
+// Strava refresh token, so a DB leak exposes neither the cookie value nor a
+// usable session. Lets the app re-mint Strava access tokens after the
+// short-lived token cookies expire, without re-running OAuth.
+export const stravaSessions = pgTable('strava_sessions', {
+  sessionTokenHash: text('session_token_hash').primaryKey(),
+  athleteId: bigint('athlete_id', {mode: 'number'}).notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  createdAt: bigint('created_at', {mode: 'number'}).notNull(),
+  lastUsedAt: bigint('last_used_at', {mode: 'number'}).notNull(),
+});

@@ -97,6 +97,35 @@ export const clearTokens = (athleteId?: number): void => {
   }).catch(() => {});
 };
 
+/**
+ * Restore the login from the server-side session (httpOnly cookies / DB-backed
+ * session) when localStorage is empty — e.g. after the browser cleared site
+ * data. Returns tokens when a recoverable session exists, otherwise null.
+ */
+export const restoreSessionFromServer = async (): Promise<StravaTokens | null> => {
+  try {
+    const res = await fetch("/api/strava/session");
+    if (!res.ok) return null;
+    const csrfHeader = res.headers.get("x-csrf-token");
+    if (csrfHeader) setStoredCsrfToken(csrfHeader);
+    const data = (await res.json()) as {
+      authenticated?: boolean;
+      athlete?: StravaAthlete | null;
+    };
+    if (!data.authenticated || !data.athlete) return null;
+    const tokens: StravaTokens = {
+      access_token: "broker",
+      refresh_token: "broker",
+      expires_at: 0,
+      athlete: data.athlete,
+    };
+    storeTokens(tokens);
+    return tokens;
+  } catch {
+    return null;
+  }
+};
+
 // ----- OAuth helpers -----
 
 export const getAuthUrl = (): string => {
@@ -174,10 +203,19 @@ export const refreshAccessToken = async (
 
 const getValidAccessToken = async (): Promise<string> => {
   const csrfToken = await ensureCsrfToken();
-  const response = await fetch("/api/strava/session/access-token", {
+  let response = await fetch("/api/strava/session/access-token", {
     method: "POST",
     headers: {"x-csrf-token": csrfToken},
   });
+  if (response.status === 403) {
+    // Stale CSRF token (cookie rotated or expired) — refetch and retry once.
+    localStorage.removeItem(CSRF_STORAGE_KEY);
+    const freshCsrf = await ensureCsrfToken();
+    response = await fetch("/api/strava/session/access-token", {
+      method: "POST",
+      headers: {"x-csrf-token": freshCsrf},
+    });
+  }
   if (!response.ok) {
     if (response.status === 401) {
       clearTokens();

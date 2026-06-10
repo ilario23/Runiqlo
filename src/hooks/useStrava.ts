@@ -147,6 +147,22 @@ export const useActivityWeather = (activityId: string | undefined) => {
   });
 };
 
+export const useBestEffortsData = () => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  return useQuery<{bests: Record<string, {timeSeconds: number; date: string; activityId: number}>} | null>({
+    queryKey: ['best-efforts', athlete?.id],
+    queryFn: async () => {
+      if (!athlete?.id) return null;
+      const r = await fetch(`/api/db/best-efforts-cache?athleteId=${athlete.id}`);
+      if (!r.ok) return null;
+      return r.json();
+    },
+    enabled: isAuthenticated && !!athlete?.id,
+    staleTime: ONE_HOUR,
+    gcTime: ONE_DAY,
+  });
+};
+
 export const useAthleteStats = () => {
   const {isAuthenticated, athlete} = useStravaAuth();
   return useQuery<StravaAthleteStats>({

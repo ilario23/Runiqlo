@@ -14,6 +14,7 @@ import {
   clearTokens,
   getAuthUrl,
   exchangeCodeForTokens,
+  restoreSessionFromServer,
 } from '@/lib/strava';
 
 interface StravaAuthContextType {
@@ -44,11 +45,22 @@ export const StravaAuthProvider = ({children}: {children: ReactNode}) => {
         expires_at: 0,
         athlete: {id: Number(devId), username: 'dev', firstname: 'Dev', lastname: '', city: '', state: '', country: '', sex: '', profile_medium: '', profile: ''},
       });
+      setIsLoading(false);
     } else {
       const stored = getStoredTokens();
-      if (stored) setTokens(stored);
+      if (stored) {
+        setTokens(stored);
+        setIsLoading(false);
+      } else {
+        // localStorage empty but httpOnly cookies / DB session may still hold
+        // a valid login — try restoring before declaring logged-out.
+        restoreSessionFromServer()
+          .then((restored) => {
+            if (restored) setTokens(restored);
+          })
+          .finally(() => setIsLoading(false));
+      }
     }
-    setIsLoading(false);
   }, []);
 
   const login = useCallback(() => {

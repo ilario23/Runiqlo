@@ -4,14 +4,21 @@
 // Shared cookie application + refresh-token exchange used by
 // /api/strava/token and /api/strava/session/access-token.
 
+import {createHash, randomBytes} from 'crypto';
+import {eq} from 'drizzle-orm';
 import type {NextRequest} from 'next/server';
 import type {NextResponse} from 'next/server';
+import {getDb} from '@/db';
+import {stravaSessions} from '@/db/schema';
 
 export const STRAVA_ACCESS_COOKIE = 'strava_access_token';
 export const STRAVA_REFRESH_COOKIE = 'strava_refresh_token';
 export const STRAVA_EXPIRES_COOKIE = 'strava_expires_at';
 export const STRAVA_ATHLETE_COOKIE = 'strava_athlete';
 export const STRAVA_CSRF_COOKIE = 'strava_csrf_token';
+export const STRAVA_SESSION_COOKIE = 'strava_session';
+
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
 
 const COOKIE_SECURE = process.env.NODE_ENV === 'production';
 
@@ -70,6 +77,132 @@ export const applyStravaTokenPayloadToResponse = (
       path: '/',
       maxAge: 60 * 60 * 24 * 30,
     });
+  }
+};
+
+// ── DB-backed long-lived sessions ─────────────────────────────────────────────
+// The browser keeps an opaque random session ID (httpOnly cookie, 1 year);
+// the DB stores only its SHA-256 hash plus the Strava refresh token. When the
+// short-lived token cookies are gone, the session row lets the server re-mint
+// tokens without sending the user back through OAuth.
+
+const hashSessionToken = (token: string): string =>
+  createHash('sha256').update(token).digest('hex');
+
+/**
+ * Create (or rotate) a persistent session for the athlete and set the session
+ * cookie on the response. Failures are swallowed: the cookie-based flow keeps
+ * working even if the DB is unreachable.
+ */
+export const persistStravaSession = async (
+  request: NextRequest,
+  response: NextResponse,
+  athleteId: number,
+  refreshToken: string,
+): Promise<void> => {
+  try {
+    const db = getDb();
+    const now = Date.now();
+    const existing = request.cookies.get(STRAVA_SESSION_COOKIE)?.value;
+
+    if (existing) {
+      const updated = await db
+        .update(stravaSessions)
+        .set({refreshToken, lastUsedAt: now})
+        .where(eq(stravaSessions.sessionTokenHash, hashSessionToken(existing)))
+        .returning({athleteId: stravaSessions.athleteId});
+      if (updated.length > 0 && updated[0].athleteId === athleteId) {
+        // Sliding expiry: re-set the cookie so active users never log in again.
+        setSessionCookie(response, existing);
+        return;
+      }
+    }
+
+    const sessionToken = randomBytes(32).toString('base64url');
+    await db.insert(stravaSessions).values({
+      sessionTokenHash: hashSessionToken(sessionToken),
+      athleteId,
+      refreshToken,
+      createdAt: now,
+      lastUsedAt: now,
+    });
+    setSessionCookie(response, sessionToken);
+  } catch (error) {
+    console.error('persistStravaSession failed:', error);
+  }
+};
+
+const setSessionCookie = (response: NextResponse, value: string): void => {
+  response.cookies.set(STRAVA_SESSION_COOKIE, value, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: COOKIE_SECURE,
+    path: '/',
+    maxAge: SESSION_MAX_AGE_SECONDS,
+  });
+};
+
+/**
+ * Update the stored refresh token for the request's session cookie, if any.
+ * Used after a cookie-based refresh, where Strava may rotate the token but
+ * the response carries no athlete to re-key the session by.
+ */
+export const updateSessionRefreshToken = async (
+  request: NextRequest,
+  response: NextResponse,
+  refreshToken: string,
+): Promise<void> => {
+  const sessionToken = request.cookies.get(STRAVA_SESSION_COOKIE)?.value;
+  if (!sessionToken) return;
+  try {
+    const db = getDb();
+    await db
+      .update(stravaSessions)
+      .set({refreshToken, lastUsedAt: Date.now()})
+      .where(eq(stravaSessions.sessionTokenHash, hashSessionToken(sessionToken)));
+    setSessionCookie(response, sessionToken);
+  } catch (error) {
+    console.error('updateSessionRefreshToken failed:', error);
+  }
+};
+
+/**
+ * Look up the refresh token stored for the request's session cookie.
+ * Returns null when there is no cookie, no matching row, or the DB errors.
+ */
+export const getSessionRefreshToken = async (
+  request: NextRequest,
+): Promise<{athleteId: number; refreshToken: string} | null> => {
+  const sessionToken = request.cookies.get(STRAVA_SESSION_COOKIE)?.value;
+  if (!sessionToken) return null;
+  try {
+    const db = getDb();
+    const rows = await db
+      .select({
+        athleteId: stravaSessions.athleteId,
+        refreshToken: stravaSessions.refreshToken,
+      })
+      .from(stravaSessions)
+      .where(eq(stravaSessions.sessionTokenHash, hashSessionToken(sessionToken)))
+      .limit(1);
+    return rows[0] ?? null;
+  } catch (error) {
+    console.error('getSessionRefreshToken failed:', error);
+    return null;
+  }
+};
+
+/** Delete the DB session row for the request's session cookie (logout). */
+export const deleteStravaSession = async (request: NextRequest): Promise<void> => {
+  const sessionToken = request.cookies.get(STRAVA_SESSION_COOKIE)?.value;
+  if (!sessionToken) return;
+  try {
+    const db = getDb();
+    await db
+      .delete(stravaSessions)
+      .where(eq(stravaSessions.sessionTokenHash, hashSessionToken(sessionToken)));
+  } catch (error) {
+    console.error('deleteStravaSession failed:', error);
   }
 };
 

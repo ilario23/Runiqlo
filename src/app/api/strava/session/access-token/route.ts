@@ -6,6 +6,9 @@ import {
   STRAVA_CSRF_COOKIE,
   applyStravaTokenPayloadToResponse,
   refreshStravaTokensFromRequest,
+  getSessionRefreshToken,
+  persistStravaSession,
+  updateSessionRefreshToken,
 } from '@/lib/stravaTokenBroker';
 
 const validateCsrf = (req: NextRequest): boolean => {
@@ -23,27 +26,53 @@ export async function POST(req: NextRequest) {
   const expiresAtRaw = req.cookies.get(STRAVA_EXPIRES_COOKIE)?.value;
   const refreshToken = req.cookies.get(STRAVA_REFRESH_COOKIE)?.value;
 
-  if (!token) {
-    return NextResponse.json({error: 'Not authenticated'}, {status: 401});
-  }
-
   const expiresAt = Number(expiresAtRaw ?? '0');
   const nowEpoch = Math.floor(Date.now() / 1000);
-  const needsRefresh =
-    Boolean(refreshToken) && Number.isFinite(expiresAt) && expiresAt - nowEpoch < 300;
+  const accessUsable =
+    Boolean(token) && Number.isFinite(expiresAt) && expiresAt - nowEpoch >= 300;
 
-  if (needsRefresh) {
+  if (accessUsable) {
+    return NextResponse.json({accessToken: token});
+  }
+
+  // Access token missing or near expiry — refresh from the cookie first,
+  // falling back to the DB-backed session when the refresh cookie is gone.
+  if (refreshToken) {
     const result = await refreshStravaTokensFromRequest(req);
     if (result.ok && result.parsed.access_token) {
       const res = NextResponse.json({accessToken: result.parsed.access_token});
       applyStravaTokenPayloadToResponse(res, result.parsed);
+      if (result.parsed.refresh_token) {
+        // Keep the DB session in sync — Strava may rotate the refresh token.
+        await updateSessionRefreshToken(req, res, result.parsed.refresh_token);
+      }
       return res;
     }
-    if (expiresAt <= nowEpoch) {
-      return NextResponse.json({error: 'Session expired'}, {status: 401});
+    // Refresh failed but the current token may still be briefly valid.
+    if (token && expiresAt > nowEpoch) {
+      return NextResponse.json({accessToken: token});
     }
-    return NextResponse.json({accessToken: token});
   }
 
-  return NextResponse.json({accessToken: token});
+  const session = await getSessionRefreshToken(req);
+  if (session) {
+    const result = await refreshStravaTokensFromRequest(req, session.refreshToken);
+    if (result.ok && result.parsed.access_token) {
+      const res = NextResponse.json({accessToken: result.parsed.access_token});
+      applyStravaTokenPayloadToResponse(res, result.parsed);
+      // Strava rotates refresh tokens — persist the new one or the session dies.
+      await persistStravaSession(
+        req,
+        res,
+        session.athleteId,
+        result.parsed.refresh_token ?? session.refreshToken,
+      );
+      return res;
+    }
+  }
+
+  if (token && expiresAt > nowEpoch) {
+    return NextResponse.json({accessToken: token});
+  }
+  return NextResponse.json({error: 'Not authenticated'}, {status: 401});
 }

@@ -1,4 +1,5 @@
 import {NextRequest, NextResponse} from 'next/server';
+import {deleteStravaSession, STRAVA_SESSION_COOKIE} from '@/lib/stravaTokenBroker';
 
 const ACCESS_COOKIE = 'strava_access_token';
 const REFRESH_COOKIE = 'strava_refresh_token';
@@ -28,11 +29,23 @@ const validateCsrf = (req: NextRequest): boolean => {
 };
 
 export async function GET(req: NextRequest) {
-  const hasAccess = Boolean(req.cookies.get(ACCESS_COOKIE)?.value);
+  // Authenticated if any credential can still mint an access token: the
+  // access cookie itself, the refresh cookie, or the DB-backed session cookie.
+  const hasAccess = Boolean(
+    req.cookies.get(ACCESS_COOKIE)?.value ||
+      req.cookies.get(REFRESH_COOKIE)?.value ||
+      req.cookies.get(STRAVA_SESSION_COOKIE)?.value,
+  );
   const athleteRaw = req.cookies.get(ATHLETE_COOKIE)?.value ?? null;
+  let athlete: unknown = null;
+  if (athleteRaw) {
+    try {
+      athlete = JSON.parse(athleteRaw);
+    } catch { /* corrupt cookie — treat as absent */ }
+  }
   const response = NextResponse.json({
     authenticated: hasAccess,
-    athlete: athleteRaw ? JSON.parse(athleteRaw) : null,
+    athlete,
   });
   const csrfToken = ensureCsrfToken(req, response);
   response.headers.set('x-csrf-token', csrfToken);
@@ -47,10 +60,12 @@ export async function POST(req: NextRequest) {
   if (action !== 'logout') {
     return NextResponse.json({error: 'Unsupported action'}, {status: 400});
   }
+  await deleteStravaSession(req);
   const response = NextResponse.json({ok: true});
   response.cookies.set(ACCESS_COOKIE, '', {path: '/', maxAge: 0});
   response.cookies.set(REFRESH_COOKIE, '', {path: '/', maxAge: 0});
   response.cookies.set(EXPIRES_COOKIE, '', {path: '/', maxAge: 0});
   response.cookies.set(ATHLETE_COOKIE, '', {path: '/', maxAge: 0});
+  response.cookies.set(STRAVA_SESSION_COOKIE, '', {path: '/', maxAge: 0});
   return response;
 }

@@ -7,6 +7,7 @@ import {transformActivity} from './strava';
 import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from './weather';
 import {invalidateCoachPromptCache} from './coachContext';
 import {KNOWLEDGE_TOPIC_KEYS, KNOWLEDGE_TOPIC_SUMMARY, getKnowledgeTopic} from './coachKnowledge';
+import {calcVdot, DISTANCE_METERS_MAP} from './vdot';
 import type {ActivityWeatherData} from './weather';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -349,21 +350,6 @@ export function getCoachTools(athleteId: number) {
         const currentCtl = fitnessData.length > 0 ? fitnessData[fitnessData.length - 1].ctl : null;
         const today = new Date().toISOString().slice(0, 10);
 
-        const DISTANCE_METERS: Record<string, number> = {
-          '400m': 400, '1k': 1000, '1 mile': 1609, '2 mile': 3219,
-          '5k': 5000, '10k': 10000, '15k': 15000, '10 mile': 16093,
-          '20k': 20000, 'half-marathon': 21097, 'marathon': 42195,
-        };
-
-        function calcVdot(distanceM: number, timeSec: number): number | null {
-          if (distanceM < 1500 || timeSec <= 0) return null;
-          const v = (distanceM / timeSec) * 60;
-          const vo2 = -4.6 + 0.182258 * v + 0.000104 * v * v;
-          const t = timeSec / 60;
-          const pct = 0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t);
-          return Math.round((vo2 / pct) * 10) / 10;
-        }
-
         function ctlOnDate(date: string): number | null {
           const entry = fitnessData.find(d => d.date === date) ?? fitnessData.filter(d => d.date <= date).pop();
           return entry?.ctl ?? null;
@@ -379,7 +365,7 @@ export function getCoachTools(athleteId: number) {
           const mins = Math.floor(best.timeSeconds / 60);
           const secs = best.timeSeconds % 60;
           const effortAgeDays = Math.round((Date.parse(today) - Date.parse(best.date)) / 86400000);
-          const distanceM = DISTANCE_METERS[distance.toLowerCase()];
+          const distanceM = DISTANCE_METERS_MAP[distance.toLowerCase()];
           const vdot = distanceM ? calcVdot(distanceM, best.timeSeconds) : null;
           const ctlAtEffort = ctlOnDate(best.date);
           const confidence: EffortEntry['confidence'] = effortAgeDays < 60 ? 'fresh' : effortAgeDays < 180 ? 'stale' : 'very_stale';

@@ -1,8 +1,10 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {
   applyStravaTokenPayloadToResponse,
+  persistStravaSession,
   postStravaOAuthToken,
   refreshStravaTokensFromRequest,
+  updateSessionRefreshToken,
 } from '@/lib/stravaTokenBroker';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID ?? '';
@@ -29,6 +31,9 @@ export async function POST(request: NextRequest) {
       headers: {'Content-Type': 'application/json'},
     });
     applyStravaTokenPayloadToResponse(response, result.parsed);
+    if (result.parsed.refresh_token) {
+      await updateSessionRefreshToken(request, response, result.parsed.refresh_token);
+    }
     return response;
   }
 
@@ -55,9 +60,13 @@ export async function POST(request: NextRequest) {
           access_token?: string;
           refresh_token?: string;
           expires_at?: number;
-          athlete?: unknown;
+          athlete?: {id?: number};
         };
         applyStravaTokenPayloadToResponse(response, parsed);
+        const athleteId = parsed.athlete?.id;
+        if (parsed.refresh_token && typeof athleteId === 'number') {
+          await persistStravaSession(request, response, athleteId, parsed.refresh_token);
+        }
       } catch { /* noop */ }
     }
     return response;

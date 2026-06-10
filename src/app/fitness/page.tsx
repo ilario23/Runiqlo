@@ -14,7 +14,9 @@ import {
   useDashboardActivities,
   useAdvancedMetricsData,
   useAthleteStats,
+  useBestEffortsData,
 } from '@/hooks/useStrava';
+import {calcPrimaryVdot} from '@/lib/vdot';
 import {
   formatDuration,
   formatPace,
@@ -118,6 +120,12 @@ function monotonyNote(v: number | null): string {
   return 'very high';
 }
 
+const VDOT_CONFIDENCE_COLOR: Record<string, string> = {
+  fresh: 'var(--color-zone-green)',
+  stale: 'var(--color-gold)',
+  very_stale: 'var(--color-ink-3)',
+};
+
 function Scoreboard({
   fitnessData,
   loading,
@@ -126,6 +134,7 @@ function Scoreboard({
   loading: boolean;
 }) {
   const adv = useAdvancedMetricsData();
+  const {data: bestEfforts} = useBestEffortsData();
 
   const stats = useMemo(() => {
     if (!fitnessData || fitnessData.length === 0) return null;
@@ -144,10 +153,12 @@ function Scoreboard({
     };
   }, [fitnessData, adv]);
 
+  const vdot = useMemo(() => bestEfforts?.bests ? calcPrimaryVdot(bestEfforts.bests) : null, [bestEfforts]);
+
   if (loading && !stats) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[0, 1, 2, 3, 4, 5].map((i) => (
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
           <div key={i} className="tile"><Skeleton className="h-16 w-full" /></div>
         ))}
       </div>
@@ -162,7 +173,17 @@ function Scoreboard({
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 [&>:last-child]:max-lg:col-span-2 [&>:last-child]:md:col-span-1">
+      <div className="tile">
+        <div className="tile-label">
+          <span>VDOT · index</span>
+          {vdot && <span style={{color: VDOT_CONFIDENCE_COLOR[vdot.confidence]}}>●</span>}
+        </div>
+        <div className="tile-num">{vdot ? vdot.vdot.toFixed(1) : '—'}</div>
+        <div className="tile-delta">
+          {vdot ? `${vdot.distance} · ${vdot.effortAgeDays}d` : 'no race data'}
+        </div>
+      </div>
       <div className="tile">
         <div className="tile-label"><span>Fitness · CTL</span><span className="mono">42d</span></div>
         <div className="tile-num">{fmtNum(stats.ctl)}</div>
@@ -805,9 +826,11 @@ export default function FitnessPage() {
   const {data: activities} = useDashboardActivities();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
   const {data: breakdownMap, isLoading: zonesLoading, progress} = usePerActivityZoneBreakdowns(12);
+  const {data: bestEfforts} = useBestEffortsData();
   const adv = useAdvancedMetricsData();
 
   const last = fitnessData?.[fitnessData.length - 1];
+  const vdotEstimate = useMemo(() => bestEfforts?.bests ? calcPrimaryVdot(bestEfforts.bests) : null, [bestEfforts]);
   const today = new Date();
   const dateLine = today.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
 
@@ -849,6 +872,7 @@ export default function FitnessPage() {
               <span>{last ? `CTL ${fmtNum(last.ctl)}` : '— ctl'}</span>
               <span>{last ? `ATL ${fmtNum(last.atl)}` : '— atl'}</span>
               <span>{last ? `TSB ${signed(last.tsb)}` : '— tsb'}</span>
+              {vdotEstimate && <span>VDOT {vdotEstimate.vdot.toFixed(1)}</span>}
             </div>
           </div>
 
