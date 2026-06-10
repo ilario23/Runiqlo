@@ -9,7 +9,9 @@
  *
  * Sources: TrainingPeaks edu/blog articles + Joe Friel PMC series; plus established
  * endurance science — Stephen Seiler (polarized / 3-zone intensity distribution),
- * Jack Daniels (VDOT training paces), and peer-reviewed VO2max-interval research.
+ * Jack Daniels (VDOT training paces), and peer-reviewed research on VO2max intervals
+ * (long vs short, work:rest ratio), overtraining syndrome / overreaching markers,
+ * masters-athlete VO2max decline, and uphill-training protocols.
  * Update when new evidence contradicts a rule.
  */
 
@@ -56,6 +58,9 @@ export const KNOWLEDGE_TOPIC_KEYS = [
   'advanced_metrics',
   'intensity_models',
   'vdot_pacing',
+  'overtraining_syndrome',
+  'masters_aging',
+  'hill_training',
 ] as const;
 
 export type KnowledgeTopic = (typeof KNOWLEDGE_TOPIC_KEYS)[number];
@@ -69,12 +74,12 @@ export const KNOWLEDGE_TOPIC_SUMMARY: Record<KnowledgeTopic, string> = {
   half_marathon: 'half-marathon workouts, base-phase rule, negative splits, timeline',
   ultramarathon: 'ultra volume, back-to-back longs, trail pacing, terrain specificity',
   fueling_hydration: 'carb intake g/hr, glucose:fructose, gut training, sodium, gels, pre-race meal',
-  zone2_fat: 'Zone 2 metabolic flexibility, fat oxidation, fasted vs fueled rides',
+  zone2_fat: 'Zone 2 metabolic flexibility, fat oxidation, fasted vs fueled rides — FETCH before prescribing low-intensity blocks or discussing aerobic base building',
   taper_peak: 'taper timeline, volume cuts, shedding fatigue vs fitness',
   recovery: 'sleep guidelines, recovery windows, off-season structure, strength',
-  psychology: 'mental tools, mantras, mindfulness, post-race blues prevention',
-  cross_training_heat: 'cycling substitution for runners, heat acclimation',
-  tissue_adaptation: 'tendon/bone/connective-tissue adaptation timelines, healing rates, physical stress theory, injury prevention',
+  psychology: 'mental tools, race-day anxiety, mantras, mindfulness, post-race blues — FETCH before answering any mental/psychological question',
+  cross_training_heat: 'cycling substitution for runners, heat acclimation — FETCH before prescribing cross-training or answering heat training questions',
+  tissue_adaptation: 'tendon/bone/connective-tissue adaptation timelines, injury return pacing, physical stress theory — FETCH before any injury, soreness, or tissue-load question',
   strength_training: 'strength for runners — frequency, key lifts, hip/core work, plyometrics, what to prescribe',
   trail_running: 'trail running benefits, proprioception, terrain strength, how to integrate safely',
   testing: 'FTP/VO2max field tests, FTP calculation, retest cadence, zone setup',
@@ -83,8 +88,11 @@ export const KNOWLEDGE_TOPIC_SUMMARY: Record<KnowledgeTopic, string> = {
   female_athlete: 'RED-S / low energy availability, amenorrhea warning signs, bone-density risk — refer to doctor',
   downhill_running: 'eccentric loading, descent technique, impact forces, frequency and dosing',
   advanced_metrics: 'Normalized Power, Intensity Factor ranges, Variability Index, hrTSS vs TSS, aerobic decoupling thresholds (the app computes decoupling)',
-  intensity_models: 'polarized vs pyramidal vs threshold, Seiler 3-zone model, which distribution to use',
-  vdot_pacing: 'Daniels VDOT, E/M/T/I/R training paces by %VO2max, volume distribution by pace',
+  intensity_models: 'polarized vs pyramidal vs threshold model choice, Seiler 3-zone science — FETCH before recommending a training distribution or debating polarized vs threshold',
+  vdot_pacing: 'Daniels VDOT, E/M/T/I/R training paces by %VO2max, volume distribution by pace — FETCH before translating VDOT into target paces',
+  overtraining_syndrome: 'OTS vs functional/non-functional overreaching, HRV/RHR markers, recovery timelines — FETCH before answering overtraining, burnout, or chronic fatigue questions',
+  masters_aging: 'masters athletes 40+/50+, VO2max decline, HIIT prescription, longer recovery needs — FETCH before advising any athlete who mentions age 40+',
+  hill_training: 'uphill running science, optimal grade ranges, %vVO2max protocols, VO2 stimulus, pace cost per grade — FETCH before prescribing hill repeats or discussing grade/elevation',
 };
 
 export const KNOWLEDGE_TOPICS: Record<KnowledgeTopic, string> = {
@@ -114,6 +122,7 @@ Rønnestad 30/15 (VO2max / aerobic power):
 - Start 2–3 sets × 9 reps; progress reps/intensity. Warmup ≥2×1-min @110–120% threshold.
 - Goal: maximize time at/above 90% VO2max → mitochondria, capillaries, lactate clearance.
 - Long vs short VO2 intervals: traditional longer intervals (e.g. 4–5 min) accumulate MORE time above 90% VO2max than intensified very-short intervals — favor longer work intervals when the target is VO2max time-in-zone.
+- Work:rest RATIO is the hidden variable. Head-to-head (running, matched 1:1): 4×3min @95% vVO2max (3min @50% recovery) gave ~328 s above 90% VO2max vs 24×30s @100% (30s @55%) only ~201 s — the long set won DESPITE lower intensity. But Rønnestad 30/15 works because it is 2:1 (30s work / 15s rest), not 1:1. Takeaway: short intervals need short recovery (≥2:1) to compete; 30s/30s (1:1) underperforms 3-min reps. "Faster" never compensates for too much rest.
 
 Fatigue resistance (durability):
 - Ability to hold power/pace after ~1500 kJ / ~2.5 hr. Elite retain >91% of fresh peak; <85% below average.
@@ -373,6 +382,57 @@ Pre-race nerves:
   - Repetition (R): >100% — speed + running economy.
 - Volume distribution: ~70–80% Easy, ~10–15% M+T, ~10–15% I+R.
 - Use: get VDOT from a recent race/time-trial → assign each workout a pace by its physiological purpose rather than guessing. Re-estimate VDOT as fitness changes.`,
+
+  overtraining_syndrome: `### Overtraining Syndrome (OTS) & Overreaching
+Spectrum (severity ↑): Functional Overreaching (FOR) → Non-Functional Overreaching (NFOR) → OTS.
+- FOR: short-term performance dip, then SUPERCOMPENSATION after days–weeks of rest. The intended outcome of a hard block.
+- NFOR: performance stagnates/declines for weeks–months; no supercompensation. Adaptation has failed.
+- OTS: performance decline + MULTISYSTEM dysfunction (endocrine, nervous, immune, GI). Recovery takes months to years.
+
+Distinguishing FOR from NFOR/OTS (markers):
+- HR recovery: FOR shows FASTER HR recovery during overload (~+8 bpm). Counterintuitive — improving HR-recovery during a hard block suggests functional, adaptive overload.
+- HRV: FOR = acute suppression that rebounds within 48–72 h. NFOR/OTS = suppression PERSISTS past the normal window AND daily readings turn ERRATIC (rising day-to-day variability), not merely low. Erratic HRV is the warning sign.
+- No single marker is reliable — use a multifactorial view (HRV trend + HR recovery + perceived fatigue + performance).
+
+Diagnosis = exclusion (medical). No single test confirms OTS; rule out anemia, thyroid, low testosterone, illness, RED-S first. Labs are often "unremarkable"; when abnormal, low testosterone / hypogonadotropic hypogonadism can appear secondary to OTS. The coach SURFACES concern and refers to a doctor — never diagnoses OTS.
+
+Non-training contributors that tip overreaching into OTS: sleep loss, altitude, heat, work/social/life stress. Factor total life stress, not just training load.
+
+Recovery timelines (real cases): commonly a multi-month forced rest (e.g. 4 months easy, HR <120) before racing again; full return 15 months+; severe cases 3–4 years.
+
+3-phase return (after diagnosed NFOR/OTS — slow, non-negotiable):
+- Phase 1 (8 wk–2 yr): ≤3 d/wk, RPE <3/10, <50% of pre-decline volume, mostly non-impact (walk/bike/swim).
+- Phase 2 (~12 wk+): ≤4 d/wk, HR <120 (~60% max), RPE <4–6, build to 75–80% volume, reintroduce minimal running.
+- Phase 3: ≤5 d/wk, 90–95% easy + 5–10% at RPE 7–8, build to 90–100% volume, reintroduce intervals/tempo.
+
+Prevention/coaching: respect recovery weeks, watch erratic HRV + stalled performance + mood/sleep decline together, and back off EARLY — FOR is recoverable in days, OTS in years.`,
+
+  masters_aging: `### Masters Athletes (40+/50+)
+- VO2max decline observed at −5% to −46% per decade — but ~54% (men) / ~39% (women) of that variance is explained by CHANGE IN TRAINING VOLUME, not age itself. Decline is largely detraining, not mandatory aging.
+- Detraining sharply accelerates VO2max loss in masters; the good news is VO2max recovers quickly once training resumes. Consistency is the dominant lever.
+- Maintenance recipe: mostly low-HR aerobic volume + 1–2 higher-intensity (VO2max) sessions/week to defend the ceiling. Lose the intensity → lose the top end first.
+- Recovery is the binding constraint after ~50: longer gap between hard sessions, structured deload weeks, protein timing, sleep. Adaptation happens in recovery and that window lengthens with age.
+- Schedule hard days only when life allows fueling + recovery + absorption — masters tolerate fewer quality sessions per week than younger athletes.
+- Strength training is protective (muscle/bone/tendon) — but sequence it AFTER the run, not before, so run quality isn't compromised.
+- Periodization: favor 3-week (2 on/1 down) cycles and lower end-of-week fatigue floors than younger athletes (see mileage_progression).`,
+
+  hill_training: `### Hill / Slope Training
+Grade selection:
+- 5–10% = general training sweet spot. Beginners 3–7%. Power/strength emphasis 8–12%.
+- >15% deviates too far from flat-running mechanics → it becomes hiking-specific, not run-specific. Cap repeats around 12–15%.
+
+Physiology:
+- Uphill running elicits ~87% of lab VO2max — strong aerobic stimulus with LOWER impact/eccentric load than flat track intervals (concentric-dominant), so lower injury cost for the same VO2 work.
+- One session bundles: VO2max, leg strength/power, and running economy that transfers to flat-course pace.
+
+Protocols (evidence-backed):
+- Proven VO2max block: 6 weeks of uphill intervals at ~10% grade, 100–110% vVO2max → ~+2% 5K time-trial improvement.
+- Short hill repeats 30–90s @ 8–12% = VO2max + neuromuscular power + economy. Walk/jog-down recovery.
+- Moderate entry: 4–5 × 60s @ ~4% grade, 2 min recovery.
+- Treat hard hill reps like any quality session: ≤2/week, not back-to-back with other hard days.
+
+Pacing math:
+- Each +1% gradient costs ~12–15 s/mile (Daniels). Use grade-adjusted pace, not flat pace, when prescribing or judging uphill effort. Downhill eccentric dosing is separate — see downhill_running.`,
 };
 
 /** Look up one topic's content. Returns null for unknown keys. */
