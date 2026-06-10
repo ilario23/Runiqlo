@@ -26,7 +26,7 @@ function assistant(text?: string, toolCallIds: string[] = []): ModelMessage {
 function toolResult(toolCallId: string): ModelMessage {
   return {
     role: 'tool',
-    content: [{type: 'tool-result', toolCallId, toolName: 'someTool', output: 'done'}],
+    content: [{type: 'tool-result', toolCallId, toolName: 'someTool', output: {type: 'text', value: 'done'}}],
   };
 }
 

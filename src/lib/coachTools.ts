@@ -334,30 +334,91 @@ export function getCoachTools(athleteId: number) {
     }),
 
     getBestEfforts: tool({
-      description: "Get personal bests at standard distances. Useful for setting realistic pace targets.",
+      description: "Get personal bests with VDOT estimates and staleness context. Use to set realistic pace targets — always pair with getCoachingKnowledge('vdot_pacing') to translate VDOT into E/M/T/I/R paces.",
       inputSchema: z.object({}),
       execute: async () => {
-        const rows = await db
-          .select()
-          .from(schema.bestEffortsCache)
-          .where(eq(schema.bestEffortsCache.athleteId, athleteId))
-          .limit(1);
+        const [effortRows, cacheRows] = await Promise.all([
+          db.select().from(schema.bestEffortsCache).where(eq(schema.bestEffortsCache.athleteId, athleteId)).limit(1),
+          db.select().from(schema.dashboardCache).where(eq(schema.dashboardCache.athleteId, athleteId)).limit(1),
+        ]);
 
-        if (!rows[0]) return {efforts: {}, message: 'No best efforts cached yet.'};
+        if (!effortRows[0]) return {efforts: {}, message: 'No best efforts cached yet.'};
 
-        const bests = rows[0].bests as Record<string, {timeSeconds: number; date: string; activityId: number}>;
-        const formatted: Record<string, {time: string; date: string}> = {};
+        const bests = effortRows[0].bests as Record<string, {timeSeconds: number; date: string; activityId: number}>;
+        const fitnessData = (cacheRows[0]?.data ?? []) as Array<{date: string; ctl: number; atl: number; tsb: number; tl: number}>;
+        const currentCtl = fitnessData.length > 0 ? fitnessData[fitnessData.length - 1].ctl : null;
+        const today = new Date().toISOString().slice(0, 10);
+
+        const DISTANCE_METERS: Record<string, number> = {
+          '400m': 400, '1k': 1000, '1 mile': 1609, '2 mile': 3219,
+          '5k': 5000, '10k': 10000, '15k': 15000, '10 mile': 16093,
+          '20k': 20000, 'half-marathon': 21097, 'marathon': 42195,
+        };
+
+        function calcVdot(distanceM: number, timeSec: number): number | null {
+          if (distanceM < 1500 || timeSec <= 0) return null;
+          const v = (distanceM / timeSec) * 60;
+          const vo2 = -4.6 + 0.182258 * v + 0.000104 * v * v;
+          const t = timeSec / 60;
+          const pct = 0.8 + 0.1894393 * Math.exp(-0.012778 * t) + 0.2989558 * Math.exp(-0.1932605 * t);
+          return Math.round((vo2 / pct) * 10) / 10;
+        }
+
+        function ctlOnDate(date: string): number | null {
+          const entry = fitnessData.find(d => d.date === date) ?? fitnessData.filter(d => d.date <= date).pop();
+          return entry?.ctl ?? null;
+        }
+
+        type EffortEntry = {
+          time: string; date: string; effortAgeDays: number; confidence: 'fresh' | 'stale' | 'very_stale';
+          vdot?: number; ctlAtEffort?: number; ctlNow?: number; ctlDelta?: number;
+        };
+        const formatted: Record<string, EffortEntry> = {};
 
         for (const [distance, best] of Object.entries(bests)) {
           const mins = Math.floor(best.timeSeconds / 60);
           const secs = best.timeSeconds % 60;
+          const effortAgeDays = Math.round((Date.parse(today) - Date.parse(best.date)) / 86400000);
+          const distanceM = DISTANCE_METERS[distance.toLowerCase()];
+          const vdot = distanceM ? calcVdot(distanceM, best.timeSeconds) : null;
+          const ctlAtEffort = ctlOnDate(best.date);
+          const confidence: EffortEntry['confidence'] = effortAgeDays < 60 ? 'fresh' : effortAgeDays < 180 ? 'stale' : 'very_stale';
           formatted[distance] = {
             time: `${mins}:${String(Math.round(secs)).padStart(2, '0')}`,
             date: best.date,
+            effortAgeDays,
+            confidence,
+            ...(vdot != null && {vdot}),
+            ...(ctlAtEffort != null && {ctlAtEffort}),
+            ...(currentCtl != null && {ctlNow: currentCtl}),
+            ...(ctlAtEffort != null && currentCtl != null && {ctlDelta: Math.round((currentCtl - ctlAtEffort) * 10) / 10}),
           };
         }
 
-        return {efforts: formatted};
+        // Pick best VDOT from most reliable distance (≥5k), prefer fresh
+        const VDOT_PRIORITY = ['marathon', 'half-marathon', '10k', '5k', '10 mile', '15k', '20k'];
+        let primaryVdot: {distance: string; vdot: number; confidence: string; ageDays: number; ctlDelta?: number} | null = null;
+        for (const d of VDOT_PRIORITY) {
+          const e = formatted[d] ?? formatted[d.replace('-', ' ')];
+          if (e?.vdot != null) {
+            if (!primaryVdot || e.confidence === 'fresh') {
+              primaryVdot = {distance: d, vdot: e.vdot, confidence: e.confidence, ageDays: e.effortAgeDays, ctlDelta: e.ctlDelta};
+            }
+            if (e.confidence === 'fresh') break;
+          }
+        }
+
+        const deltaNote = primaryVdot?.ctlDelta != null && primaryVdot.confidence !== 'fresh'
+          ? ` CTL has changed ${primaryVdot.ctlDelta > 0 ? '+' : ''}${primaryVdot.ctlDelta} pts since — paces likely ${primaryVdot.ctlDelta > 0 ? 'faster' : 'slower'} than table.`
+          : '';
+
+        return {
+          efforts: formatted,
+          primaryVdot,
+          note: primaryVdot
+            ? `VDOT ~${primaryVdot.vdot} from ${primaryVdot.distance} (${primaryVdot.ageDays}d ago, ${primaryVdot.confidence}).${deltaNote} Fetch getCoachingKnowledge('vdot_pacing') to map this to E/M/T/I/R training paces.`
+            : 'No qualifying effort (≥5k) for VDOT estimate.',
+        };
       },
     }),
 
