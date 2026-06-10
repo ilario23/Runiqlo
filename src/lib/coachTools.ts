@@ -6,6 +6,7 @@ import {eq, and, desc, gte, isNotNull, sql} from 'drizzle-orm';
 import {transformActivity} from './strava';
 import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from './weather';
 import {invalidateCoachPromptCache} from './coachContext';
+import {KNOWLEDGE_TOPIC_KEYS, KNOWLEDGE_TOPIC_SUMMARY, getKnowledgeTopic} from './coachKnowledge';
 import type {ActivityWeatherData} from './weather';
 
 const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -153,7 +154,35 @@ function summarizeWeek(days: Array<{date: string; dayOfWeek: number; dayNotes?: 
 export function getCoachTools(athleteId: number) {
   const db = getDb();
 
+  // Knowledge topics fetched during THIS chat request (closure lives one request,
+  // spanning the agent's multi-step loop). Used to gate plan creation behind a
+  // knowledge fetch so plans are grounded in the reference, not the model's memory.
+  const fetchedKnowledge = new Set<string>();
+
+  /** Distance-specific knowledge topic for a goalType, or null if none applies. */
+  const distanceTopicFor = (goalType: string): string | null => {
+    const g = goalType.toLowerCase();
+    if (g.includes('ultra')) return 'ultramarathon';
+    if (g.includes('half')) return 'half_marathon';
+    if (g.includes('marathon')) return 'marathon';
+    return null;
+  };
+
   return {
+    getCoachingKnowledge: tool({
+      description:
+        'Fetch distilled, evidence-based training-science reference for a specific topic (TrainingPeaks / Joe Friel sources). Call BEFORE giving detailed advice or building a plan that depends on a topic — do not answer fueling, race-distance, interval, taper, recovery, psychology, or cross-training questions from memory. Topics:\n' +
+        KNOWLEDGE_TOPIC_KEYS.map(k => `- ${k}: ${KNOWLEDGE_TOPIC_SUMMARY[k]}`).join('\n'),
+      inputSchema: z.object({
+        topic: z.enum(KNOWLEDGE_TOPIC_KEYS).describe('Which knowledge topic to retrieve.'),
+      }),
+      execute: async ({topic}) => {
+        const content = getKnowledgeTopic(topic);
+        if (!content) return {error: `Unknown topic "${topic}". Valid topics: ${KNOWLEDGE_TOPIC_KEYS.join(', ')}.`};
+        fetchedKnowledge.add(topic);
+        return {topic, content};
+      },
+    }),
     getFitnessSummary: tool({
       description:
         "Get the athlete's current fitness metrics: CTL (base fitness), ATL (load impact), TSB (form), ACWR, and injury risk. Call this before prescribing hard sessions or making load decisions.",
@@ -557,6 +586,20 @@ export function getCoachTools(athleteId: number) {
         currentPhaseIndex: z.number().default(0),
       }),
       execute: async input => {
+        // Gate: a macro plan must be grounded in the knowledge reference. Require
+        // mileage_progression + the distance-specific topic before saving.
+        const required = ['mileage_progression'];
+        const distanceTopic = distanceTopicFor(input.goalType);
+        if (distanceTopic) required.push(distanceTopic);
+        const missing = required.filter(t => !fetchedKnowledge.has(t));
+        if (missing.length > 0) {
+          return {
+            error: 'KNOWLEDGE_REQUIRED',
+            message: `Before saving a plan you must ground it in the training-science reference. Call getCoachingKnowledge for each of these topics first, then retry saveTrainingPlan: ${missing.join(', ')}.`,
+            missingTopics: missing,
+          };
+        }
+
         const now = Date.now();
 
         await db

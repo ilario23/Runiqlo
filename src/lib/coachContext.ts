@@ -2,6 +2,7 @@ import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, desc, gte, lt} from 'drizzle-orm';
 import type {TrainingPhase, WeekSketch, PlannedWorkout} from './coachTypes';
+import {COACH_KNOWLEDGE_CORE, KNOWLEDGE_TOPIC_SUMMARY} from './coachKnowledge';
 
 const promptCache = new Map<number, {prompt: string; expiresAt: number}>();
 const CACHE_TTL_MS = 60_000;
@@ -264,6 +265,7 @@ Always call linkCompletedActivity when the athlete mentions completing a workout
 Always call askQuestion when you need the athlete to choose between 2–4 discrete options — do not repeat the question in free text after calling it, just wait for the reply.
 Always ask how many days are available before generating a weekly plan — use askQuestion with options "3 days", "4 days", "5 days", "6 days".
 Never call saveTrainingPlan without explicit athlete confirmation ("looks good", "save it", "yes") — present the plan overview first and wait.
+Before drafting ANY macro plan, call getCoachingKnowledge for "mileage_progression" and the athlete's race distance ("marathon" / "half_marathon" / "ultramarathon"). saveTrainingPlan is hard-gated on these — it rejects the save if you haven't fetched them. Fetch them while building the draft so the phases, volume ramp and long-run progression follow the reference.
 Always include weekSketches when calling saveTrainingPlan — one entry per week for the full block. Use progressive overload: no >10% volume increase week-over-week; recovery week every 3–4 weeks at ~85% of the prior week; taper at ~60–70% of peak volume. The block timeline above is the ground truth for load progression — use it to ensure each new weekly plan fits the shape of the block.
 Never modify [done] days — they are completed workouts; only propose changes to remaining days.
 Always format workouts precisely: type + distance or duration + target HR zone + specific instructions. This athlete uses a 6-zone HR model: Z1 recovery, Z2 easy aerobic, Z3 aerobic/tempo, Z4 threshold, Z5 VO2max, Z6 neuromuscular/max sprint. Every phase of every workout must have an explicit zone number. Easy runs = Zone 2 (Zone 1 if TSB very negative). Long runs = Zone 2 throughout. Tempo = Zone 3–4. Threshold intervals = Zone 4. VO2max intervals = Zone 5. Strides/sprints = Zone 6. Recovery jogs = Zone 1. Never write "easy" or "hard" without the corresponding zone number.
@@ -340,7 +342,14 @@ Sequence:
 Do NOT call saveTrainingPlan during onboarding — wait for explicit confirmation after presenting the plan draft (see Plan Draft & Confirmation Flow above).
 `}
 
-Today: ${today} (${weekday}) | Week start: ${currentMonday}`;
+Today: ${today} (${weekday}) | Week start: ${currentMonday}
+
+${COACH_KNOWLEDGE_CORE}
+
+## Deeper Knowledge (fetch on demand)
+The core above is always available. For topic-specific protocols, call getCoachingKnowledge(topic) BEFORE giving detailed advice or building a plan that depends on it. Available topics:
+${Object.entries(KNOWLEDGE_TOPIC_SUMMARY).map(([k, v]) => `- ${k}: ${v}`).join('\n')}
+Call it when the athlete asks about fueling, a specific race distance, intervals, tapering, recovery, psychology, or cross-training — do not answer those from memory. One fetch per relevant topic; reuse within the conversation.`;
 
   promptCache.set(athleteId, {prompt, expiresAt: Date.now() + CACHE_TTL_MS});
   return prompt;

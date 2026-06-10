@@ -364,7 +364,7 @@ export async function POST(req: NextRequest) {
     ...(isAnthropicProvider() ? {} : {system}),
     messages: [...systemMessages, ...allMessages],
     tools: getCoachTools(athleteId),
-    stopWhen: stepCountIs(10),
+    stopWhen: stepCountIs(14),
     onFinish: async ({response}) => {
       await persistMessages(athleteId, sessionId, [newModelMsg, ...response.messages] as ModelMessage[]);
     },
