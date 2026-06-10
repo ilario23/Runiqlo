@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from 'next/server';
 import {eq} from 'drizzle-orm';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
+import {requireAthlete} from '@/lib/apiAuth';
 
 export async function PATCH(
   req: NextRequest,
@@ -13,6 +14,8 @@ export async function PATCH(
   if (!body.athleteId || !gearId) {
     return NextResponse.json({error: 'athleteId and gearId required'}, {status: 400});
   }
+  const auth = await requireAthlete(req, Number(body.athleteId));
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
 

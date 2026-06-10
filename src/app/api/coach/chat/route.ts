@@ -8,6 +8,8 @@ import {getLLMModel, isAnthropicProvider} from '@/lib/llm';
 import {getCoachTools} from '@/lib/coachTools';
 import {buildCoachSystemPrompt} from '@/lib/coachContext';
 import {sanitizeHistory, rowsToUIMessages, loadAssistantContent} from '@/lib/chatUtils';
+import {requireAthlete} from '@/lib/apiAuth';
+import {rateLimit} from '@/lib/rateLimit';
 
 const MAX_HISTORY = 40;
 const PRUNE_ABOVE = 80;
@@ -221,6 +223,8 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
 export async function GET(req: NextRequest) {
   const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
   if (!athleteId) return Response.json({error: 'athleteId required'}, {status: 400});
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
 
@@ -311,6 +315,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const limited = rateLimit(req, 'coach-chat', 20, 60_000);
+  if (limited) return limited;
+
   const {messages, athleteId, sessionId: rawSessionId, model: modelOverride} = await req.json() as {
     messages: UIMessage[];
     athleteId: number;
@@ -321,6 +328,8 @@ export async function POST(req: NextRequest) {
   if (!athleteId) {
     return new Response(JSON.stringify({error: 'athleteId required'}), {status: 400});
   }
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   // Determine session: use provided ID, or fall back to current session
   let sessionId: string | null;
@@ -376,6 +385,8 @@ export async function DELETE(req: NextRequest) {
   if (!athleteId || sessionIdParam === null) {
     return Response.json({error: 'athleteId and sessionId required'}, {status: 400});
   }
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
   const db = getDb();
   const sessionId = sessionIdParam === 'null' ? null : sessionIdParam;
   const where = sessionId === null

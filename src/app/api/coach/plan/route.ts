@@ -2,11 +2,14 @@ import {NextRequest, NextResponse} from 'next/server';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, desc} from 'drizzle-orm';
+import {requireAthlete} from '@/lib/apiAuth';
 
 
 export async function GET(req: NextRequest) {
   const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
   if (!athleteId) return NextResponse.json({error: 'athleteId required'}, {status: 400});
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
   const rows = await db
@@ -24,6 +27,8 @@ export async function PUT(req: NextRequest) {
   if (!athleteId || !restorePlanId) {
     return NextResponse.json({error: 'athleteId and restorePlanId required'}, {status: 400});
   }
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
   await db
@@ -45,6 +50,8 @@ export async function DELETE(req: NextRequest) {
   if (!athleteId || !planId) {
     return NextResponse.json({error: 'athleteId and planId required'}, {status: 400});
   }
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
   const db = getDb();
   await db
     .delete(schema.weeklyPlan)

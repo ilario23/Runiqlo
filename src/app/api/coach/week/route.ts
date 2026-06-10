@@ -2,6 +2,7 @@ import {NextRequest, NextResponse} from 'next/server';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and} from 'drizzle-orm';
+import {requireAthlete} from '@/lib/apiAuth';
 
 export async function GET(req: NextRequest) {
   const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
@@ -9,6 +10,8 @@ export async function GET(req: NextRequest) {
   if (!athleteId || !weekStart) {
     return NextResponse.json({error: 'athleteId and weekStart required'}, {status: 400});
   }
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
   const rows = await db
@@ -27,6 +30,8 @@ export async function PUT(req: NextRequest) {
   if (!athleteId || !weekStart || !date || workoutIndex == null || !stravaActivityId) {
     return NextResponse.json({error: 'Missing required fields'}, {status: 400});
   }
+  const auth = await requireAthlete(req, Number(athleteId));
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
   const rows = await db
@@ -58,6 +63,8 @@ export async function PATCH(req: NextRequest) {
   if (!athleteId || !weekStart || !date || workoutIndex == null || !type || durationMinutes == null) {
     return NextResponse.json({error: 'Missing required fields'}, {status: 400});
   }
+  const auth = await requireAthlete(req, Number(athleteId));
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
   const rows = await db

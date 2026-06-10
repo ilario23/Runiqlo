@@ -3,10 +3,13 @@ import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, desc} from 'drizzle-orm';
 import type {WeekSketch, PlannedWorkout} from '@/lib/coachTypes';
+import {requireAthlete} from '@/lib/apiAuth';
 
 export async function GET(req: NextRequest) {
   const athleteId = Number(req.nextUrl.searchParams.get('athleteId'));
   if (!athleteId) return NextResponse.json({error: 'athleteId required'}, {status: 400});
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
 

@@ -3,6 +3,7 @@ import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, isNotNull, gte, lte, desc} from 'drizzle-orm';
 import {sql} from 'drizzle-orm';
+import {requireAthlete} from '@/lib/apiAuth';
 
 export type DecouplingPoint = {
   activityId: number;
@@ -19,6 +20,8 @@ export async function GET(req: NextRequest) {
   const to = searchParams.get('to');     // YYYY-MM-DD
 
   if (!athleteId) return NextResponse.json({error: 'athleteId required'}, {status: 400});
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   const db = getDb();
 

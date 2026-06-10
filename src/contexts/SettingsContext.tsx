@@ -53,7 +53,8 @@ export const SettingsProvider = ({children}: {children: ReactNode}) => {
     }
     athleteIdRef.current = athlete.id;
     setIsLoading(true);
-    fetch(`/api/db/user-settings?athleteId=${athlete.id}`)
+    const controller = new AbortController();
+    fetch(`/api/db/user-settings?athleteId=${athlete.id}`, {signal: controller.signal})
       .then(r => r.ok ? r.json() : null)
       .then((row) => {
         if (!row) return;
@@ -61,8 +62,14 @@ export const SettingsProvider = ({children}: {children: ReactNode}) => {
         setSettings(merged);
         writeLocal(merged);
       })
-      .catch(() => { /* keep current */ })
-      .finally(() => setIsLoading(false));
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        /* keep current */
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false);
+      });
+    return () => controller.abort();
   }, [athlete?.id]);
 
   const updateSettings = (patch: Partial<UserSettings>) => {
@@ -82,7 +89,7 @@ export const SettingsProvider = ({children}: {children: ReactNode}) => {
             coachModel: next.coachModel ?? null,
             updatedAt: Date.now(),
           }),
-        }).catch(() => { /* fire and forget */ });
+        }).catch((err) => { console.error('Failed to persist settings', err); });
       }
       return next;
     });

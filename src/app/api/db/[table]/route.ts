@@ -1,11 +1,13 @@
 import {NextRequest, NextResponse} from 'next/server';
-import {eq, inArray, gte, desc} from 'drizzle-orm';
+import {and, eq, inArray, gte, desc} from 'drizzle-orm';
 import {sql} from 'drizzle-orm';
 import {getDb} from '@/db';
 import type {PostgresJsDatabase} from 'drizzle-orm/postgres-js';
 import * as schema from '@/db/schema';
+import {requireAthlete} from '@/lib/apiAuth';
 
-const DB_ROUTE_ENFORCE_AUTH = process.env.DB_ROUTE_ENFORCE_AUTH === 'true';
+// Auth enforced by default; set DB_ROUTE_ENFORCE_AUTH=false to opt out.
+const DB_ROUTE_ENFORCE_AUTH = process.env.DB_ROUTE_ENFORCE_AUTH !== 'false';
 
 type Db = PostgresJsDatabase<typeof schema>;
 
@@ -31,37 +33,25 @@ const withRls = async <T>(
 
 // ---- Auth helpers ----
 
-const parseAthleteIdHeader = (req: NextRequest): number | null => {
-  const raw = req.headers.get('x-athlete-id');
-  if (!raw) return null;
-  const parsed = Number(raw);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-};
-
 const hasValidApiKey = (req: NextRequest): boolean => {
   const key = req.headers.get('x-db-api-key');
   const envKey = process.env.DB_ROUTE_API_KEY;
   return Boolean(key && envKey && key === envKey);
 };
 
-const enforceAuth = (
+// Identity verified via Strava token (session cookie or bearer header) —
+// the x-athlete-id header is client-supplied and never trusted. The API key
+// bypass is for server-to-server calls only.
+const enforceAuth = async (
   req: NextRequest,
   requestedAthleteId: number | null,
-): NextResponse | null => {
-  if (!DB_ROUTE_ENFORCE_AUTH) return null;
-  if (hasValidApiKey(req)) return null;
-
-  const callerAthleteId = parseAthleteIdHeader(req);
-  if (!callerAthleteId) {
-    return NextResponse.json(
-      {error: 'Auth required (x-athlete-id or x-db-api-key)'},
-      {status: 401},
-    );
+): Promise<{response: NextResponse | null; athleteId: number | null}> => {
+  if (!DB_ROUTE_ENFORCE_AUTH || hasValidApiKey(req)) {
+    return {response: null, athleteId: requestedAthleteId};
   }
-  if (requestedAthleteId && callerAthleteId !== requestedAthleteId) {
-    return NextResponse.json({error: 'Forbidden athlete scope'}, {status: 403});
-  }
-  return null;
+  const auth = await requireAthlete(req, requestedAthleteId);
+  if (!auth.ok) return {response: auth.response, athleteId: null};
+  return {response: null, athleteId: auth.athleteId};
 };
 
 // ---- Table routing ----
@@ -114,10 +104,10 @@ export async function GET(
   const athleteIdRaw = searchParams.get('athleteId');
   const athleteId = athleteIdRaw ? Number(athleteIdRaw) : null;
 
-  const authErr = enforceAuth(req, athleteId);
+  const {response: authErr, athleteId: verifiedAthleteId} = await enforceAuth(req, athleteId);
   if (authErr) return authErr;
 
-  const rlsAthleteId = parseAthleteIdHeader(req) ?? athleteId;
+  const rlsAthleteId = verifiedAthleteId ?? athleteId;
 
   try {
     return await withRls(rlsAthleteId, async (db) => {
@@ -167,10 +157,10 @@ export async function GET(
           return NextResponse.json(rows[0] ?? null);
         }
         if (pks) {
-          const ids = pks.split(',').map(Number).filter(Boolean);
+          const ids = pks.split(',').map(s => Number(s)).filter(n => Number.isFinite(n) && n > 0);
           if (ids.length === 0) return NextResponse.json([]);
           const rows = await db.select().from(t).where(
-            sql`${t.athleteId} = ${athleteId} AND ${t.id} = ANY(ARRAY[${sql.raw(ids.join(','))}]::bigint[])`
+            and(eq(t.athleteId, athleteId), inArray(t.id, ids))
           );
           return NextResponse.json(rows);
         }
@@ -187,10 +177,10 @@ export async function GET(
           return NextResponse.json(rows[0] ?? null);
         }
         if (pks) {
-          const ids = pks.split(',').map(Number).filter(Boolean);
+          const ids = pks.split(',').map(s => Number(s)).filter(n => Number.isFinite(n) && n > 0);
           if (ids.length === 0) return NextResponse.json([]);
           const rows = await db.select().from(t).where(
-            sql`${t.athleteId} = ${athleteId} AND ${t.activityId} = ANY(ARRAY[${sql.raw(ids.join(','))}]::bigint[])`
+            and(eq(t.athleteId, athleteId), inArray(t.activityId, ids))
           );
           return NextResponse.json(rows);
         }
@@ -241,10 +231,10 @@ export async function GET(
           return NextResponse.json(rows[0] ?? null);
         }
         if (pks) {
-          const ids = pks.split(',').map(Number).filter(Boolean);
+          const ids = pks.split(',').map(s => Number(s)).filter(n => Number.isFinite(n) && n > 0);
           if (ids.length === 0) return NextResponse.json([]);
           const rows = await db.select().from(t).where(
-            sql`${t.athleteId} = ${athleteId} AND ${t.activityId} = ANY(ARRAY[${sql.raw(ids.join(','))}]::bigint[])`
+            and(eq(t.athleteId, athleteId), inArray(t.activityId, ids))
           );
           return NextResponse.json(rows);
         }
@@ -340,10 +330,10 @@ export async function POST(
       : null;
   })();
 
-  const authErr = enforceAuth(req, authAthleteId);
+  const {response: authErr, athleteId: verifiedAthleteId} = await enforceAuth(req, authAthleteId);
   if (authErr) return authErr;
 
-  const rlsAthleteId = parseAthleteIdHeader(req) ?? authAthleteId;
+  const rlsAthleteId = verifiedAthleteId ?? authAthleteId;
 
   try {
     return await withRls(rlsAthleteId, async (db) => {
@@ -570,10 +560,10 @@ export async function PATCH(
   }
 
   const athleteId = body.athleteId ? Number(body.athleteId) : null;
-  const authErr = enforceAuth(req, athleteId);
+  const {response: authErr, athleteId: verifiedAthleteId} = await enforceAuth(req, athleteId);
   if (authErr) return authErr;
 
-  const rlsAthleteId = parseAthleteIdHeader(req) ?? athleteId;
+  const rlsAthleteId = verifiedAthleteId ?? athleteId;
 
   try {
     return await withRls(rlsAthleteId, async (db) => {

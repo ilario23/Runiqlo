@@ -11,6 +11,7 @@ import {
   fetchAthleteWithGear,
   fetchSegmentDetail,
   isStravaAuthError,
+  RateLimitError,
   transformActivity,
   transformStreams,
 } from './strava';
@@ -404,23 +405,40 @@ const batchGetZoneBreakdownsInternal = async (
   const MAX_CONCURRENCY = 5;
   for (let i = 0; i < missingIds.length; i += MAX_CONCURRENCY) {
     const batch = missingIds.slice(i, i + MAX_CONCURRENCY);
+    let batchHitApi = false;
     const batchResults = await Promise.allSettled(
       batch.map(async (id) => {
         const cachedStream = streamMap.get(id);
-        const stream: StreamPoint[] = cachedStream
-          ? transformStreams(cachedStream.data)
-          : await cachedGetActivityStreams(athleteId, id);
+        let stream: StreamPoint[];
+        if (cachedStream) {
+          stream = transformStreams(cachedStream.data);
+        } else {
+          batchHitApi = true;
+          stream = await cachedGetActivityStreams(athleteId, id);
+        }
         const breakdown = computeZoneBreakdown(stream, zones);
         const decouplingPct = computeDecoupling(stream).value;
         dbSyncZoneBreakdown({activityId: id, athleteId, hrHash: breakdown.hrHash, zones: breakdown.zones, decouplingPct, computedAt: Date.now()});
         return {id, breakdown};
       }),
     );
+    let rateLimited = false;
     for (const result of batchResults) {
       done++;
-      if (result.status === 'fulfilled') results.set(result.value.id, result.value.breakdown);
+      if (result.status === 'fulfilled') {
+        results.set(result.value.id, result.value.breakdown);
+      } else if (result.reason instanceof RateLimitError) {
+        rateLimited = true;
+      }
     }
     onProgress?.(done, total);
+    if (rateLimited) {
+      console.warn('[zoneBreakdowns] Strava rate limited — stopping backfill');
+      break;
+    }
+    if (batchHitApi && i + MAX_CONCURRENCY < missingIds.length) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
 
   return results;
@@ -599,29 +617,43 @@ export const cachedGetSegmentEfforts = async (
   athleteId: number,
   segmentId: number,
 ): Promise<SegmentEffortRecord[]> => {
-  const allActivities = await dbGetActivities(athleteId);
-  if (!allActivities?.length) return [];
-  const details = await dbGetActivityDetailsBulk(athleteId, allActivities.map((a) => a.id));
-  const records: SegmentEffortRecord[] = [];
+  const allEfforts = await dbGetSegmentEffortsByAthlete(athleteId);
+  const efforts = (allEfforts ?? []).filter((e) => e.segmentId === segmentId);
+  if (efforts.length === 0) return [];
+
+  // segment_efforts rows lack max_heartrate/average_cadence and activity date;
+  // fetch details only for activities containing matching efforts.
+  const activityIds = Array.from(new Set(efforts.map((e) => e.activityId)));
+  const details = await dbGetActivityDetailsBulk(athleteId, activityIds);
+  const actDateById = new Map<number, string>();
+  const detailEffortById = new Map<number, {max_heartrate?: number; average_cadence?: number}>();
   for (const detail of details) {
-    const actDate = detail.data.start_date_local?.slice(0, 10) ?? '';
+    actDateById.set(detail.id, detail.data.start_date_local?.slice(0, 10) ?? '');
     for (const effort of detail.data.segment_efforts ?? []) {
       if (effort.segment.id !== segmentId) continue;
-      records.push({
-        activityId: detail.id,
-        effortId: effort.id,
-        activityDate: actDate,
-        start_date_local: effort.start_date_local,
-        elapsed_time: effort.elapsed_time,
-        moving_time: effort.moving_time,
-        distance: effort.distance,
-        average_heartrate: effort.average_heartrate,
+      detailEffortById.set(effort.id, {
         max_heartrate: effort.max_heartrate,
         average_cadence: effort.average_cadence,
-        pr_rank: effort.pr_rank ?? null,
       });
     }
   }
+
+  const records: SegmentEffortRecord[] = efforts.map((e) => {
+    const extra = detailEffortById.get(e.id);
+    return {
+      activityId: e.activityId,
+      effortId: e.id,
+      activityDate: actDateById.get(e.activityId) ?? e.startDateLocal.slice(0, 10),
+      start_date_local: e.startDateLocal,
+      elapsed_time: e.elapsedTime,
+      moving_time: e.movingTime,
+      distance: e.distance,
+      average_heartrate: e.averageHeartrate,
+      max_heartrate: extra?.max_heartrate,
+      average_cadence: extra?.average_cadence,
+      pr_rank: e.prRank,
+    };
+  });
   return records.sort((a, b) => a.activityDate.localeCompare(b.activityDate));
 };
 

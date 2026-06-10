@@ -4,8 +4,12 @@
 
 import {NextRequest, NextResponse} from 'next/server';
 import {fetchHistoricalWeather, fetchWeatherForecast} from '@/lib/weather';
+import {rateLimit} from '@/lib/rateLimit';
 
 export async function GET(req: NextRequest) {
+  const limited = rateLimit(req, 'weather', 60, 60_000);
+  if (limited) return limited;
+
   const {searchParams} = req.nextUrl;
 
   // ── Forecast mode ──────────────────────────────────────────────────────────
@@ -33,12 +37,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({error: 'lat, lng, date, hour required'}, {status: 400});
   }
 
-const weather = await fetchHistoricalWeather(
-    Number(lat),
-    Number(lng),
-    date,
-    Number(hour),
-  );
+  const latN = Number(lat);
+  const lngN = Number(lng);
+  const hourN = Number(hour);
+  if (
+    !Number.isFinite(latN) || latN < -90 || latN > 90 ||
+    !Number.isFinite(lngN) || lngN < -180 || lngN > 180 ||
+    !Number.isInteger(hourN) || hourN < 0 || hourN > 23 ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(date)
+  ) {
+    return NextResponse.json({error: 'invalid params'}, {status: 400});
+  }
+
+  const weather = await fetchHistoricalWeather(latN, lngN, date, hourN);
 
   if (!weather) {
     // Don't cache failures — upstream might be temporarily unavailable

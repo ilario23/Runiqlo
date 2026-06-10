@@ -203,6 +203,14 @@ export const isStravaAuthError = (error: unknown): boolean => {
   );
 };
 
+export class RateLimitError extends Error {
+  readonly status = 429;
+  constructor(message: string) {
+    super(message);
+    this.name = "RateLimitError";
+  }
+}
+
 const stravaFetch = async <T>(
   endpoint: string,
   params?: Record<string, string>
@@ -227,6 +235,9 @@ const stravaFetch = async <T>(
 
   if (!res.ok) {
     const errorBody = await res.text();
+    if (res.status === 429) {
+      throw new RateLimitError(`Strava API rate limited (429): ${errorBody}`);
+    }
     throw new Error(`Strava API error (${res.status}): ${errorBody}`);
   }
 

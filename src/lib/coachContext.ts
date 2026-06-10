@@ -119,8 +119,9 @@ Form: ${tsb > 5 ? 'Fresh' : tsb > -10 ? 'Neutral' : tsb > -20 ? 'Fatigued' : 'Ve
       goalSection += `\nRecent peak weekly km: ${(goal as any).recentPeakWeeklyKm} km`;
     }
     goalSection += `\nLevel: ${goal.experienceLevel}`;
-    if (goal.injuryHistory) goalSection += `\nInjury history: ${goal.injuryHistory}`;
-    if (goal.additionalNotes) goalSection += `\nNotes: ${goal.additionalNotes}`;
+    // Free-text athlete input wrapped in data tags so it reads as data, not instructions
+    if (goal.injuryHistory) goalSection += `\nInjury history: <athlete_input>${goal.injuryHistory}</athlete_input>`;
+    if (goal.additionalNotes) goalSection += `\nNotes: <athlete_input>${goal.additionalNotes}</athlete_input>`;
   }
 
   // ── Training plan ────────────────────────────────────────────────────────────
@@ -207,7 +208,7 @@ Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
     if (Object.keys(prefs).length) parts.push('Preferences: ' + Object.entries(prefs).map(([k, v]) => `${k}=${v}`).join(', '));
     const patterns = notes.responsePatterns as Record<string, string>;
     if (Object.keys(patterns).length) parts.push('Responses: ' + Object.entries(patterns).map(([k, v]) => `${k}=${v}`).join(', '));
-    if (notes.freeformNotes) parts.push(notes.freeformNotes);
+    if (notes.freeformNotes) parts.push(`<athlete_input>${notes.freeformNotes}</athlete_input>`);
     if (parts.length) notesSection = parts.join('\n');
   }
 

@@ -448,75 +448,124 @@ const getRollingWindow = (
   return values.slice(start, endIndex + 1);
 };
 
-const getRollingThresholdPace = (
+// Pre-filtered candidate shapes for rolling metrics — built once per
+// calcAdvancedMetricsData call instead of re-scanning activities per day.
+interface ThresholdCandidate {
+  t: number; // activity noon timestamp (ms)
+  pace: number;
+  duration: number;
+}
+
+interface EfCandidate {
+  t: number;
+  duration: number;
+  ef: number;
+}
+
+interface DecouplingCandidate {
+  t: number;
+  ef: number;
+}
+
+const activityNoonMs = (a: ActivitySummary): number =>
+  new Date(a.date + 'T12:00:00').getTime();
+
+const buildThresholdCandidates = (
   activities: ActivitySummary[],
+): ThresholdCandidate[] =>
+  activities
+    .filter(
+      (a) =>
+        a.type === 'Run' &&
+        a.avgPace > 0 &&
+        a.duration > 0 &&
+        a.avgHr >= 0.84 * a.maxHr &&
+        a.duration >= 20 * 60,
+    )
+    .map((a) => ({t: activityNoonMs(a), pace: a.avgPace, duration: a.duration}));
+
+const buildEfCandidates = (activities: ActivitySummary[]): EfCandidate[] =>
+  activities
+    .filter(
+      (a) =>
+        a.type === 'Run' &&
+        a.avgPace > 0 &&
+        a.avgHr > 0 &&
+        a.duration >= 30 * 60 &&
+        a.avgHr <= 0.82 * a.maxHr,
+    )
+    .map((run) => {
+      const metersPerSec =
+        run.distance > 0 ? (run.distance * 1000) / run.duration : 0;
+      const ef = run.avgHr > 0 ? metersPerSec / run.avgHr : 0;
+      return {t: activityNoonMs(run), duration: run.duration, ef};
+    });
+
+const buildDecouplingCandidates = (
+  activities: ActivitySummary[],
+): DecouplingCandidate[] =>
+  activities
+    .filter(
+      (a) =>
+        a.type === 'Run' &&
+        a.avgPace > 0 &&
+        a.avgHr > 0 &&
+        a.duration >= 75 * 60,
+    )
+    .map((run) => {
+      const metersPerSec = (run.distance * 1000) / run.duration;
+      return {t: activityNoonMs(run), ef: metersPerSec / run.avgHr};
+    });
+
+const windowRangeMs = (
   dateStr: string,
-): number | null => {
+  windowDays: number,
+): {startMs: number; endMs: number} => {
   const end = new Date(dateStr + 'T23:59:59');
   const start = new Date(end);
-  start.setDate(start.getDate() - 42);
+  start.setDate(start.getDate() - windowDays);
+  return {startMs: start.getTime(), endMs: end.getTime()};
+};
 
-  const candidates = activities.filter((a) => {
-    if (a.type !== 'Run' || a.avgPace <= 0 || a.duration <= 0) return false;
-    const d = new Date(a.date + 'T12:00:00');
-    if (d < start || d > end) return false;
-    return a.avgHr >= 0.84 * a.maxHr && a.duration >= 20 * 60;
-  });
+const getRollingThresholdPace = (
+  candidates: ThresholdCandidate[],
+  dateStr: string,
+): number | null => {
+  const {startMs, endMs} = windowRangeMs(dateStr, 42);
+  const inWindow = candidates.filter((c) => c.t >= startMs && c.t <= endMs);
 
-  if (candidates.length === 0) return null;
+  if (inWindow.length === 0) return null;
   const weightedPace =
-    candidates.reduce((sum, run) => sum + run.avgPace * run.duration, 0) /
-    candidates.reduce((sum, run) => sum + run.duration, 0);
+    inWindow.reduce((sum, run) => sum + run.pace * run.duration, 0) /
+    inWindow.reduce((sum, run) => sum + run.duration, 0);
   return Number(weightedPace.toFixed(2));
 };
 
 const getRollingEfficiencyFactor = (
-  activities: ActivitySummary[],
+  candidates: EfCandidate[],
   dateStr: string,
 ): number | null => {
-  const end = new Date(dateStr + 'T23:59:59');
-  const start = new Date(end);
-  start.setDate(start.getDate() - 28);
-
-  const easyRuns = activities.filter((a) => {
-    if (a.type !== 'Run' || a.avgPace <= 0 || a.avgHr <= 0) return false;
-    const d = new Date(a.date + 'T12:00:00');
-    if (d < start || d > end) return false;
-    return a.duration >= 30 * 60 && a.avgHr <= 0.82 * a.maxHr;
-  });
+  const {startMs, endMs} = windowRangeMs(dateStr, 28);
+  const easyRuns = candidates.filter((c) => c.t >= startMs && c.t <= endMs);
 
   if (easyRuns.length === 0) return null;
-  const weighted = easyRuns.reduce((sum, run) => {
-    const metersPerSec = run.distance > 0 ? (run.distance * 1000) / run.duration : 0;
-    const ef = run.avgHr > 0 ? metersPerSec / run.avgHr : 0;
-    return sum + ef * run.duration;
-  }, 0);
+  const weighted = easyRuns.reduce((sum, run) => sum + run.ef * run.duration, 0);
   const totalDuration = easyRuns.reduce((sum, run) => sum + run.duration, 0);
   if (totalDuration <= 0) return null;
   return Number((weighted / totalDuration).toFixed(4));
 };
 
 const getRollingDecouplingProxy = (
-  activities: ActivitySummary[],
+  candidates: DecouplingCandidate[],
   dateStr: string,
 ): number | null => {
-  const end = new Date(dateStr + 'T23:59:59');
-  const start = new Date(end);
-  start.setDate(start.getDate() - 56);
-
-  const longRuns = activities
-    .filter((a) => {
-      if (a.type !== 'Run' || a.avgPace <= 0 || a.avgHr <= 0) return false;
-      const d = new Date(a.date + 'T12:00:00');
-      return d >= start && d <= end && a.duration >= 75 * 60;
-    })
+  const {startMs, endMs} = windowRangeMs(dateStr, 56);
+  const longRuns = candidates
+    .filter((c) => c.t >= startMs && c.t <= endMs)
     .slice(0, 6);
 
   if (longRuns.length < 2) return null;
-  const efValues = longRuns.map((run) => {
-    const metersPerSec = (run.distance * 1000) / run.duration;
-    return metersPerSec / run.avgHr;
-  });
+  const efValues = longRuns.map((run) => run.ef);
   const latest = efValues[0];
   const baseline = calcMean(efValues.slice(1));
   if (baseline <= 0) return null;
@@ -530,6 +579,9 @@ export const calcAdvancedMetricsData = (
   if (fitnessData.length === 0) return [];
 
   const tlSeries = fitnessData.map((d) => d.tl);
+  const thresholdCandidates = buildThresholdCandidates(activities);
+  const efCandidates = buildEfCandidates(activities);
+  const decouplingCandidates = buildDecouplingCandidates(activities);
   const results: AdvancedMetricsDataPoint[] = [];
 
   for (let i = 0; i < fitnessData.length; i++) {
@@ -561,9 +613,9 @@ export const calcAdvancedMetricsData = (
       rampRate,
       monotony,
       strain,
-      thresholdPace: getRollingThresholdPace(activities, point.date),
-      efficiencyFactor: getRollingEfficiencyFactor(activities, point.date),
-      decoupling: getRollingDecouplingProxy(activities, point.date),
+      thresholdPace: getRollingThresholdPace(thresholdCandidates, point.date),
+      efficiencyFactor: getRollingEfficiencyFactor(efCandidates, point.date),
+      decoupling: getRollingDecouplingProxy(decouplingCandidates, point.date),
     });
   }
 

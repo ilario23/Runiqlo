@@ -37,6 +37,12 @@ npx vitest run src/lib/__tests__/chatUtils.test.ts
 - `NEXT_PUBLIC_STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` — Strava OAuth
 - `DATABASE_URL` — Postgres connection string
 
+### API Auth & Rate Limiting
+
+`src/lib/apiAuth.ts` — `requireAthlete(req, requestedAthleteId)` verifies the caller's Strava access token (httpOnly session cookie or `Authorization: Bearer`) against Strava `/athlete` (15-min in-process cache) and rejects athleteId mismatches. Applied to all coach routes, `/api/db/[table]`, `/api/decoupling`, `/api/gear`. Dev bypass via `NEXT_PUBLIC_DEV_ATHLETE_ID`. `/api/db/[table]` auth defaults ON (`DB_ROUTE_ENFORCE_AUTH=false` to opt out); `x-db-api-key` header allows server-to-server access. `/api/coach/week/ics` is intentionally unauthenticated (external calendar subscriptions can't send cookies).
+
+`src/lib/rateLimit.ts` — in-memory per-IP sliding window; applied to `/api/weather` (60/min) and coach chat POST (20/min). Per-instance, resets on restart — fine for single-user deploys.
+
 ### Data Flow: Strava → DB → UI
 
 Caching layer: `src/lib/stravaCache.ts`. All Strava data types (activities, streams, athlete stats, zones, gear) follow same pattern:

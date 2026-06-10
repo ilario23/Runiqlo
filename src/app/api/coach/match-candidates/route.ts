@@ -3,6 +3,7 @@ import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, gte, lte} from 'drizzle-orm';
 import {safeTransformActivity, type StravaSummaryActivity} from '@/lib/strava';
+import {requireAthlete} from '@/lib/apiAuth';
 
 const RUN_PLAN_TYPES = new Set(['easy_run', 'long_run', 'tempo_run', 'interval_run', 'recovery_run']);
 
@@ -82,6 +83,8 @@ export async function GET(req: NextRequest) {
   if (!athleteId || !date) {
     return NextResponse.json({error: 'athleteId and date required'}, {status: 400});
   }
+  const auth = await requireAthlete(req, athleteId);
+  if (!auth.ok) return auth.response;
 
   const startStr = addDays(date, -1);
   const endStr = addDays(date, 1);

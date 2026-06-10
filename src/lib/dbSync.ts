@@ -104,17 +104,19 @@ export const dbGetActivityDetailsBulk = async (
   ids: number[],
 ): Promise<CachedActivityDetail[]> => {
   if (ids.length === 0) return [];
-  const results: CachedActivityDetail[] = [];
+  const requests: Promise<CachedActivityDetail[]>[] = [];
   for (let i = 0; i < ids.length; i += BULK_CHUNK_SIZE) {
     const pks = ids.slice(i, i + BULK_CHUNK_SIZE).join(',');
-    try {
-      const res = await dbFetch(`${API}/activity-details?athleteId=${athleteId}&pks=${pks}`, {}, athleteId);
-      if (!res.ok) continue;
-      const data: CachedActivityDetail[] = await res.json();
-      if (Array.isArray(data)) results.push(...data);
-    } catch { /* skip */ }
+    requests.push((async () => {
+      try {
+        const res = await dbFetch(`${API}/activity-details?athleteId=${athleteId}&pks=${pks}`, {}, athleteId);
+        if (!res.ok) return [];
+        const data: CachedActivityDetail[] = await res.json();
+        return Array.isArray(data) ? data : [];
+      } catch { return []; /* skip */ }
+    })());
   }
-  return results;
+  return (await Promise.all(requests)).flat();
 };
 
 // ---- Activity Streams ----

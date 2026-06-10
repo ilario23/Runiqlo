@@ -94,13 +94,19 @@ function ChatInner({
   useEffect(() => {
     setHistoryError(false);
     setHistoryMessages(undefined);
-    fetch(`/api/coach/chat?athleteId=${athleteId}${sessionParam}`)
+    const controller = new AbortController();
+    fetch(`/api/coach/chat?athleteId=${athleteId}${sessionParam}`, {signal: controller.signal})
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then((data: {sessionId: string | null; messages: UIMessage[]}) => {
         setHistoryMessages(data.messages ?? []);
         onSessionResolved?.(data.sessionId);
       })
-      .catch(() => { setHistoryError(true); setHistoryMessages([]); });
+      .catch((err) => {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
+        setHistoryError(true);
+        setHistoryMessages([]);
+      });
+    return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [retryCount]);
 
