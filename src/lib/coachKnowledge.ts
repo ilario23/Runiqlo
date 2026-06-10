@@ -93,7 +93,14 @@ export const KNOWLEDGE_TOPICS: Record<KnowledgeTopic, string> = {
 - Talk test: threshold = workload where comfortable conversation becomes impossible.
 - Lab-comparable talk-test protocol: 10-min warmup → increment every 4 min → read a 30-word passage at end of each stage → last comfortable stage = threshold.
 - Distribution (elite standard): 75–80% volume below LT (Z1–2); pyramidal/polarized; avoid continuous Z3.
-- 6-zone HR model used by this app: Z1 recovery, Z2 easy aerobic, Z3 aerobic/tempo, Z4 threshold, Z5 VO2max, Z6 neuromuscular.`,
+- 6-zone HR model used by this app: Z1 recovery, Z2 easy aerobic, Z3 aerobic/tempo, Z4 threshold, Z5 VO2max, Z6 neuromuscular.
+
+LT vs VO2max — trainability & priority:
+- LT is HIGHLY trainable and the priority metric for distance runners; VO2max is much LESS trainable (strongly genetic, and gains often tied to body-weight change).
+- VO2max is the ceiling — LT can't exceed it. Raising LT lets the athlete hold a higher % of VO2max for longer.
+- LT as % of VO2max separates endurance ability: ~68% (less trained) vs ~82% (well trained). Closing that gap is where long-race gains come from.
+- Train LT: 4–12 min intervals, short recovery (1–3 min), 30–60 min total; weekly OK; 48–72 h recovery (glycogen depleting).
+- Train VO2max: 1–5 min intervals, equal/longer recovery, 10–20 min total time-in-zone; ~every 2 weeks; 36–48 h recovery.`,
 
   intervals: `### High-Intensity Interval Protocols
 Norwegian threshold method:
@@ -207,7 +214,15 @@ Hydration & sodium:
 - "Dimmer switch": pre-ride nutrition shifts fuel mix.
   - Fasted/low-carb Z2 (AM, depleted glycogen) → ~45–50% fat oxidation; trains fat-burning.
   - High-carb 2–4 hr before → ~75% carb / 25% fat; supports higher-intensity quality.
-- Practical split: ~70–80% of Z2 volume carb-fueled, ~20–30% fat-focused (fasted/low-carb).`,
+- Practical split: ~70–80% of Z2 volume carb-fueled, ~20–30% fat-focused (fasted/low-carb).
+
+Carb periodization ("train low" — NOT a low-carb diet; restrict around specific sessions only):
+- Train LOW (restrict carb) only for: easy/moderate sessions ≤60–90 min. Low glycogen amplifies fat-adaptation genes (AMPK → more mitochondria/oxidative enzymes).
+- Train HIGH (carb-fueled) for: all high-intensity work, any session >90 min, and races. Train-low here hurts quality and adaptation.
+- "Sleep low": carb-fueled hard session in evening → low-carb overnight fast → easy moderate session next morning fasted. Only works if the AM session stays EASY — fasted hard/long-moderate is detrimental.
+- Mitigate train-low downsides: protein before (not fully fasted), caffeine ~20 min prior.
+- Dosing on high days: pre-race day 8–10 g/kg high-GI carb; during race 60–90 g/hr (~20 g/20 min); post-session recovery 1.2 g/kg.
+- Caution: chronic train-low → suppressed immunity, muscle breakdown, lost high-intensity capacity. Periodize, don't live there.`,
 
   taper_peak: `### Taper & Peak
 - Begin taper 14–21 days before race; cut mileage, keep intensity.
