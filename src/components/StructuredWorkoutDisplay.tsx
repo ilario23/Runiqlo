@@ -70,9 +70,12 @@ function StepRow({step, nested}: {step: WorkoutStep; nested?: boolean}) {
 
 function RepeatContainer({block}: {block: RepeatBlock}) {
   return (
-    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-0)] overflow-hidden relative">
-      <div className="absolute top-2 right-2 z-10">
-        <span className="text-[10px] font-bold text-[var(--color-ink-2)] bg-[var(--color-surface-2)] border border-[var(--color-border)] px-2 py-0.5 rounded-full">
+    <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-0)] overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--color-surface-2)] border-b border-[var(--color-border)]">
+        <span className="text-[10px] uppercase tracking-widest font-semibold text-[var(--color-ink-3)]">
+          Repeat
+        </span>
+        <span className="text-[11px] font-bold font-mono tabular-nums text-[var(--color-ink-2)]">
           ×{block.repeatCount}
         </span>
       </div>

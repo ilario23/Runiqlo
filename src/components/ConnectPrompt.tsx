@@ -72,7 +72,7 @@ export function ConnectPrompt({
       >
         {/* Brand */}
         <div className="flex items-center justify-center gap-2.5 mb-10">
-          <Image src="/logo.png" alt="" width={32} height={32} className="w-8 h-8" />
+          <Image src="/mylogo.png" alt="" width={32} height={32} className="w-8 h-8" />
           <span
             className="font-semibold text-sm text-[var(--color-ink)] tracking-[0.18em]"
           >

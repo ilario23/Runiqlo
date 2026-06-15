@@ -2,6 +2,7 @@
 
 import {useEffect, Suspense, useState} from 'react';
 import pkg from '../../../package.json';
+import Link from 'next/link';
 import Image from 'next/image';
 import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
