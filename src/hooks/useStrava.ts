@@ -38,6 +38,7 @@ import type {
 import {fetchStarredSegments} from '@/lib/strava';
 import {computeZoneBreakdown} from '@/lib/zoneCompute';
 import {computeDecoupling, type DecouplingResult} from '@/lib/aerobicDecoupling';
+import type {WeeklyPlan} from '@/lib/coachTypes';
 
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -499,4 +500,36 @@ export const useAthleteNotes = () => {
     saveNotes: mutation.mutateAsync,
     isSaving: mutation.isPending,
   };
+};
+
+// ── Weekly plan (dashboard + plan page) ─────────────────────────────────────
+// React Query so the plan stays cached across navigation and refetches itself
+// on mount/reconnect — fixes the "blank until you switch pages" race where the
+// first fetch fired before the auth cookie was ready and never retried.
+
+const ONE_MIN = 60 * 1000;
+
+export const useWeekPlan = (weekStart: string) => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery<WeeklyPlan | null>({
+    queryKey: ['coach', 'week', athlete?.id, weekStart],
+    queryFn: async () => {
+      const res = await fetch(`/api/coach/week?athleteId=${athlete!.id}&weekStart=${weekStart}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) ?? null;
+    },
+    enabled: isAuthenticated && !!athlete?.id && !!weekStart,
+    staleTime: ONE_MIN,
+    gcTime: ONE_DAY,
+    retry: 2,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+  });
+
+  const invalidate = () =>
+    queryClient.invalidateQueries({queryKey: ['coach', 'week', athlete?.id, weekStart]});
+
+  return {plan: query.data, query, invalidate};
 };

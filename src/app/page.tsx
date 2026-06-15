@@ -13,11 +13,13 @@ import {
 } from '@/hooks/useStrava';
 import {formatPace, formatDuration} from '@/lib/activityModel';
 import {calcPrimaryVdot} from '@/lib/vdot';
-import {useBestEffortsData} from '@/hooks/useStrava';
+import {useBestEffortsData, useWeekPlan} from '@/hooks/useStrava';
+import {WorkoutDetailPanel} from '@/app/plan/components/WorkoutDetailPanel';
+import type {SelectedWorkout} from '@/app/plan/components/WeekPlan';
 import {Skeleton} from '@/components/ui/skeleton';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
-import type {WeeklyPlan, PlannedWorkout} from '@/lib/coachTypes';
+import type {WeeklyPlan, PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -234,9 +236,22 @@ function workoutSummary(w: PlannedWorkout | undefined): {label: string; detail: 
   return {label, detail: parts.join(' ')};
 }
 
-function WeekStrip({plan, loading}: {plan: WeeklyPlan | null | undefined; loading: boolean}) {
+function WeekStrip({
+  plan,
+  loading,
+  athleteId,
+  weekStart,
+  onMutated,
+}: {
+  plan: WeeklyPlan | null | undefined;
+  loading: boolean;
+  athleteId: number | undefined;
+  weekStart: string;
+  onMutated: () => void;
+}) {
   const todayISO = localDateISO();
-  const weekStart = plan?.weekStart ?? getMondayISO();
+  const [selected, setSelected] = useState<SelectedWorkout | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const cells = useMemo(() => {
     const byDate = new Map((plan?.days ?? []).map((d) => [d.date, d]));
@@ -245,19 +260,40 @@ function WeekStrip({plan, loading}: {plan: WeeklyPlan | null | undefined; loadin
       d.setDate(d.getDate() + i);
       const iso = localDateISO(d);
       const day = byDate.get(iso);
-      const first = day?.workouts?.[0];
+      const workouts = (day?.workouts ?? []).filter((w) => w.type !== 'rest');
       return {
         iso,
+        dayIndex: i,
         weekday: WEEKDAYS[i],
         dayNum: d.getDate(),
         isToday: iso === todayISO,
         isPast: iso < todayISO,
-        isRest: !first || first.type === 'rest',
-        completed: !!first?.completed,
-        summary: workoutSummary(first),
+        isRest: workouts.length === 0,
+        workouts,
       };
     });
   }, [plan, weekStart, todayISO]);
+
+  // Clear the open detail if the underlying plan changed it away.
+  useEffect(() => {
+    if (!selected) return;
+    const day = plan?.days?.find((d) => d.date === selected.date);
+    if (!day?.workouts?.[selected.workoutIndex]) setSelected(null);
+  }, [plan, selected]);
+
+  useEffect(() => {
+    if (selected) {
+      setTimeout(() => detailRef.current?.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50);
+    }
+  }, [selected]);
+
+  const selectWorkout = (dayIndex: number, date: string, workoutIndex: number, workout: PlannedWorkout) => {
+    setSelected((prev) =>
+      prev?.date === date && prev?.workoutIndex === workoutIndex
+        ? null
+        : {date, dayIndex, workoutIndex, workout},
+    );
+  };
 
   return (
     <div className="p-5 md:p-7">
@@ -276,49 +312,98 @@ function WeekStrip({plan, loading}: {plan: WeeklyPlan | null | undefined; loadin
           <Link href="/coach" className="btn ink">Set up with coach →</Link>
         </div>
       ) : (
-        <div className="flex gap-2 mt-4 overflow-x-auto sm:grid sm:grid-cols-7 sm:overflow-visible -mx-1 px-1 sm:mx-0 sm:px-0">
-          {cells.map((c) => {
-            const accent = c.isToday;
-            return (
-              <Link
-                key={c.iso}
-                href="/plan"
-                className={`day ${c.isRest ? 'rest' : ''} p-2 gap-1 shrink-0 w-[84px] sm:w-auto`}
-                style={{
-                  minHeight: 92,
-                  borderColor: accent ? 'var(--color-rust)' : 'var(--color-ink)',
-                  borderWidth: accent ? 2 : 1,
-                  opacity: c.isPast && !c.completed ? 0.6 : 1,
+        <>
+          <div className="flex gap-2 mt-4 overflow-x-auto sm:grid sm:grid-cols-7 sm:overflow-visible -mx-1 px-1 sm:mx-0 sm:px-0 items-stretch">
+            {cells.map((c) => {
+              const accent = c.isToday;
+              return (
+                <div
+                  key={c.iso}
+                  className={`day ${c.isRest ? 'rest' : ''} p-2 gap-1 shrink-0 w-[84px] sm:w-auto`}
+                  style={{
+                    minHeight: 92,
+                    borderColor: accent ? 'var(--color-rust)' : 'var(--color-ink)',
+                    borderWidth: accent ? 2 : 1,
+                    opacity: c.isPast && !c.workouts.some((w) => w.completed) ? 0.6 : 1,
+                  }}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="label" style={{color: accent ? 'var(--color-rust)' : 'var(--color-ink-3)'}}>{c.weekday}</span>
+                    <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>{c.dayNum}</span>
+                  </div>
+                  <div className="flex-1 flex flex-col justify-end gap-1">
+                    {c.isRest ? (
+                      <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>Rest</span>
+                    ) : (
+                      c.workouts.map((w, wi) => {
+                        const summary = workoutSummary(w);
+                        const isSel = selected?.date === c.iso && selected?.workoutIndex === wi;
+                        return (
+                          <button
+                            key={wi}
+                            type="button"
+                            onClick={() => selectWorkout(c.dayIndex, c.iso, wi, w)}
+                            className="text-left w-full transition-colors cursor-pointer px-1 -mx-1"
+                            style={{
+                              background: isSel ? 'var(--color-paper-3)' : 'transparent',
+                              outline: isSel ? '1px solid var(--color-ink)' : 'none',
+                            }}
+                          >
+                            <span
+                              className="num block"
+                              style={{fontSize: 13, lineHeight: 1.1, color: accent ? 'var(--color-rust)' : 'var(--color-ink)'}}
+                            >
+                              {summary?.label}
+                            </span>
+                            {summary?.detail && (
+                              <span className="num block" style={{fontSize: 10, color: 'var(--color-ink-3)'}}>{summary.detail}</span>
+                            )}
+                            {w.completed && (
+                              <span className="label block" style={{color: 'var(--color-rust)'}}>✓ done</span>
+                            )}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {selected && athleteId != null && (
+            <div ref={detailRef}>
+              <WorkoutDetailPanel
+                selected={selected}
+                athleteId={athleteId}
+                weekStart={weekStart}
+                onClose={() => setSelected(null)}
+                canLink={selected.date <= todayISO}
+                onMarkDone={(stravaActivityId: number) => {
+                  fetch('/api/coach/week', {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                      athleteId,
+                      weekStart,
+                      date: selected.date,
+                      workoutIndex: selected.workoutIndex,
+                      stravaActivityId,
+                    }),
+                  }).then(() => onMutated());
                 }}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="label" style={{color: accent ? 'var(--color-rust)' : 'var(--color-ink-3)'}}>{c.weekday}</span>
-                  <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>{c.dayNum}</span>
-                </div>
-                <div className="flex-1 flex flex-col justify-end">
-                  {c.summary ? (
-                    <>
-                      <span
-                        className="num"
-                        style={{fontSize: 13, lineHeight: 1.1, color: accent ? 'var(--color-rust)' : 'var(--color-ink)'}}
-                      >
-                        {c.summary.label}
-                      </span>
-                      {c.summary.detail && (
-                        <span className="num" style={{fontSize: 10, color: 'var(--color-ink-3)'}}>{c.summary.detail}</span>
-                      )}
-                    </>
-                  ) : (
-                    <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>Rest</span>
-                  )}
-                  {c.completed && (
-                    <span className="label" style={{color: 'var(--color-rust)', marginTop: 2}}>✓ done</span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+                onConvert={(newType: WorkoutType, newDurationMinutes: number) => {
+                  setSelected((prev) =>
+                    prev
+                      ? {...prev, workout: {...prev.workout, type: newType, durationMinutes: newDurationMinutes}}
+                      : prev,
+                  );
+                  onMutated();
+                }}
+              />
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -401,6 +486,7 @@ function CoachPrescription({plan, loading, onRetry, error}: {
   const label = WORKOUT_LABELS[firstWorkout.type] ?? firstWorkout.type;
   const distance = firstWorkout.distanceKm ? `${firstWorkout.distanceKm}` : null;
   const duration = firstWorkout.durationMinutes ?? null;
+  const extras = (todayEntry?.workouts ?? []).slice(1).filter((w) => w.type !== 'rest');
 
   return (
     <Frame>
@@ -431,6 +517,25 @@ function CoachPrescription({plan, loading, onRetry, error}: {
         <p className="body-serif mt-5 max-w-xl" style={{fontSize: 14.5, color: 'var(--color-ink)'}}>
           {firstWorkout.intensityDescription}
         </p>
+      )}
+
+      {extras.length > 0 && (
+        <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-rule)'}}>
+          <div className="label" style={{color: 'var(--color-rust)'}}>Also today</div>
+          <div className="mt-2 flex flex-col gap-1">
+            {extras.map((w, i) => (
+              <div key={i} className="num" style={{fontSize: 14, color: 'var(--color-ink)'}}>
+                {WORKOUT_LABELS[w.type] ?? w.type}
+                {(w.distanceKm || w.durationMinutes) && (
+                  <span style={{color: 'var(--color-ink-3)'}}>
+                    {' · '}{w.distanceKm ? `${w.distanceKm} km` : `${w.durationMinutes} min`}
+                  </span>
+                )}
+                {w.completed && <span className="label" style={{color: 'var(--color-rust)', marginLeft: 8}}>✓ done</span>}
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="flex gap-2.5 mt-auto pt-6">
@@ -549,24 +654,12 @@ export default function DashboardPage() {
   const {data: activities, isLoading: activitiesLoading} = useDashboardActivities();
   const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
 
-  // ── shared weekly plan (one fetch for strip + prescription) ──
-  const [plan, setPlan] = useState<WeeklyPlan | null | undefined>(undefined);
-  const [planError, setPlanError] = useState(false);
-
-  const loadPlan = useCallback(() => {
-    if (!athlete?.id) return;
-    setPlanError(false);
-    setPlan(undefined);
-    fetch(`/api/coach/week?athleteId=${athlete.id}&weekStart=${getMondayISO()}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => setPlan(data ?? null))
-      .catch(() => setPlanError(true));
-  }, [athlete?.id]);
-
-  useEffect(() => { loadPlan(); }, [loadPlan]);
+  // ── shared weekly plan (one cached query for strip + prescription) ──
+  const weekStart = getMondayISO();
+  const {plan: planData, query: planQuery, invalidate: invalidatePlan} = useWeekPlan(weekStart);
+  const plan = planQuery.isLoading ? undefined : (planData ?? null);
+  const planError = planQuery.isError;
+  const loadPlan = useCallback(() => { planQuery.refetch(); }, [planQuery]);
 
   const last = fitnessData?.[fitnessData.length - 1];
 
@@ -630,7 +723,13 @@ export default function DashboardPage() {
 
           {/* ── This week strip ───────────────────────────────────────────── */}
           <div style={{borderBottom: '1px solid var(--color-ink)'}}>
-            <WeekStrip plan={plan} loading={plan === undefined && !planError} />
+            <WeekStrip
+              plan={plan}
+              loading={plan === undefined && !planError}
+              athleteId={athlete?.id}
+              weekStart={weekStart}
+              onMutated={invalidatePlan}
+            />
           </div>
 
           {/* ── Prescription + recent ledger ──────────────────────────────── */}

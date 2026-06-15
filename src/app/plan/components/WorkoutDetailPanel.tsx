@@ -8,7 +8,7 @@ import {COLORS} from '@/lib/activityModel';
 import {useSettings} from '@/contexts/SettingsContext';
 import {parseStructuredSteps} from '@/lib/workoutUtils';
 import {StructuredWorkoutDisplay} from '@/components/StructuredWorkoutDisplay';
-import {convertSession, type ConvertibleSport} from '@/lib/trimpConversion';
+import {convertSession, CONVERTIBLE_RUN_TYPES, type ConvertibleSport} from '@/lib/trimpConversion';
 import type {SelectedWorkout} from './WeekPlan';
 
 const DAY_NAMES_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -91,8 +91,6 @@ const SPORT_TO_WORKOUT_TYPE: Record<ConvertibleSport, WorkoutType> = {
   walk: 'walk',
   hike: 'hike',
 };
-
-const CONVERTIBLE_RUN_TYPES = new Set(['easy_run', 'long_run', 'tempo_run', 'recovery_run']);
 
 export function WorkoutDetailPanel({
   selected,
