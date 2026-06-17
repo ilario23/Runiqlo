@@ -113,6 +113,48 @@ async function touchLatestFetchedAt(athleteId: number): Promise<void> {
   await dbSyncActivities([{...latest[0], fetchedAt: Date.now()}]);
 }
 
+// Eagerly download each newly-synced activity's full detail + streams and cache
+// them, so the coach's tiered getActivityData tool (and zone/segment features)
+// have per-km and stream data without anyone opening the activity detail page.
+// Fire-and-forget, in-flight-guarded, and rate-limit-aware so it never blocks or
+// hammers Strava. cachedGetActivityDetail/Streams check the DB first (STALE =
+// Infinity), so re-prefetching already-cached ids is just a cheap DB read.
+const fullDataPrefetchInFlight = new Set<number>();
+const SYNC_PREFETCH_CAP = 50; // cap the first-ever full sync to recent activities
+
+function prefetchNewActivityFullData(athleteId: number, ids: number[]): void {
+  if (ids.length === 0 || fullDataPrefetchInFlight.has(athleteId)) return;
+  fullDataPrefetchInFlight.add(athleteId);
+  void (async () => {
+    try {
+      const CONCURRENCY = 3;
+      for (let i = 0; i < ids.length; i += CONCURRENCY) {
+        const batch = ids.slice(i, i + CONCURRENCY);
+        const results = await Promise.allSettled(
+          batch.map((id) =>
+            Promise.all([
+              cachedGetActivityDetail(athleteId, id),
+              cachedGetActivityStreams(athleteId, id),
+            ]),
+          ),
+        );
+        const rateLimited = results.some(
+          (r) => r.status === 'rejected' && r.reason instanceof RateLimitError,
+        );
+        if (rateLimited) {
+          console.warn('[prefetch] Strava rate limited — stopping activity prefetch');
+          break;
+        }
+        if (i + CONCURRENCY < ids.length) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+    } finally {
+      fullDataPrefetchInFlight.delete(athleteId);
+    }
+  })();
+}
+
 async function syncActivitiesForAthlete(
   athleteId: number,
   mode: 'incremental' | 'full',
@@ -127,6 +169,9 @@ async function syncActivitiesForAthlete(
       date: a.start_date_local.split('T')[0],
       fetchedAt: now,
     })));
+    // Strava returns newest-first; prefetch only the most recent slice to avoid a
+    // rate-limit storm on initial load. Older history stays on-demand.
+    prefetchNewActivityFullData(athleteId, raw.slice(0, SYNC_PREFETCH_CAP).map((a) => a.id));
     return;
   }
   const latest = await dbGetActivitiesPaginated(athleteId, 1, 0);
@@ -142,6 +187,8 @@ async function syncActivitiesForAthlete(
   await dbSyncActivities(raw.map((a) => ({
     id: a.id, athleteId, data: a, date: a.start_date_local.split('T')[0], fetchedAt: now,
   })));
+  // These are genuinely new activities — eagerly cache their detail + streams.
+  prefetchNewActivityFullData(athleteId, raw.map((a) => a.id));
 }
 
 // ---- Activities ----
