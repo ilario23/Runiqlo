@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f2ede2" />
+    <title>Offline · Runiqlo</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        background: #f2ede2;
+        color: #1a1a1a;
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+        text-align: center;
+        padding: 2rem;
+      }
+      .wrap {
+        max-width: 22rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 0.5rem;
+        letter-spacing: -0.01em;
+      }
+      p {
+        margin: 0 0 1.5rem;
+        color: #5a564d;
+        line-height: 1.5;
+        font-size: 0.95rem;
+      }
+      button {
+        font: inherit;
+        border: 1px solid #1a1a1a;
+        background: #1a1a1a;
+        color: #f2ede2;
+        padding: 0.6rem 1.4rem;
+        border-radius: 999px;
+        cursor: pointer;
+      }
+      button:active {
+        transform: translateY(1px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>You're offline</h1>
+      <p>
+        Runiqlo can't reach the network right now. Cached pages still work —
+        reconnect to load fresh training data.
+      </p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>

@@ -5,6 +5,7 @@ import {MotionConfig} from 'framer-motion';
 import {useState, type ReactNode} from 'react';
 import {StravaAuthProvider} from '@/contexts/StravaAuthContext';
 import {SettingsProvider} from '@/contexts/SettingsContext';
+import {ServiceWorkerRegistrar} from '@/components/ServiceWorkerRegistrar';
 
 export function Providers({children}: {children: ReactNode}) {
   const [queryClient] = useState(
@@ -22,6 +23,7 @@ export function Providers({children}: {children: ReactNode}) {
   return (
     <QueryClientProvider client={queryClient}>
       <MotionConfig reducedMotion="user">
+        <ServiceWorkerRegistrar />
         <StravaAuthProvider>
           <SettingsProvider>
             {children}
