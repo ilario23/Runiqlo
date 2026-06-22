@@ -13,7 +13,18 @@ export function Providers({children}: {children: ReactNode}) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            retry: 1,
+            // Don't retry client errors (401/403/404) — they won't fix
+            // themselves. Retry transient/5xx/network up to 3x.
+            retry: (failureCount, error) => {
+              const status =
+                (error as {status?: number})?.status ??
+                Number((error as Error)?.message?.match(/\b(\d{3})\b/)?.[1]);
+              if (status >= 400 && status < 500) return false;
+              return failureCount < 3;
+            },
+            // Exponential backoff capped at 30s, jittered to avoid thundering herd.
+            retryDelay: (attempt) =>
+              Math.min(1000 * 2 ** attempt, 30_000) + Math.random() * 1000,
             refetchOnWindowFocus: false,
           },
         },
