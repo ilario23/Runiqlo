@@ -29,7 +29,7 @@ npx vitest run src/lib/__tests__/chatUtils.test.ts
 - **Database**: Supabase Postgres via **Drizzle ORM** (`src/db/schema.ts` defines all tables)
 - **AI**: Vercel AI SDK v6 (`ai`) — supports Anthropic and OpenAI via `LLM_PROVIDER` env var
 - **State**: TanStack React Query for server state; React context for auth and settings
-- **Auth**: Strava OAuth; tokens stored client-side in localStorage
+- **Auth**: Strava OAuth; access/refresh tokens held in httpOnly cookies (server-side broker), with a SHA-256-hashed DB session for long-lived re-auth. Only the non-secret athlete profile + a CSRF token live in localStorage.
 
 ### Key Environment Variables
 - `LLM_PROVIDER` — `anthropic` (uses `ANTHROPIC_API_KEY`) or any other value (uses `OPENAI_API_KEY`)
@@ -71,7 +71,7 @@ All coach types in `src/lib/coachTypes.ts`.
 
 ### Auth Context
 
-`src/contexts/StravaAuthContext.tsx` holds Strava tokens in state (loaded from localStorage on mount). When `NEXT_PUBLIC_DEV_ATHLETE_ID` set, skips OAuth + injects fake "broker" token — Strava API calls proxy through `/api/strava/session/access-token` to fetch real token server-side.
+`src/contexts/StravaAuthContext.tsx` holds auth state in memory. On mount it restores from localStorage (athlete profile only) or, if empty, calls `restoreSessionFromServer()` to re-mint tokens from the httpOnly DB-backed session. Real tokens never touch localStorage — they live in httpOnly cookies managed by `src/lib/stravaTokenBroker.ts`. When `NEXT_PUBLIC_DEV_ATHLETE_ID` set, skips OAuth + injects fake "broker" token — Strava API calls proxy through `/api/strava/session/access-token` to fetch real token server-side.
 
 ### API Routes
 
