@@ -28,10 +28,25 @@ export const metadata: Metadata = {
   title: 'Runiqlo',
   description: 'Your personal training dashboard',
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Runiqlo',
+  },
+  icons: {
+    icon: [
+      {url: '/icon-192.png', sizes: '192x192', type: 'image/png'},
+      {url: '/icon-512.png', sizes: '512x512', type: 'image/png'},
+    ],
+    apple: [{url: '/icon-192.png', sizes: '192x192', type: 'image/png'}],
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: '#f2ede2',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {

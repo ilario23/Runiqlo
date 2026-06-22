@@ -1,24 +1,33 @@
 {
+  "id": "/",
   "name": "Runiqlo",
   "short_name": "Runiqlo",
   "description": "Your personal training dashboard",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
+  "background_color": "#f2ede2",
+  "theme_color": "#f2ede2",
   "orientation": "portrait-primary",
+  "categories": ["health", "fitness", "sports"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
