@@ -3,7 +3,9 @@ import {z} from 'zod';
 import {getDb} from '@/db';
 import * as schema from '@/db/schema';
 import {eq, and, desc, gte, isNotNull, sql} from 'drizzle-orm';
-import {transformActivity} from './strava';
+import {transformActivity, transformStreams} from './strava';
+import {formatPace} from './activityModel';
+import {computeKmSplits, downsampleStream} from './activityDataTiers';
 import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from './weather';
 import {invalidateCoachPromptCache} from './coachContext';
 import {KNOWLEDGE_TOPIC_KEYS, KNOWLEDGE_TOPIC_SUMMARY, getKnowledgeTopic} from './coachKnowledge';
@@ -1073,6 +1075,92 @@ export function getCoachTools(athleteId: number) {
           humidityPct: weather.humidityPct,
           precipitationMm: weather.precipitationMm,
         };
+      },
+    }),
+
+    getActivityData: tool({
+      description:
+        "Retrieve a single activity at one of three completeness tiers. detail 1 = overall summary (avg pace, avg/max HR, distance, duration, elevation). detail 2 = per-kilometer splits (pace, avg HR, elevation gain per km) — use to judge pacing and HR drift. detail 3 = ~50 evenly-spaced high-resolution samples (time, distance, pace, HR, altitude) for fine intra-run trends. Higher tiers return more data and cost more tokens — start at 1 and escalate only when a question needs it. Tiers 2/3 require cached stream data; when it isn't available the summary is returned with a detailNote.",
+      inputSchema: z.object({
+        activityId: z.number().describe('Strava activity ID'),
+        detail: z
+          .union([z.literal(1), z.literal(2), z.literal(3)])
+          .default(1)
+          .describe('Completeness tier: 1 = summary, 2 = per-km splits, 3 = high-res samples'),
+      }),
+      execute: async ({activityId, detail}) => {
+        const actRows = await db
+          .select()
+          .from(schema.activities)
+          .where(and(eq(schema.activities.athleteId, athleteId), eq(schema.activities.id, activityId)))
+          .limit(1);
+
+        if (!actRows[0]) return {error: `Activity ${activityId} not found.`};
+
+        const a = transformActivity(actRows[0].data as Parameters<typeof transformActivity>[0]);
+        const paceMin = Math.floor(a.avgPace);
+        const paceSec = Math.round((a.avgPace - paceMin) * 60);
+        const summary = {
+          id: a.id,
+          name: a.name,
+          date: a.date,
+          type: a.type,
+          distanceKm: Number(a.distance.toFixed(2)),
+          durationMin: Number((a.duration / 60).toFixed(0)),
+          avgPace: a.avgPace > 0 ? `${paceMin}:${String(paceSec).padStart(2, '0')} min/km` : null,
+          avgHr: a.avgHr > 0 ? Math.round(a.avgHr) : null,
+          maxHr: a.maxHr > 0 ? Math.round(a.maxHr) : null,
+          elevationGainM: Math.round(a.elevationGain),
+        };
+
+        if (detail === 1) return {tier: 1, summary};
+
+        // Tiers 2/3 need the cached HR/pace stream — DB-only read, no Strava fetch.
+        const streamRows = await db
+          .select()
+          .from(schema.activityStreams)
+          .where(
+            and(
+              eq(schema.activityStreams.athleteId, athleteId),
+              eq(schema.activityStreams.activityId, activityId),
+            ),
+          )
+          .limit(1);
+
+        if (!streamRows[0]) {
+          return {
+            tier: 1,
+            summary,
+            detailNote:
+              'Detailed stream data is not cached for this activity yet — only the summary is available.',
+          };
+        }
+
+        const stream = transformStreams(
+          streamRows[0].data as Parameters<typeof transformStreams>[0],
+        );
+
+        if (detail === 2) {
+          const splits = computeKmSplits(stream).map(s => ({
+            km: s.km,
+            distanceKm: s.distanceKm,
+            pace: s.paceMinPerKm > 0 ? `${formatPace(s.paceMinPerKm)} min/km` : null,
+            avgHr: s.avgHr,
+            elevGainM: s.elevGainM,
+            durationSec: s.durationSec,
+          }));
+          return {tier: 2, summary, splits, splitCount: splits.length};
+        }
+
+        // detail === 3
+        const samples = downsampleStream(stream).map(s => ({
+          timeSec: s.timeSec,
+          distanceKm: s.distanceKm,
+          pace: s.paceMinPerKm > 0 ? `${formatPace(s.paceMinPerKm)} min/km` : null,
+          hr: s.hr,
+          altitudeM: s.altitudeM,
+        }));
+        return {tier: 3, summary, samples, sampleCount: samples.length};
       },
     }),
 
