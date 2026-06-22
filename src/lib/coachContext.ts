@@ -282,7 +282,7 @@ When saving an interval_run or tempo_run with saveWeeklyPlan, ALWAYS populate st
 - A cooldown WorkoutStep (stepType: "cooldown")
 Zone % LTHR reference: Z1 = 60–69%, Z2 = 70–82%, Z3 = 83–94%, Z4 = 95–105%, Z5 = 106–120%, Z6 = >120%
 zoneName values to use: "Recovery", "Aerobic Base", "Aerobic Tempo", "Threshold", "VO2max", "Neuromuscular"
-intensityMin/Max are percentages of LTHR. If you have the athlete's zone BPM ranges from settings or fitness data, compute bpmMin = round(intensityMin/100 * lthr) and bpmMax = round(intensityMax/100 * lthr) and include them.
+intensityMin/Max are percentages of LTHR. Do NOT supply bpm — the app converts these percentages to the athlete's actual heart-rate zones at display time.
 For easy_run, long_run, recovery_run, gym, rest, and cross_training — omit structuredSteps entirely.
 If you are uncertain about the exact structure, omit structuredSteps rather than guessing.
 

@@ -1,12 +1,15 @@
 'use client';
 
+import {useMemo} from 'react';
 import {MarkdownTextPrimitive} from '@assistant-ui/react-markdown';
 import {TextMessagePartProvider} from '@assistant-ui/react';
 import {parseStructuredSteps} from '@/lib/workoutUtils';
 import {StructuredWorkoutDisplay} from '@/components/StructuredWorkoutDisplay';
+import {useSettings} from '@/contexts/SettingsContext';
+import type {UserSettings} from '@/lib/activityModel';
 import type {Components} from 'react-markdown';
 
-const markdownComponents: Components = {
+const makeMarkdownComponents = (zones?: UserSettings['zones']): Components => ({
   p: ({children}) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>,
   strong: ({children}) => <strong className="font-semibold text-[var(--color-ink)]">{children}</strong>,
   em: ({children}) => <em className="italic">{children}</em>,
@@ -27,7 +30,7 @@ const markdownComponents: Components = {
           return (
             <div className="my-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-0)] p-4">
               <div className="text-[10px] uppercase tracking-widest text-[var(--color-text-2)] font-semibold mb-3">Session Breakdown</div>
-              <StructuredWorkoutDisplay blocks={blocks} />
+              <StructuredWorkoutDisplay blocks={blocks} zones={zones} />
             </div>
           );
         }
@@ -68,14 +71,19 @@ const markdownComponents: Components = {
       {children}
     </td>
   ),
-};
+});
 
 export function MarkdownRenderer({text, isRunning}: {text: string; isRunning?: boolean}) {
+  const {settings} = useSettings();
+  const components = useMemo(
+    () => makeMarkdownComponents(settings.zones),
+    [settings.zones],
+  );
   return (
     <TextMessagePartProvider text={text} isRunning={isRunning}>
       <MarkdownTextPrimitive
         smooth
-        components={markdownComponents}
+        components={components}
         className="text-sm text-[var(--color-text-1)] leading-relaxed"
       />
     </TextMessagePartProvider>

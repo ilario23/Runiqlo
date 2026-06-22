@@ -1,7 +1,38 @@
 import type {WorkoutBlock, WorkoutStep, RepeatBlock} from './coachTypes';
+import type {UserSettings} from './activityModel';
 
 export function isRepeatBlock(block: WorkoutBlock): block is RepeatBlock {
   return 'repeatCount' in block;
+}
+
+// Map a % LTHR value to the athlete's custom 6-zone model.
+// Bands mirror the coach's LTHR reference (coachContext.ts):
+// Z1 60–69, Z2 70–82, Z3 83–94, Z4 95–105, Z5 106–120, Z6 >120.
+function zoneFromLthrPct(pct: number): keyof UserSettings['zones'] {
+  if (pct <= 69) return 'z1';
+  if (pct <= 82) return 'z2';
+  if (pct <= 94) return 'z3';
+  if (pct <= 105) return 'z4';
+  if (pct <= 120) return 'z5';
+  return 'z6';
+}
+
+// Derive a real bpm range from the step's intensity (% LTHR) using the
+// athlete's actual zone bpm boundaries. Single source of truth — the LLM
+// never supplies bpm (it has no LTHR to compute from, and hallucinated
+// "1–1 bpm" placeholders). Returns null when zones are unavailable.
+export function bpmRangeFromIntensity(
+  intensityMin: number,
+  intensityMax: number,
+  zones: UserSettings['zones'] | undefined,
+): {bpmMin: number; bpmMax: number} | null {
+  if (!zones) return null;
+  const lo = Math.min(intensityMin, intensityMax);
+  const hi = Math.max(intensityMin, intensityMax);
+  const bpmMin = zones[zoneFromLthrPct(lo)][0];
+  const bpmMax = zones[zoneFromLthrPct(hi)][1];
+  if (!Number.isFinite(bpmMin) || !Number.isFinite(bpmMax)) return null;
+  return {bpmMin, bpmMax};
 }
 
 export function formatDuration(seconds: number): string {

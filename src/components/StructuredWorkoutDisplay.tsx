@@ -1,7 +1,9 @@
 'use client';
 
 import type {WorkoutBlock, WorkoutStep, RepeatBlock} from '@/lib/coachTypes';
-import {isRepeatBlock, formatDuration} from '@/lib/workoutUtils';
+import type {UserSettings} from '@/lib/activityModel';
+import {isRepeatBlock, formatDuration, bpmRangeFromIntensity} from '@/lib/workoutUtils';
+import {useSettings} from '@/contexts/SettingsContext';
 
 const STEP_STYLE: Record<string, {dot: string; bg: string; label: string}> = {
   warmup: {
@@ -33,8 +35,17 @@ const STEP_LABELS: Record<string, string> = {
   cooldown: 'Cool Down',
 };
 
-function StepRow({step, nested}: {step: WorkoutStep; nested?: boolean}) {
+function StepRow({
+  step,
+  nested,
+  zones,
+}: {
+  step: WorkoutStep;
+  nested?: boolean;
+  zones?: UserSettings['zones'];
+}) {
   const sty = STEP_STYLE[step.stepType] ?? STEP_STYLE.training;
+  const bpm = bpmRangeFromIntensity(step.intensityMin, step.intensityMax, zones);
   return (
     <div className={`flex items-stretch rounded-xl px-3 py-2.5 ${nested ? '' : sty.bg}`}>
       <div className="flex-1 min-w-0">
@@ -54,9 +65,9 @@ function StepRow({step, nested}: {step: WorkoutStep; nested?: boolean}) {
           <span className="text-[11px] text-[var(--color-ink-3)]">
             {step.intensityMin}–{step.intensityMax}% LTHR
           </span>
-          {step.bpmMin != null && step.bpmMax != null && (
+          {bpm && (
             <span className="text-[11px] text-[var(--color-ink-3)]">
-              {step.bpmMin}–{step.bpmMax} bpm
+              {bpm.bpmMin}–{bpm.bpmMax} bpm
             </span>
           )}
         </div>
@@ -68,7 +79,7 @@ function StepRow({step, nested}: {step: WorkoutStep; nested?: boolean}) {
   );
 }
 
-function RepeatContainer({block}: {block: RepeatBlock}) {
+function RepeatContainer({block, zones}: {block: RepeatBlock; zones?: UserSettings['zones']}) {
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-0)] overflow-hidden">
       <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--color-surface-2)] border-b border-[var(--color-border)]">
@@ -84,7 +95,7 @@ function RepeatContainer({block}: {block: RepeatBlock}) {
           const sty = STEP_STYLE[step.stepType] ?? STEP_STYLE.training;
           return (
             <div key={i} className={sty.bg}>
-              <StepRow step={step} nested />
+              <StepRow step={step} nested zones={zones} />
             </div>
           );
         })}
@@ -105,18 +116,20 @@ function totalSeconds(blocks: WorkoutBlock[]): number {
 export function StructuredWorkoutDisplay({
   blocks,
   className,
+  zones,
 }: {
   blocks: WorkoutBlock[];
   className?: string;
+  zones?: UserSettings['zones'];
 }) {
   const total = totalSeconds(blocks);
   return (
     <div className={`space-y-1.5 ${className ?? ''}`}>
       {blocks.map((block, i) =>
         isRepeatBlock(block) ? (
-          <RepeatContainer key={i} block={block} />
+          <RepeatContainer key={i} block={block} zones={zones} />
         ) : (
-          <StepRow key={i} step={block} />
+          <StepRow key={i} step={block} zones={zones} />
         ),
       )}
       {total > 0 && (

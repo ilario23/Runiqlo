@@ -8,6 +8,7 @@ import {useSettings} from '@/contexts/SettingsContext';
 import {formatPace} from '@/lib/activityModel';
 import type {StreamPoint, UserSettings} from '@/lib/activityModel';
 import type {WorkoutBlock, WorkoutType} from '@/lib/coachTypes';
+import {bpmRangeFromIntensity} from '@/lib/workoutUtils';
 
 const cardVariant: Variants = {
   hidden: {opacity: 0},
@@ -77,8 +78,8 @@ function buildSections(
     startSec: number;
     endSec: number;
     zoneNumber: number | undefined;
-    bpmMin: number | undefined;
-    bpmMax: number | undefined;
+    intensityMin: number;
+    intensityMax: number;
   };
 
   const flatSteps: FlatStep[] = [];
@@ -93,8 +94,8 @@ function buildSections(
             startSec: t,
             endSec: t + step.durationSeconds,
             zoneNumber: step.zoneNumber,
-            bpmMin: step.bpmMin,
-            bpmMax: step.bpmMax,
+            intensityMin: step.intensityMin,
+            intensityMax: step.intensityMax,
           });
           t += step.durationSeconds;
         }
@@ -105,8 +106,8 @@ function buildSections(
         startSec: t,
         endSec: t + block.durationSeconds,
         zoneNumber: block.zoneNumber,
-        bpmMin: block.bpmMin,
-        bpmMax: block.bpmMax,
+        intensityMin: block.intensityMin,
+        intensityMax: block.intensityMax,
       });
       t += block.durationSeconds;
     }
@@ -137,11 +138,13 @@ function buildSections(
       ? Math.round(hrReadings.reduce((s, v) => s + v, 0) / hrReadings.length)
       : null;
 
-    // Resolve BPM target: prefer explicit bpmMin/bpmMax, fall back to zone settings
+    // Resolve BPM target from the step's % LTHR intensity → athlete zones.
+    // Fall back to an explicit zoneNumber when intensity is unusable.
     const rep = phaseSteps[0];
-    let bpmMin = rep.bpmMin;
-    let bpmMax = rep.bpmMax;
     const zoneNumber = rep.zoneNumber;
+    const bpm = bpmRangeFromIntensity(rep.intensityMin, rep.intensityMax, settings.zones);
+    let bpmMin = bpm?.bpmMin;
+    let bpmMax = bpm?.bpmMax;
 
     if ((!bpmMin || !bpmMax) && zoneNumber) {
       const key = `z${zoneNumber}` as keyof typeof settings.zones;

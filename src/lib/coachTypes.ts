@@ -81,8 +81,6 @@ export interface WorkoutStep {
   zoneNumber?: number;
   intensityMin: number;
   intensityMax: number;
-  bpmMin?: number;
-  bpmMax?: number;
   notes?: string;
 }
 

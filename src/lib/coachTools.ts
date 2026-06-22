@@ -37,8 +37,6 @@ const structuredStepSchema = z.union([
     zoneNumber: z.number().int().min(1).max(6).optional(),
     intensityMin: z.number().min(0).max(200),
     intensityMax: z.number().min(0).max(200),
-    bpmMin: z.number().int().positive().optional(),
-    bpmMax: z.number().int().positive().optional(),
     notes: z.string().optional(),
   }),
   z.object({
@@ -51,8 +49,6 @@ const structuredStepSchema = z.union([
         zoneNumber: z.number().int().min(1).max(6).optional(),
         intensityMin: z.number().min(0).max(200),
         intensityMax: z.number().min(0).max(200),
-        bpmMin: z.number().int().positive().optional(),
-        bpmMax: z.number().int().positive().optional(),
         notes: z.string().optional(),
       }),
     ),
@@ -77,7 +73,7 @@ const plannedWorkoutSchema = z.object({
     .array(structuredStepSchema)
     .optional()
     .describe(
-      'Structured step-by-step blocks for interval_run and tempo_run workouts. Each block is a WorkoutStep (warmup/training/rest/cooldown) or a RepeatBlock with repeatCount and nested steps. intensityMin/Max are % of LTHR. Include bpmMin/bpmMax when LTHR is known. Omit this field entirely for easy_run, long_run, and rest days.',
+      'Structured step-by-step blocks for interval_run and tempo_run workouts. Each block is a WorkoutStep (warmup/training/rest/cooldown) or a RepeatBlock with repeatCount and nested steps. intensityMin/Max are % of LTHR — the app converts these to the athlete\'s actual bpm at display time, so do NOT supply bpm values. Omit this field entirely for easy_run, long_run, and rest days.',
     ),
 });
 

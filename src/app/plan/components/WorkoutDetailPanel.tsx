@@ -194,7 +194,7 @@ export function WorkoutDetailPanel({
         <div>
           <div className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold mb-2">Session</div>
           {structuredBlocks ? (
-            <StructuredWorkoutDisplay blocks={structuredBlocks} />
+            <StructuredWorkoutDisplay blocks={structuredBlocks} zones={settings.zones} />
           ) : (
             <div className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] overflow-hidden">
               {phases.map((phase, idx) => (
