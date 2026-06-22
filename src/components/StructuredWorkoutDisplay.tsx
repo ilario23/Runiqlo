@@ -62,9 +62,6 @@ function StepRow({
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0">
           <span className="text-xs text-[var(--color-ink)] font-medium">{step.zoneName}</span>
-          <span className="text-[11px] text-[var(--color-ink-3)]">
-            {step.intensityMin}–{step.intensityMax}% LTHR
-          </span>
           {bpm && (
             <span className="text-[11px] text-[var(--color-ink-3)]">
               {bpm.bpmMin}–{bpm.bpmMax} bpm
@@ -122,14 +119,16 @@ export function StructuredWorkoutDisplay({
   className?: string;
   zones?: UserSettings['zones'];
 }) {
+  const {settings} = useSettings();
+  const resolvedZones = zones ?? settings.zones;
   const total = totalSeconds(blocks);
   return (
     <div className={`space-y-1.5 ${className ?? ''}`}>
       {blocks.map((block, i) =>
         isRepeatBlock(block) ? (
-          <RepeatContainer key={i} block={block} zones={zones} />
+          <RepeatContainer key={i} block={block} zones={resolvedZones} />
         ) : (
-          <StepRow key={i} step={block} zones={zones} />
+          <StepRow key={i} step={block} zones={resolvedZones} />
         ),
       )}
       {total > 0 && (
