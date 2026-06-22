@@ -14,6 +14,16 @@ import {rateLimit} from '@/lib/rateLimit';
 const MAX_HISTORY = 40;
 const PRUNE_ABOVE = 80;
 
+// Monotonic, collision-free bigint id generator. Date.now()*1000 leaves room
+// for many ids per ms; strictly increasing within the process so concurrent
+// turns in the same millisecond never collide on the primary key.
+let lastMessageId = 0;
+function nextMessageId(): number {
+  const id = Math.max(Date.now() * 1000, lastMessageId + 1);
+  lastMessageId = id;
+  return id;
+}
+
 export interface SessionSummary {
   id: string | null;
   createdAt: number;
@@ -103,7 +113,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
       }
       if (!content) continue;
       toInsert.push({
-        id: now + Math.floor(Math.random() * 1000),
+        id: nextMessageId(),
         athleteId,
         sessionId,
         role: 'user',
@@ -116,7 +126,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
       if (typeof msg.content === 'string') {
         if (msg.content) {
           toInsert.push({
-            id: now + Math.floor(Math.random() * 1000),
+            id: nextMessageId(),
             athleteId,
             sessionId,
             role: 'assistant',
@@ -130,7 +140,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
         const hasToolCalls = msg.content.some(p => (p as {type: string}).type === 'tool-call');
         if (hasToolCalls) {
           toInsert.push({
-            id: now + Math.floor(Math.random() * 1000),
+            id: nextMessageId(),
             athleteId,
             sessionId,
             role: 'assistant',
@@ -146,7 +156,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
             .join('');
           if (textParts) {
             toInsert.push({
-              id: now + Math.floor(Math.random() * 1000),
+              id: nextMessageId(),
               athleteId,
               sessionId,
               role: 'assistant',
@@ -165,7 +175,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
       for (const part of parts) {
         if (part.type === 'tool-result') {
           toInsert.push({
-            id: now + Math.floor(Math.random() * 1000),
+            id: nextMessageId(),
             athleteId,
             sessionId,
             role: 'tool',
@@ -180,16 +190,7 @@ async function persistMessages(athleteId: number, sessionId: string | null, mess
   }
 
   if (toInsert.length > 0) {
-    const seen = new Set<number>();
-    let offset = 0;
-    const deduped = toInsert.map(m => {
-      while (seen.has(m.id + offset)) offset++;
-      const id = m.id + offset;
-      seen.add(id);
-      offset++;
-      return {...m, id};
-    });
-    await db.insert(schema.coachMessages).values(deduped);
+    await db.insert(schema.coachMessages).values(toInsert);
   }
 
   // Prune old messages scoped to this session only
@@ -340,12 +341,22 @@ export async function POST(req: NextRequest) {
   }
 
   const lastUIMessage = messages[messages.length - 1];
-  const [modelMessages, history, system] = await Promise.all([
-    convertToModelMessages([lastUIMessage]),
-    loadHistory(athleteId, sessionId),
-    buildCoachSystemPrompt(athleteId),
-  ]);
-  const newModelMsg = modelMessages[0];
+  let newModelMsg: ModelMessage;
+  let history: ModelMessage[];
+  let system: string;
+  try {
+    const [modelMessages, loadedHistory, builtSystem] = await Promise.all([
+      convertToModelMessages([lastUIMessage]),
+      loadHistory(athleteId, sessionId),
+      buildCoachSystemPrompt(athleteId),
+    ]);
+    newModelMsg = modelMessages[0];
+    history = loadedHistory;
+    system = builtSystem;
+  } catch (e) {
+    console.error('[coach/chat] setup error:', e);
+    return new Response(JSON.stringify({error: 'Coach setup failed'}), {status: 500});
+  }
 
   const allMessages: ModelMessage[] = [...history, newModelMsg];
 

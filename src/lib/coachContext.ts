@@ -79,7 +79,7 @@ export async function buildCoachSystemPrompt(athleteId: number): Promise<string>
   let fitnessSection = 'No fitness data available (athlete needs to sync activities).';
   const cache = cacheRows[0];
   if (cache) {
-    const data = cache.data as Array<{date: string; ctl: number; atl: number; tl: number}>;
+    const data = (cache.data ?? []) as Array<{date: string; ctl: number; atl: number; tl: number}>;
     if (data.length > 0) {
       const latest = data[data.length - 1];
       const tsb = Number((latest.ctl - latest.atl).toFixed(1));
@@ -130,7 +130,7 @@ Form: ${tsb > 5 ? 'Fresh' : tsb > -10 ? 'Neutral' : tsb > -20 ? 'Fatigued' : 'Ve
   let blockTimelineSection = '';
   const plan = planRows[0];
   if (plan) {
-    const phases = plan.phases as TrainingPhase[];
+    const phases = (plan.phases ?? []) as TrainingPhase[];
     // Derive current phase from today's date — stored index can be stale
     const actualPhaseIndex = phases.findIndex(p => today >= p.startDate && today <= p.endDate);
     const currentPhaseIndex = actualPhaseIndex !== -1 ? actualPhaseIndex : plan.currentPhaseIndex;
@@ -145,14 +145,14 @@ Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
     if (sketches.length > 0) {
       const actualKmByWeek: Record<string, number> = {};
       for (const wr of recentWeekRows) {
-        const days = wr.days as Array<{workouts: PlannedWorkout[]}>;
-        const km = days.flatMap(d => d.workouts).filter(w => w.completed && w.distanceKm != null).reduce((s, w) => s + (w.distanceKm ?? 0), 0);
+        const days = (wr.days ?? []) as Array<{workouts?: PlannedWorkout[]}>;
+        const km = days.flatMap(d => d.workouts ?? []).filter(w => w.completed && w.distanceKm != null).reduce((s, w) => s + (w.distanceKm ?? 0), 0);
         actualKmByWeek[wr.weekStart] = Math.round(km * 10) / 10;
       }
       const curWeek = weekRows[0];
       if (curWeek) {
-        const days = curWeek.days as Array<{workouts: PlannedWorkout[]}>;
-        const km = days.flatMap(d => d.workouts).filter(w => w.completed && w.distanceKm != null).reduce((s, w) => s + (w.distanceKm ?? 0), 0);
+        const days = (curWeek.days ?? []) as Array<{workouts?: PlannedWorkout[]}>;
+        const km = days.flatMap(d => d.workouts ?? []).filter(w => w.completed && w.distanceKm != null).reduce((s, w) => s + (w.distanceKm ?? 0), 0);
         if (km > 0) actualKmByWeek[currentMonday] = Math.round(km * 10) / 10;
       }
       const curIdx = sketches.findIndex(s => s.weekStart === currentMonday);
@@ -175,14 +175,15 @@ Full plan: ${phases.map(p => `${p.phase}(${p.weekCount}wk)`).join(' → ')}`;
   let weekSection = 'No plan for this week — generate one with saveWeeklyPlan.';
   const week = weekRows[0];
   if (week) {
-    const days = week.days as Array<{date: string; dayOfWeek: number; workouts: Array<{type: string; distanceKm?: number; durationMinutes?: number; completed?: boolean}>}>;
+    const days = (week.days ?? []) as Array<{date: string; dayOfWeek: number; workouts?: Array<{type: string; distanceKm?: number; durationMinutes?: number; completed?: boolean}>}>;
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const lines = days.map(d => {
       const isPast = d.date < today;
       const isToday = d.date === today;
       const prefix = isPast ? '[done] ' : isToday ? '[TODAY] ' : '';
-      if (!d.workouts.length) return `${prefix}${dayNames[d.dayOfWeek]}: Rest`;
-      const ws = d.workouts.map(w => {
+      const workouts = d.workouts ?? [];
+      if (!workouts.length) return `${prefix}${dayNames[d.dayOfWeek]}: Rest`;
+      const ws = workouts.map(w => {
         let s = w.type.replace(/_/g, ' ');
         if (w.distanceKm) s += ` ${w.distanceKm}km`;
         else if (w.durationMinutes) s += ` ${w.durationMinutes}min`;
