@@ -12,6 +12,7 @@ import {ZONE_COLORS, ZONE_NAMES, defaultSettings} from '@/lib/activityModel';
 import type {UserSettings} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
 import AppHeader from '@/components/AppHeader';
+import CoachKnowledgeCard from './components/CoachKnowledgeCard';
 
 // ─── Coach types & constants ──────────────────────────────────────────────────
 
@@ -474,9 +475,10 @@ function SettingsContent() {
 
           {/* ── Coach ──────────────────────────────────────────────────────── */}
           {isAuthenticated && (
-            <section>
+            <section className="space-y-4">
               <SectionLabel>Coach</SectionLabel>
               <CoachModelCard />
+              <CoachKnowledgeCard />
             </section>
           )}
 
