@@ -143,7 +143,11 @@ export function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
           <p className="body-serif" style={{fontStyle: 'italic'}}>No long runs with HR data in this range.</p>
         </div>
       ) : (
-        <div className="h-[200px]">
+        <div
+          className="h-[200px]"
+          role="img"
+          aria-label={`Aerobic decoupling scatter plot, ${points.length} long runs. Lower percentages indicate better aerobic endurance; the dashed reference lines mark 5% and 8%.`}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <ScatterChart margin={{top: 4, right: 8, left: -20, bottom: 0}}>
               <XAxis

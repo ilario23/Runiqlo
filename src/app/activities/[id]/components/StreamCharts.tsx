@@ -122,7 +122,7 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
   return (
     <div>
       <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide mb-1.5">Elevation</p>
-      <div className="h-[100px]">
+      <div className="h-[100px]" role="img" aria-label="Elevation profile over the course of the activity">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
             data={data}
@@ -220,7 +220,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           </button>
         )}
       </div>
-      <div className="h-[140px]">
+      <div className="h-[140px]" role="img" aria-label="Heart rate, pace and cadence streams over the course of the activity">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={data}

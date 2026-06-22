@@ -112,8 +112,9 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
   const padding = Math.max(10, (maxT - minT) * 0.15);
 
   return (
-    <ResponsiveContainer width="100%" height={180}>
-      <LineChart data={data} margin={{top: 8, right: 8, bottom: 0, left: 0}}>
+    <div role="img" aria-label="Segment effort time trend across past attempts">
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart data={data} margin={{top: 8, right: 8, bottom: 0, left: 0}}>
         <XAxis
           dataKey="label"
           tick={{fontSize: 10, fill: 'rgba(26,24,20,0.3)'}}
@@ -156,8 +157,9 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
           }}
           activeDot={{r: 5, fill: COLORS.green}}
         />
-      </LineChart>
-    </ResponsiveContainer>
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 

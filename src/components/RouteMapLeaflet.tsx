@@ -140,6 +140,8 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
   return (
     <div
       ref={containerRef}
+      role="img"
+      aria-label="Map of the activity route"
       className="w-full h-[300px] rounded-xl overflow-hidden"
       style={{background: 'var(--color-paper-2)'}}
     />
