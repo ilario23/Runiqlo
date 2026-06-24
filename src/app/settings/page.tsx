@@ -8,8 +8,8 @@ import {useSearchParams, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {useSettings} from '@/contexts/SettingsContext';
 import {useBackfillZoneData} from '@/hooks/useStrava';
-import {ZONE_COLORS, ZONE_NAMES, defaultSettings} from '@/lib/activityModel';
-import type {UserSettings} from '@/lib/activityModel';
+import {ZONE_COLORS, ZONE_NAMES, defaultSettings, ACCENTS} from '@/lib/activityModel';
+import type {UserSettings, ThemeMode, AccentKey} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
 import AppHeader from '@/components/AppHeader';
 import CoachKnowledgeCard from './components/CoachKnowledgeCard';
@@ -122,6 +122,69 @@ function CoachModelCard() {
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Appearance card (theme + accent, device-local) ──────────────────────────
+
+const ACCENT_KEYS = Object.keys(ACCENTS) as AccentKey[];
+
+function AppearanceCard() {
+  const {settings, updateSettings} = useSettings();
+  const theme = settings.theme ?? 'dark';
+  const accent = settings.accent ?? 'lime';
+
+  return (
+    <div className="surface-card p-5 space-y-5">
+      <div>
+        <p className="text-sm font-medium text-[var(--color-ink)]">Appearance</p>
+        <p className="text-xs text-[var(--color-ink-3)] mt-0.5">Saved on this device.</p>
+      </div>
+
+      {/* Theme */}
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-xs font-medium text-[var(--color-ink-2)]">Theme</span>
+        <div className="flex p-0.5 rounded-[11px] bg-[var(--color-surface-1)] border border-[var(--color-border)]">
+          {(['dark', 'light'] as ThemeMode[]).map((t) => (
+            <button
+              key={t}
+              onClick={() => updateSettings({theme: t})}
+              className="px-3.5 py-1.5 rounded-[9px] text-xs font-semibold capitalize transition-colors cursor-pointer"
+              style={
+                theme === t
+                  ? {background: 'var(--accent)', color: 'var(--accent-ink)'}
+                  : {background: 'transparent', color: 'var(--color-ink-3)'}
+              }
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Accent */}
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-xs font-medium text-[var(--color-ink-2)]">Accent</span>
+        <div className="flex items-center gap-2.5">
+          {ACCENT_KEYS.map((key) => {
+            const sel = accent === key;
+            return (
+              <button
+                key={key}
+                onClick={() => updateSettings({accent: key})}
+                aria-label={key}
+                aria-pressed={sel}
+                className="w-7 h-7 rounded-full cursor-pointer transition-transform hover:scale-110"
+                style={{
+                  background: ACCENTS[key].accent,
+                  boxShadow: sel ? `0 0 0 2px var(--panel), 0 0 0 4px ${ACCENTS[key].accent}` : 'none',
+                }}
+              />
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -451,6 +514,12 @@ function SettingsContent() {
                 </div>
               )}
             </div>
+          </section>
+
+          {/* ── Appearance ──────────────────────────────────────────────────── */}
+          <section>
+            <SectionLabel>Appearance</SectionLabel>
+            <AppearanceCard />
           </section>
 
           {/* ── App info ────────────────────────────────────────────────────── */}

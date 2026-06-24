@@ -4,34 +4,38 @@ import {useState, useMemo, useEffect, useRef, useCallback} from 'react';
 import Link from 'next/link';
 import AppHeader from '@/components/AppHeader';
 import {ConnectPrompt} from '@/components/ConnectPrompt';
-import {motion} from 'framer-motion';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
+import {useSettings} from '@/contexts/SettingsContext';
 import {
   useDashboardActivities,
   useFitnessData,
   useForceRefreshActivities,
+  useBestEffortsData,
+  useWeekPlan,
+  useZoneBreakdowns,
+  usePerActivityZoneBreakdowns,
 } from '@/hooks/useStrava';
 import {formatPace, formatDuration} from '@/lib/activityModel';
 import {calcPrimaryVdot} from '@/lib/vdot';
-import {useBestEffortsData, useWeekPlan} from '@/hooks/useStrava';
+import {decodePolyline, polylineToSvgPath} from '@/lib/polyline';
 import {WorkoutDetailPanel} from '@/app/plan/components/WorkoutDetailPanel';
 import type {SelectedWorkout} from '@/app/plan/components/WeekPlan';
 import {Skeleton} from '@/components/ui/skeleton';
 import type {ActivitySummary} from '@/lib/activityModel';
 import type {FitnessDataPoint} from '@/utils/trainingLoad';
 import type {WeeklyPlan, PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
+import {
+  Tile, Readout, Tag, Icon, Mini, WorkoutDot, buildZones, formState, signed, fmtDate, workoutCfg,
+} from '@/components/rq2/ui';
+import {FitnessChart, FormGauge, ZoneBars, ZoneStack, RouteTrace} from '@/components/rq2/charts';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
-const fmtNum = (n: number | undefined, dec = 1) =>
-  typeof n === 'number' ? n.toFixed(dec) : '—';
-
-const signed = (n: number, dec = 1) => `${n > 0 ? '+' : ''}${n.toFixed(dec)}`;
+const fmtInt = (n: number | undefined) => (typeof n === 'number' ? Math.round(n) : '—');
 
 function localDateISO(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-
 function getMondayISO(d = new Date()): string {
   const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
@@ -41,191 +45,240 @@ function getMondayISO(d = new Date()): string {
 }
 
 const WORKOUT_LABELS: Record<string, string> = {
-  easy_run: 'Easy Run',
-  long_run: 'Long Run',
-  tempo_run: 'Tempo Run',
-  interval_run: 'Intervals',
-  recovery_run: 'Recovery Run',
-  gym: 'Gym',
-  cycling: 'Cycling',
-  yoga: 'Yoga',
-  cross_training: 'Cross Training',
-  rest: 'Rest Day',
-  swim: 'Swim',
-  walk: 'Walk',
-  hike: 'Hike',
+  easy_run: 'Easy Run', long_run: 'Long Run', tempo_run: 'Tempo Run', interval_run: 'Intervals',
+  recovery_run: 'Recovery Run', gym: 'Gym', cycling: 'Cycling', yoga: 'Yoga',
+  cross_training: 'Cross Training', rest: 'Rest Day', swim: 'Swim', walk: 'Walk', hike: 'Hike',
 };
-
 const WORKOUT_SHORT: Record<string, string> = {
-  easy_run: 'Easy',
-  long_run: 'Long',
-  tempo_run: 'Tempo',
-  interval_run: 'Reps',
-  recovery_run: 'Recov',
-  gym: 'Gym',
-  cycling: 'Bike',
-  yoga: 'Yoga',
-  cross_training: 'Cross',
-  rest: 'Rest',
-  swim: 'Swim',
-  walk: 'Walk',
-  hike: 'Hike',
+  easy_run: 'Easy', long_run: 'Long', tempo_run: 'Tempo', interval_run: 'Reps',
+  recovery_run: 'Recov', gym: 'Gym', cycling: 'Bike', yoga: 'Yoga',
+  cross_training: 'Cross', rest: 'Rest', swim: 'Swim', walk: 'Walk', hike: 'Hike',
 };
-
+// Coach plan workout type → rq2 WORKOUT colour bucket.
+const TYPE_BUCKET: Record<string, string> = {
+  easy_run: 'easy', recovery_run: 'recovery', long_run: 'long', tempo_run: 'tempo',
+  interval_run: 'interval', rest: 'rest',
+};
 const QUALITY_TYPES = new Set(['tempo_run', 'interval_run']);
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-function useCountUp(target: number | undefined, duration = 550): number | undefined {
-  const [display, setDisplay] = useState<number | undefined>(target);
-  const prev = useRef<number | undefined>(undefined);
-  const raf = useRef<number>(0);
-
-  useEffect(() => {
-    if (target === undefined) {
-      setDisplay(undefined);
-      return;
-    }
-    const from = prev.current;
-    prev.current = target;
-    if (from === undefined || from === target) {
-      setDisplay(target);
-      return;
-    }
-    const start = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setDisplay(from + (target - from) * eased);
-      if (t < 1) raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
-  }, [target, duration]);
-
-  return display;
+function greetingWord(): string {
+  const h = new Date().getHours();
+  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
-// ── TSB → editorial form copy ──
+// ── Today's Form: gauge + readouts ──
 
-type FormState = {word: string; deck: string; rust: boolean};
-
-function formState(tsb: number | undefined): FormState | null {
-  if (tsb === undefined) return null;
-  if (tsb > 15) return {word: 'Rested.', deck: 'Form is high; fitness may be slipping. Time to put work back in.', rust: false};
-  if (tsb > 5) return {word: 'Fresh.', deck: 'Fatigue is settled and fitness holds. The window for hard work is open, and short.', rust: true};
-  if (tsb > -10) return {word: 'Building.', deck: 'Productive load. Fitness is rising faster than fatigue can catch it.', rust: false};
-  if (tsb > -20) return {word: 'Loaded.', deck: 'High training stress. Hold the line, but watch the recovery.', rust: false};
-  return {word: 'Fatigued.', deck: 'Deep in the work. Recovery is the priority now, not another hard day.', rust: false};
-}
-
-// ── [today's form] daily readout, links to deep analytics ──
-
-function FormHero({
-  fitnessData,
-  loading,
-}: {
-  fitnessData: FitnessDataPoint[] | undefined;
-  loading: boolean;
-}) {
-  const last = fitnessData?.[fitnessData.length - 1];
-  const form = formState(last?.tsb);
-  const animatedTSB = useCountUp(last?.tsb);
-  const {data: bestEfforts} = useBestEffortsData();
-  const vdot = bestEfforts?.bests ? calcPrimaryVdot(bestEfforts.bests) : null;
-
+function FormBlock({last}: {last: FitnessDataPoint | undefined}) {
+  if (!last) return <div className="lbl" style={{textAlign: 'center', padding: '20px 0'}}>No form data yet</div>;
+  const st = formState(last.tsb);
   return (
-    <div className="p-5 md:p-8 flex flex-col" style={{borderRight: '1px solid var(--color-rule)'}}>
-      <div className="flex items-baseline justify-between">
-        <div className="kicker rust">Today&apos;s Form {last ? `· TSB ${signed(last.tsb)}` : ''}</div>
-        <Link href="/fitness" className="label" style={{color: 'var(--color-rust)'}}>Analytics →</Link>
-      </div>
-      {loading && !form ? (
-        <Skeleton className="h-28 w-64 mt-3" />
-      ) : form ? (
-        <>
-          <div className="h-display mt-2" style={{fontSize: 'clamp(56px, 9vw, 104px)'}}>
-            {form.word.replace('.', '')}
-            <span style={{color: 'var(--color-rust)'}}>.</span>
+    <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6}}>
+      <div style={{position: 'relative', width: 168, display: 'grid', placeItems: 'center'}}>
+        <FormGauge tsb={last.tsb} size={168} />
+        <div style={{position: 'absolute', left: 0, right: 0, bottom: 7, textAlign: 'center'}}>
+          <div className="num" style={{fontSize: 38, fontWeight: 680, color: st.color, lineHeight: 1, letterSpacing: '-0.045em'}}>
+            {signed(Math.round(last.tsb))}
           </div>
-          <div className="deck mt-3 max-w-xl">{form.deck}</div>
-          {typeof animatedTSB === 'number' && (
-            <div className="flex gap-2.5 mt-5 items-center flex-wrap">
-              <span className="chip ink">TSB {signed(animatedTSB)}</span>
-              <span className="chip">CTL {fmtNum(last?.ctl)}</span>
-              <span className="chip">ATL {fmtNum(last?.atl)}</span>
-              {vdot && (
-                <span
-                  className="chip"
-                  title={`${vdot.distance} · ${vdot.effortAgeDays}d ago · ${vdot.confidence.replace('_', ' ')}`}
-                  style={vdot.confidence !== 'fresh' ? {color: 'var(--color-ink-3)'} : undefined}
-                >
-                  VDOT {vdot.vdot.toFixed(1)}
-                  {vdot.confidence === 'stale' && <span style={{marginLeft: 3, fontSize: 8}}>~</span>}
-                  {vdot.confidence === 'very_stale' && <span style={{marginLeft: 3, fontSize: 8}}>~~</span>}
-                </span>
-              )}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="deck mt-4 max-w-xl">No fitness data yet. Sync your activities to see your form.</div>
-      )}
-    </div>
-  );
-}
-
-// ── [last in the field] most recent activity ──
-
-function LastActivity({activities, loading}: {activities: ActivitySummary[] | undefined; loading: boolean}) {
-  const a = activities?.[0];
-
-  return (
-    <div className="p-5 md:p-8 flex flex-col">
-      <div className="flex items-baseline justify-between">
-        <div className="kicker">Last in the field</div>
-        {a && <Link href={`/activities/${a.id}`} className="label" style={{color: 'var(--color-rust)'}}>Open →</Link>}
-      </div>
-
-      {loading && !a ? (
-        <div className="mt-4 space-y-3">
-          <Skeleton className="h-8 w-3/4" />
-          <Skeleton className="h-12 w-full" />
+          <div className="lbl" style={{color: st.color, marginTop: 5, fontSize: 9.5}}>{st.label}</div>
         </div>
-      ) : !a ? (
-        <p className="body-serif mt-6" style={{fontStyle: 'italic'}}>No activity synced yet. Your latest run lands here.</p>
-      ) : (
-        <Link href={`/activities/${a.id}`} className="flex flex-col flex-1">
-          <div className="h-section mt-2" style={{fontSize: 24}}>{a.name}</div>
-          <div className="label mt-1">
-            {new Date(a.date).toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})}
-            {a.type ? ` · ${a.type}` : ''}
-          </div>
-
-          <div className="grid grid-cols-2 gap-x-7 gap-y-4 mt-auto pt-6">
-            <div>
-              <div className="label">Distance</div>
-              <div className="num" style={{fontSize: 26}}>{a.distance > 0 ? a.distance.toFixed(1) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}> km</span></div>
-            </div>
-            <div>
-              <div className="label">Duration</div>
-              <div className="num" style={{fontSize: 26}}>{a.duration > 0 ? formatDuration(a.duration) : '—'}</div>
-            </div>
-            <div>
-              <div className="label">Avg pace</div>
-              <div className="num" style={{fontSize: 26}}>{a.avgPace > 0 ? formatPace(a.avgPace) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}>/km</span></div>
-            </div>
-            <div>
-              <div className="label">Avg HR</div>
-              <div className="num" style={{fontSize: 26, color: 'var(--color-rust)'}}>{a.avgHr > 0 ? Math.round(a.avgHr) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}> bpm</span></div>
-            </div>
-          </div>
-        </Link>
-      )}
+      </div>
+      <div style={{fontSize: 11.5, color: 'var(--dim)', textAlign: 'center'}}>{st.note}</div>
     </div>
   );
 }
 
-// ── [this week] compact 7-day plan strip ──
+function FitnessReadouts({series}: {series: FitnessDataPoint[] | undefined}) {
+  if (!series || series.length === 0) return null;
+  const last = series[series.length - 1];
+  const prev = series[series.length - 8] ?? series[0];
+  const items = [
+    {label: 'FITNESS · CTL', value: Math.round(last.ctl), trend: Math.round(last.ctl - prev.ctl), color: 'var(--accent)'},
+    {label: 'FATIGUE · ATL', value: Math.round(last.atl), trend: Math.round(last.atl - prev.atl), color: 'var(--z5)'},
+    {label: 'FORM · TSB', value: signed(Math.round(last.tsb)), trend: null as number | null, color: formState(last.tsb).color},
+  ];
+  return (
+    <div style={{display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--gap)'}}>
+      {items.map((it, i) => (
+        <div key={i} style={{display: 'flex', flexDirection: 'column', gap: 2}}>
+          <span className="lbl">{it.label}</span>
+          <div style={{display: 'flex', alignItems: 'baseline', gap: 6}}>
+            <span className="num" style={{fontSize: 'var(--fs-xl)', fontWeight: 600, color: it.color, letterSpacing: '-0.03em'}}>{it.value}</span>
+            {it.trend != null && (
+              <span className="mono" style={{fontSize: 10.5, color: it.trend >= 0 ? 'var(--fresh)' : 'var(--fatigue)'}}>
+                {it.trend >= 0 ? '▲' : '▼'} {Math.abs(it.trend)} <span style={{color: 'var(--faint)'}}>7d</span>
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Today's Session (coach prescription) ──
+
+function SessionCard({plan, loading, error, onRetry}: {
+  plan: WeeklyPlan | null | undefined; loading: boolean; error: boolean; onRetry: () => void;
+}) {
+  if (error) {
+    return (
+      <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+        <div style={{fontSize: 'var(--fs-lg)', fontWeight: 650}}>Couldn&apos;t reach the coach.</div>
+        <div style={{fontSize: 12.5, color: 'var(--dim)'}}>Check your connection and try again.</div>
+        <button className="btn" onClick={onRetry} style={{alignSelf: 'flex-start'}}>Retry <Icon name="arrow" size={13} /></button>
+      </div>
+    );
+  }
+  if (loading || plan === undefined) {
+    return <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+      <Skeleton className="h-7 w-2/3" /><Skeleton className="h-16 w-full" /><Skeleton className="h-12 w-full" />
+    </div>;
+  }
+
+  const todayISO = localDateISO();
+  const todayEntry = plan?.days?.find((d) => d.date === todayISO);
+  const first = todayEntry?.workouts?.find((w) => w.type !== 'rest');
+
+  if (!plan) {
+    return (
+      <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+        <div>
+          <div className="lbl" style={{color: 'var(--accent)'}}>NO PLAN YET</div>
+          <div style={{fontSize: 'var(--fs-lg)', fontWeight: 650, marginTop: 3}}>Set up a block</div>
+        </div>
+        <div style={{fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.5}}>
+          Sit down with the coach and lay out a training block around your goal and current form.
+        </div>
+        <Link href="/coach" className="btn btn-accent" style={{alignSelf: 'flex-start'}}><Icon name="bolt" size={13} /> Set up with coach</Link>
+      </div>
+    );
+  }
+
+  if (!first) {
+    return (
+      <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+        <div>
+          <div className="lbl" style={{color: 'var(--faint)'}}>PRESCRIBED · TODAY</div>
+          <div style={{fontSize: 'var(--fs-xl)', fontWeight: 680, marginTop: 3}}>Rest.</div>
+        </div>
+        <div style={{fontSize: 12.5, color: 'var(--dim)', lineHeight: 1.5}}>
+          Nothing today — that is the workout. Recovery is where the adaptation happens.
+        </div>
+        <Link href="/plan" className="btn" style={{alignSelf: 'flex-start'}}>View this week <Icon name="arrow" size={13} /></Link>
+      </div>
+    );
+  }
+
+  const wk = workoutCfg(TYPE_BUCKET[first.type] ?? first.type);
+  const label = WORKOUT_LABELS[first.type] ?? first.type;
+  const extras = (todayEntry?.workouts ?? []).slice(1).filter((w) => w.type !== 'rest');
+  // STRUCTURE: first 1-2 clauses of the intensity note (split on separators, never mid-word).
+  const structure = first.intensityDescription
+    ? first.intensityDescription.split(/[·.,]/).map((s) => s.trim()).filter(Boolean).slice(0, 2).join(' · ')
+    : label;
+  const metrics: {k: string; v: string; u?: string}[] = [
+    {k: 'STRUCTURE', v: structure},
+    {k: 'DISTANCE', v: first.distanceKm ? String(first.distanceKm) : '—', u: 'km'},
+    {k: 'DURATION', v: first.durationMinutes ? '~' + first.durationMinutes : '—', u: 'min'},
+    {k: 'TYPE', v: label.split(' ')[0]},
+  ];
+
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', gap: 14}}>
+      <div style={{display: 'flex', alignItems: 'center', gap: 10}}>
+        <span style={{width: 3, alignSelf: 'stretch', background: wk.color, borderRadius: 2}} />
+        <div>
+          <div className="lbl" style={{color: wk.color}}>PRESCRIBED · TODAY</div>
+          <div style={{fontSize: 'var(--fs-lg)', fontWeight: 650, letterSpacing: '-0.015em', marginTop: 3, lineHeight: 1.1}}>{label}</div>
+        </div>
+      </div>
+
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 1, background: 'var(--line)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', overflow: 'hidden'}}>
+        {metrics.map((m, i) => (
+          <div key={i} style={{background: 'var(--panel)', padding: '11px 12px', display: 'flex', flexDirection: 'column', gap: 4}}>
+            <span className="lbl" style={{fontSize: 8.5}}>{m.k}</span>
+            <div style={{display: 'flex', alignItems: 'baseline', gap: 3}}>
+              <span className="num" style={{fontSize: m.v.length > 8 ? 13 : 18, fontWeight: 600}}>{m.v}</span>
+              {m.u && <span className="mono" style={{fontSize: 10, color: 'var(--faint)'}}>{m.u}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {first.intensityDescription && (
+        <div style={{display: 'flex', gap: 11, alignItems: 'flex-start', padding: '14px 16px', background: 'var(--panel-2)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)'}}>
+          <span style={{width: 22, height: 22, borderRadius: 7, background: 'var(--accent)', color: 'var(--accent-ink)', display: 'grid', placeItems: 'center', flexShrink: 0, fontWeight: 700, fontSize: 12}}>C</span>
+          <div>
+            <div className="lbl" style={{marginBottom: 3}}>COACH RATIONALE</div>
+            <div style={{fontSize: 12.5, color: 'var(--text)', lineHeight: 1.5}}>{first.intensityDescription}</div>
+          </div>
+        </div>
+      )}
+
+      {extras.length > 0 && (
+        <div style={{fontSize: 11.5, color: 'var(--dim)'}}>
+          <span className="lbl" style={{color: 'var(--accent)', marginRight: 6}}>ALSO TODAY</span>
+          {extras.map((w) => WORKOUT_LABELS[w.type] ?? w.type).join(' · ')}
+        </div>
+      )}
+
+      <div style={{display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center'}}>
+        <div style={{flex: 1}} />
+        <Link href="/coach" className="btn btn-ghost">Ask coach <Icon name="arrow" size={13} /></Link>
+        <Link href="/plan" className="btn btn-accent"><Icon name="bolt" size={13} /> Open workout</Link>
+      </div>
+    </div>
+  );
+}
+
+// ── Last Run card ──
+
+function LastRunCard({activity, zoneFractions}: {activity: ActivitySummary | undefined; zoneFractions: number[] | null}) {
+  const {settings} = useSettings();
+  const poly = activity?.polyline;
+  const routeD = useMemo(() => {
+    if (!poly) return null;
+    try {
+      const pts = decodePolyline(poly);
+      return pts.length > 1 ? polylineToSvgPath(pts, 100, 100, 8) : null;
+    } catch { return null; }
+  }, [poly]);
+  if (!activity) return <div className="lbl" style={{padding: '14px 0'}}>No activity synced yet.</div>;
+  const a = activity;
+  const zones = buildZones(settings.zones);
+
+  return (
+    <div style={{display: 'flex', flexDirection: 'column', gap: 12}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start'}}>
+        <div>
+          <div style={{fontSize: 14, fontWeight: 600}}>{a.name}</div>
+          <div className="lbl" style={{marginTop: 2}}>
+            {new Date(a.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})} · {a.type.toUpperCase()}
+          </div>
+        </div>
+      </div>
+      {routeD && <RouteTrace d={routeD} height={116} />}
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10}}>
+        {[
+          {v: a.distance > 0 ? a.distance.toFixed(1) : '—', u: 'km'},
+          {v: a.avgPace > 0 ? formatPace(a.avgPace) : '—', u: '/km'},
+          {v: a.avgHr > 0 ? Math.round(a.avgHr) : '—', u: 'bpm'},
+          {v: Math.round(a.elevationGain), u: 'm ↑'},
+        ].map((m, i) => (
+          <div key={i} style={{display: 'flex', flexDirection: 'column'}}>
+            <span className="num" style={{fontSize: 17, fontWeight: 600}}>{m.v}</span>
+            <span className="lbl" style={{fontSize: 8.5}}>{m.u}</span>
+          </div>
+        ))}
+      </div>
+      {zoneFractions && <ZoneStack zones={zones} dist={zoneFractions} showPct={false} height={9} />}
+      <Link href={`/activities/${a.id}`} className="btn btn-ghost" style={{alignSelf: 'flex-start'}}>Open analysis <Icon name="arrow" size={13} /></Link>
+    </div>
+  );
+}
+
+// ── This week strip (interactive — keeps WorkoutDetailPanel) ──
 
 function workoutSummary(w: PlannedWorkout | undefined): {label: string; detail: string} | null {
   if (!w) return null;
@@ -236,18 +289,8 @@ function workoutSummary(w: PlannedWorkout | undefined): {label: string; detail: 
   return {label, detail: parts.join(' ')};
 }
 
-function WeekStrip({
-  plan,
-  loading,
-  athleteId,
-  weekStart,
-  onMutated,
-}: {
-  plan: WeeklyPlan | null | undefined;
-  loading: boolean;
-  athleteId: number | undefined;
-  weekStart: string;
-  onMutated: () => void;
+function WeekStrip({plan, loading, athleteId, weekStart, onMutated}: {
+  plan: WeeklyPlan | null | undefined; loading: boolean; athleteId: number | undefined; weekStart: string; onMutated: () => void;
 }) {
   const todayISO = localDateISO();
   const [selected, setSelected] = useState<SelectedWorkout | null>(null);
@@ -261,386 +304,146 @@ function WeekStrip({
       const iso = localDateISO(d);
       const day = byDate.get(iso);
       const workouts = (day?.workouts ?? []).filter((w) => w.type !== 'rest');
-      return {
-        iso,
-        dayIndex: i,
-        weekday: WEEKDAYS[i],
-        dayNum: d.getDate(),
-        isToday: iso === todayISO,
-        isPast: iso < todayISO,
-        isRest: workouts.length === 0,
-        workouts,
-      };
+      return {iso, dayIndex: i, weekday: WEEKDAYS[i], dayNum: d.getDate(), isToday: iso === todayISO, isPast: iso < todayISO, isRest: workouts.length === 0, workouts};
     });
   }, [plan, weekStart, todayISO]);
 
-  // Clear the open detail if the underlying plan changed it away.
   useEffect(() => {
     if (!selected) return;
     const day = plan?.days?.find((d) => d.date === selected.date);
     if (!day?.workouts?.[selected.workoutIndex]) setSelected(null);
   }, [plan, selected]);
-
   useEffect(() => {
-    if (selected) {
-      setTimeout(() => detailRef.current?.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50);
-    }
+    if (selected) setTimeout(() => detailRef.current?.scrollIntoView({behavior: 'smooth', block: 'nearest'}), 50);
   }, [selected]);
 
   const selectWorkout = (dayIndex: number, date: string, workoutIndex: number, workout: PlannedWorkout) => {
-    setSelected((prev) =>
-      prev?.date === date && prev?.workoutIndex === workoutIndex
-        ? null
-        : {date, dayIndex, workoutIndex, workout},
-    );
+    setSelected((prev) => prev?.date === date && prev?.workoutIndex === workoutIndex ? null : {date, dayIndex, workoutIndex, workout});
   };
 
-  return (
-    <div className="p-5 md:p-7">
-      <div className="flex items-baseline justify-between">
-        <span className="h-section" style={{fontSize: 22}}>This week</span>
-        <Link href="/plan" className="label" style={{color: 'var(--color-rust)'}}>Full plan →</Link>
-      </div>
-
-      {loading && !plan ? (
-        <div className="grid grid-cols-7 gap-2 mt-4">
-          {WEEKDAYS.map((d) => <Skeleton key={d} className="h-24 w-full" />)}
-        </div>
-      ) : plan === null ? (
-        <div className="flex items-center justify-between gap-4 mt-5 flex-wrap">
-          <p className="body-serif" style={{fontStyle: 'italic'}}>No plan set. Build a block with the coach around your goal and form.</p>
-          <Link href="/coach" className="btn ink">Set up with coach →</Link>
-        </div>
-      ) : (
-        <>
-          <div className="flex gap-2 mt-4 overflow-x-auto sm:grid sm:grid-cols-7 sm:overflow-visible -mx-1 px-1 sm:mx-0 sm:px-0 items-stretch">
-            {cells.map((c) => {
-              const accent = c.isToday;
-              return (
-                <div
-                  key={c.iso}
-                  className={`day ${c.isRest ? 'rest' : ''} p-2 gap-1 shrink-0 w-[84px] sm:w-auto`}
-                  style={{
-                    minHeight: 92,
-                    borderColor: accent ? 'var(--color-rust)' : 'var(--color-ink)',
-                    borderWidth: accent ? 2 : 1,
-                    opacity: c.isPast && !c.workouts.some((w) => w.completed) ? 0.6 : 1,
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="label" style={{color: accent ? 'var(--color-rust)' : 'var(--color-ink-3)'}}>{c.weekday}</span>
-                    <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>{c.dayNum}</span>
-                  </div>
-                  <div className="flex-1 flex flex-col justify-end gap-1">
-                    {c.isRest ? (
-                      <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>Rest</span>
-                    ) : (
-                      c.workouts.map((w, wi) => {
-                        const summary = workoutSummary(w);
-                        const isSel = selected?.date === c.iso && selected?.workoutIndex === wi;
-                        return (
-                          <button
-                            key={wi}
-                            type="button"
-                            onClick={() => selectWorkout(c.dayIndex, c.iso, wi, w)}
-                            className="text-left w-full transition-colors cursor-pointer px-1 -mx-1"
-                            style={{
-                              background: isSel ? 'var(--color-paper-3)' : 'transparent',
-                              outline: isSel ? '1px solid var(--color-ink)' : 'none',
-                            }}
-                          >
-                            <span
-                              className="num block"
-                              style={{fontSize: 13, lineHeight: 1.1, color: accent ? 'var(--color-rust)' : 'var(--color-ink)'}}
-                            >
-                              {summary?.label}
-                            </span>
-                            {summary?.detail && (
-                              <span className="num block" style={{fontSize: 10, color: 'var(--color-ink-3)'}}>{summary.detail}</span>
-                            )}
-                            {w.completed && (
-                              <span className="label block" style={{color: 'var(--color-rust)'}}>✓ done</span>
-                            )}
-                          </button>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {selected && athleteId != null && (
-            <div ref={detailRef}>
-              <WorkoutDetailPanel
-                selected={selected}
-                athleteId={athleteId}
-                weekStart={weekStart}
-                onClose={() => setSelected(null)}
-                canLink={selected.date <= todayISO}
-                onMarkDone={(stravaActivityId: number) => {
-                  fetch('/api/coach/week', {
-                    method: 'PUT',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                      athleteId,
-                      weekStart,
-                      date: selected.date,
-                      workoutIndex: selected.workoutIndex,
-                      stravaActivityId,
-                    }),
-                  }).then(() => onMutated());
-                }}
-                onConvert={(newType: WorkoutType, newDurationMinutes: number) => {
-                  setSelected((prev) =>
-                    prev
-                      ? {...prev, workout: {...prev.workout, type: newType, durationMinutes: newDurationMinutes}}
-                      : prev,
-                  );
-                  onMutated();
-                }}
-              />
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ── [coach's prescription] today's planned workout ──
-
-function CoachPrescription({plan, loading, onRetry, error}: {
-  plan: WeeklyPlan | null | undefined;
-  loading: boolean;
-  onRetry: () => void;
-  error: boolean;
-}) {
-  const todayLabel = new Date().toLocaleDateString('en-US', {weekday: 'long'});
-
-  const Frame = ({children}: {children: React.ReactNode}) => (
-    <div className="p-5 md:p-7 relative flex flex-col" style={{borderRight: '1px solid var(--color-ink)', minHeight: 280}}>
-      <div className="flex items-baseline justify-between">
-        <div className="kicker">Today · {todayLabel}</div>
-        <div className="label" style={{color: 'var(--color-rust)'}}>From the Coach</div>
-      </div>
-      {children}
-    </div>
-  );
-
-  if (error) {
-    return (
-      <Frame>
-        <div className="h-section mt-2" style={{fontSize: 30}}>Couldn&apos;t reach the coach.</div>
-        <p className="body-serif mt-3">Check your connection and try again.</p>
-        <button type="button" onClick={onRetry} className="btn mt-5 w-fit">Retry →</button>
-      </Frame>
-    );
+  if (loading && !plan) {
+    return <div style={{display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--gap)'}}>
+      {WEEKDAYS.map((d) => <Skeleton key={d} className="h-20 w-full rounded-xl" />)}
+    </div>;
   }
-
-  if (loading || plan === undefined) {
-    return (
-      <Frame>
-        <Skeleton className="h-9 w-3/4 mt-3" />
-        <Skeleton className="h-4 w-full mt-4" />
-        <Skeleton className="h-4 w-2/3 mt-2" />
-      </Frame>
-    );
+  if (plan === null) {
+    return <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap'}}>
+      <span style={{fontSize: 12.5, color: 'var(--dim)'}}>No plan set. Build a block with the coach around your goal and form.</span>
+      <Link href="/coach" className="btn btn-accent">Set up with coach</Link>
+    </div>;
   }
-
-  const todayISO = localDateISO();
-  const todayEntry = plan?.days?.find((d) => d.date === todayISO);
-  const firstWorkout = todayEntry?.workouts?.[0];
-
-  if (!plan) {
-    return (
-      <Frame>
-        <div className="h-display mt-2" style={{fontSize: 48}}>
-          No plan <em style={{color: 'var(--color-rust)'}}>yet.</em>
-        </div>
-        <p className="body-serif mt-4 max-w-md" style={{fontSize: 15}}>
-          Sit down with the coach and lay out a block around your goal and current form.
-        </p>
-        <Link href="/coach" className="btn ink mt-6 w-fit">Set up with coach →</Link>
-        <Seal />
-      </Frame>
-    );
-  }
-
-  if (!firstWorkout || firstWorkout.type === 'rest') {
-    return (
-      <Frame>
-        <div className="h-display mt-2" style={{fontSize: 56}}>
-          Rest<span style={{color: 'var(--color-rust)'}}>.</span>
-        </div>
-        <p className="body-serif mt-3 max-w-md" style={{fontSize: 15, fontStyle: 'italic'}}>
-          Nothing today. That is the workout. Recovery is where the adaptation happens.
-        </p>
-        <Link href="/plan" className="btn mt-6 w-fit">View this week →</Link>
-        <Seal />
-      </Frame>
-    );
-  }
-
-  const label = WORKOUT_LABELS[firstWorkout.type] ?? firstWorkout.type;
-  const distance = firstWorkout.distanceKm ? `${firstWorkout.distanceKm}` : null;
-  const duration = firstWorkout.durationMinutes ?? null;
-  const extras = (todayEntry?.workouts ?? []).slice(1).filter((w) => w.type !== 'rest');
 
   return (
-    <Frame>
-      <div className="h-display mt-2" style={{fontSize: 38, lineHeight: 1}}>
-        {label}<span style={{color: 'var(--color-rust)'}}>.</span>
-      </div>
-
-      <div className="flex gap-7 mt-5 flex-wrap">
-        {distance && (
-          <div>
-            <div className="label">Distance</div>
-            <div className="num" style={{fontSize: 30}}>{distance}<span style={{fontSize: 13, color: 'var(--color-ink-3)'}}> km</span></div>
-          </div>
-        )}
-        {duration && (
-          <div>
-            <div className="label">Duration</div>
-            <div className="num" style={{fontSize: 30}}>{duration}<span style={{fontSize: 13, color: 'var(--color-ink-3)'}}> min</span></div>
-          </div>
-        )}
-        <div>
-          <div className="label">Type</div>
-          <div className="num" style={{fontSize: 30, color: 'var(--color-rust)'}}>{label.split(' ')[0]}</div>
-        </div>
-      </div>
-
-      {firstWorkout.intensityDescription && (
-        <p className="body-serif mt-5 max-w-xl" style={{fontSize: 14.5, color: 'var(--color-ink)'}}>
-          {firstWorkout.intensityDescription}
-        </p>
-      )}
-
-      {extras.length > 0 && (
-        <div className="mt-5 pt-4" style={{borderTop: '1px solid var(--color-rule)'}}>
-          <div className="label" style={{color: 'var(--color-rust)'}}>Also today</div>
-          <div className="mt-2 flex flex-col gap-1">
-            {extras.map((w, i) => (
-              <div key={i} className="num" style={{fontSize: 14, color: 'var(--color-ink)'}}>
-                {WORKOUT_LABELS[w.type] ?? w.type}
-                {(w.distanceKm || w.durationMinutes) && (
-                  <span style={{color: 'var(--color-ink-3)'}}>
-                    {' · '}{w.distanceKm ? `${w.distanceKm} km` : `${w.durationMinutes} min`}
-                  </span>
-                )}
-                {w.completed && <span className="label" style={{color: 'var(--color-rust)', marginLeft: 8}}>✓ done</span>}
+    <>
+      <div style={{display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 'var(--gap)'}}>
+        {cells.map((c) => {
+          const accent = c.isToday;
+          const firstBucket = c.workouts[0] ? (TYPE_BUCKET[c.workouts[0].type] ?? c.workouts[0].type) : 'rest';
+          return (
+            <div key={c.iso} style={{
+              border: '1px solid ' + (accent ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : 'var(--line)'),
+              borderRadius: 'var(--radius-sm)', padding: '11px 10px',
+              background: accent ? 'color-mix(in srgb, var(--accent) 9%, var(--panel))' : 'var(--panel-2)',
+              display: 'flex', flexDirection: 'column', gap: 7, minHeight: 84,
+              opacity: c.isRest && c.isPast ? 0.6 : 1,
+            }}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                <span className="lbl" style={{color: accent ? 'var(--accent)' : 'var(--faint)'}}>{c.weekday}</span>
+                {c.isToday ? <span className="live-dot" /> : c.isPast && c.workouts.some((w) => w.completed) ? <Icon name="check" size={12} stroke={2} /> : <span className="mono" style={{fontSize: 10, color: 'var(--faint)'}}>{c.dayNum}</span>}
               </div>
-            ))}
-          </div>
+              <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: 5}}>
+                {c.isRest ? (
+                  <div style={{display: 'flex', alignItems: 'center', gap: 5}}>
+                    <WorkoutDot type="rest" size={7} />
+                    <span className="mono" style={{fontSize: 10.5, color: 'var(--faint)'}}>REST</span>
+                  </div>
+                ) : c.workouts.map((w, wi) => {
+                  const summary = workoutSummary(w);
+                  const isSel = selected?.date === c.iso && selected?.workoutIndex === wi;
+                  return (
+                    <button key={wi} type="button" onClick={() => selectWorkout(c.dayIndex, c.iso, wi, w)}
+                      className="text-left cursor-pointer" style={{background: isSel ? 'var(--panel-3)' : 'transparent', borderRadius: 6, padding: '2px 4px', margin: '0 -4px'}}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: 5}}>
+                        <WorkoutDot type={TYPE_BUCKET[w.type] ?? w.type} size={7} />
+                        <span className="mono" style={{fontSize: 10.5, fontWeight: 600, color: accent ? 'var(--accent)' : 'var(--text)'}}>{summary?.label}</span>
+                      </div>
+                      {summary?.detail && <span className="mono" style={{fontSize: 9.5, color: 'var(--faint)', marginLeft: 12}}>{summary.detail}{w.completed ? ' ✓' : ''}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* dot keeps color reference */}
+              <span style={{display: 'none'}}>{firstBucket}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {selected && athleteId != null && (
+        <div ref={detailRef} style={{marginTop: 'var(--gap)'}}>
+          <WorkoutDetailPanel
+            selected={selected}
+            athleteId={athleteId}
+            weekStart={weekStart}
+            onClose={() => setSelected(null)}
+            canLink={selected.date <= todayISO}
+            onMarkDone={(stravaActivityId: number) => {
+              fetch('/api/coach/week', {
+                method: 'PUT', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({athleteId, weekStart, date: selected.date, workoutIndex: selected.workoutIndex, stravaActivityId}),
+              }).then(() => onMutated());
+            }}
+            onConvert={(newType: WorkoutType, newDurationMinutes: number) => {
+              setSelected((prev) => prev ? {...prev, workout: {...prev.workout, type: newType, durationMinutes: newDurationMinutes}} : prev);
+              onMutated();
+            }}
+          />
         </div>
       )}
-
-      <div className="flex gap-2.5 mt-auto pt-6">
-        <Link href="/plan" className="btn ink">Open workout →</Link>
-        <Link href="/coach" className="btn">Ask the coach</Link>
-      </div>
-      <Seal />
-    </Frame>
+    </>
   );
 }
 
-function Seal() {
-  return (
-    <div className="seal hidden md:flex" style={{position: 'absolute', right: 28, top: 24}}>
-      THE<br />ALMANAC
-    </div>
-  );
-}
-
-// ── [recent ledger] activities table + 7-day rolling summary ──
+// ── Recent ledger ──
 
 function RecentLedger({activities, loading}: {activities: ActivitySummary[] | undefined; loading: boolean}) {
-  const all = activities ?? [];
-  const rows = all.slice(0, 7);
-
-  const rolling = useMemo(() => {
-    if (!activities) return null;
-    const monday = new Date(getMondayISO() + 'T00:00:00');
-    const week = activities.filter((a) => new Date(a.date) >= monday);
-    const km = week.reduce((s, a) => s + a.distance, 0);
-    const secs = week.reduce((s, a) => s + a.duration, 0);
-    const elev = week.reduce((s, a) => s + a.elevationGain, 0);
-    const paced = week.filter((a) => a.avgPace > 0);
-    const avgPace = paced.length ? paced.reduce((s, a) => s + a.avgPace, 0) / paced.length : 0;
-    return {km, secs, elev, avgPace, count: week.length};
-  }, [activities]);
-
+  const rows = (activities ?? []).slice(0, 8);
+  if (loading && rows.length === 0) {
+    return <div style={{display: 'flex', flexDirection: 'column', gap: 10}}>{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-7 w-full" />)}</div>;
+  }
+  if (rows.length === 0) return <div className="lbl">No activities synced yet.</div>;
   return (
-    <div className="p-5 md:p-7 flex flex-col">
-      <div className="flex items-baseline justify-between">
-        <span className="h-section" style={{fontSize: 22}}>Recent in the field</span>
-        <Link href="/activities" className="label" style={{color: 'var(--color-rust)'}}>All activities →</Link>
-      </div>
-
-      {loading && rows.length === 0 ? (
-        <div className="mt-4 space-y-3">
-          {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-7 w-full" />)}
-        </div>
-      ) : rows.length === 0 ? (
-        <p className="body-serif mt-6" style={{fontStyle: 'italic'}}>No activities synced yet. Your latest run will appear here.</p>
-      ) : (
-        <table className="ledger mt-3">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Title</th>
-              <th style={{textAlign: 'right'}}>km</th>
-              <th style={{textAlign: 'right'}}>Pace</th>
-              <th style={{textAlign: 'right'}}>HR</th>
+    <table className="ledger">
+      <thead>
+        <tr><th>Date</th><th>Title</th><th style={{textAlign: 'right'}}>km</th><th style={{textAlign: 'right'}}>Pace</th><th style={{textAlign: 'right'}}>HR</th></tr>
+      </thead>
+      <tbody>
+        {rows.map((a) => {
+          const d = new Date(a.date);
+          return (
+            <tr key={a.id} style={{cursor: 'pointer'}} onClick={() => (window.location.href = `/activities/${a.id}`)}>
+              <td className="mono">{`${String(d.getMonth() + 1).padStart(2, '0')}·${String(d.getDate()).padStart(2, '0')}`}</td>
+              <td>{a.name}</td>
+              <td className="num-cell">{a.distance > 0 ? a.distance.toFixed(1) : '—'}</td>
+              <td className="num-cell">{a.avgPace > 0 ? formatPace(a.avgPace) : '—'}</td>
+              <td className="num-cell">{a.avgHr > 0 ? Math.round(a.avgHr) : '—'}</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((a) => {
-              const d = new Date(a.date);
-              const isLong = a.distance >= 20;
-              return (
-                <tr key={a.id} style={{cursor: 'pointer'}} onClick={() => (window.location.href = `/activities/${a.id}`)}>
-                  <td className="mono">{`${String(d.getMonth() + 1).padStart(2, '0')}·${String(d.getDate()).padStart(2, '0')}`}</td>
-                  <td className="kicker-cell">
-                    {isLong && <span className="star">★ </span>}
-                    {a.name}
-                  </td>
-                  <td className="num-cell">{a.distance > 0 ? a.distance.toFixed(1) : '—'}</td>
-                  <td className="num-cell">{a.avgPace > 0 ? formatPace(a.avgPace) : '—'}</td>
-                  <td className="num-cell">{a.avgHr > 0 ? Math.round(a.avgHr) : '—'}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      )}
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
 
-      {rolling && (
-        <>
-          <div className="rq-rule thick" style={{margin: '16px 0 12px'}} />
-          <div className="flex justify-between flex-wrap gap-4">
-            <div>
-              <div className="label">7-day rolling</div>
-              <div className="num" style={{fontSize: 22, marginTop: 4}}>{rolling.km.toFixed(1)} <span style={{fontSize: 12, color: 'var(--color-ink-3)'}}>km</span></div>
-            </div>
-            <div>
-              <div className="label">Sessions</div>
-              <div className="num" style={{fontSize: 22, marginTop: 4}}>{rolling.count}</div>
-            </div>
-            <div>
-              <div className="label">Avg pace</div>
-              <div className="num" style={{fontSize: 22, marginTop: 4}}>{rolling.avgPace > 0 ? formatPace(rolling.avgPace) : '—'}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}>/km</span></div>
-            </div>
-            <div>
-              <div className="label">Elevation</div>
-              <div className="num" style={{fontSize: 22, marginTop: 4, color: 'var(--color-rust)'}}>{Math.round(rolling.elev)}<span style={{fontSize: 12, color: 'var(--color-ink-3)'}}> m</span></div>
-            </div>
-          </div>
-        </>
-      )}
+function Legend() {
+  return (
+    <div style={{display: 'flex', gap: 12}}>
+      {[['FITNESS', 'var(--accent)'], ['FATIGUE', 'var(--z5)'], ['FORM', 'var(--fresh)']].map(([k, c]) => (
+        <div key={k} style={{display: 'flex', alignItems: 'center', gap: 5}}>
+          <span style={{width: 10, height: 2, background: c, borderRadius: 2}} />
+          <span className="lbl">{k}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -649,12 +452,15 @@ function RecentLedger({activities, loading}: {activities: ActivitySummary[] | un
 
 export default function DashboardPage() {
   const {isAuthenticated, isLoading: authLoading, athlete} = useStravaAuth();
+  const {settings} = useSettings();
   const forceRefresh = useForceRefreshActivities();
 
   const {data: activities, isLoading: activitiesLoading} = useDashboardActivities();
-  const {data: fitnessData, isLoading: fitnessLoading} = useFitnessData();
+  const {data: fitnessData} = useFitnessData();
+  const {data: zoneTotals} = useZoneBreakdowns(4);
+  const {data: perActivityZones} = usePerActivityZoneBreakdowns(4);
+  const {data: bestEfforts} = useBestEffortsData();
 
-  // ── shared weekly plan (one cached query for strip + prescription) ──
   const weekStart = getMondayISO();
   const {plan: planData, query: planQuery, invalidate: invalidatePlan} = useWeekPlan(weekStart);
   const plan = planQuery.isLoading ? undefined : (planData ?? null);
@@ -662,6 +468,23 @@ export default function DashboardPage() {
   const loadPlan = useCallback(() => { planQuery.refetch(); }, [planQuery]);
 
   const last = fitnessData?.[fitnessData.length - 1];
+  const vdot = bestEfforts?.bests ? calcPrimaryVdot(bestEfforts.bests) : null;
+
+  const zones = buildZones(settings.zones);
+  const zoneMix = useMemo(() => {
+    if (!zoneTotals || !zoneTotals.totalTime) return null;
+    return ([1, 2, 3, 4, 5, 6] as const).map((z) => (zoneTotals.zones[z]?.time ?? 0) / zoneTotals.totalTime);
+  }, [zoneTotals]);
+
+  const lastRunZones = useMemo(() => {
+    const a = activities?.[0];
+    if (!a || !perActivityZones || typeof perActivityZones.get !== 'function') return null;
+    const bd = perActivityZones.get(a.id);
+    if (!bd) return null;
+    const total = ([1, 2, 3, 4, 5, 6] as const).reduce((s, z) => s + (bd.zones[z]?.time ?? 0), 0);
+    if (!total) return null;
+    return ([1, 2, 3, 4, 5, 6] as const).map((z) => (bd.zones[z]?.time ?? 0) / total);
+  }, [activities, perActivityZones]);
 
   const weekStats = useMemo(() => {
     if (!activities) return null;
@@ -672,72 +495,74 @@ export default function DashboardPage() {
     return {km, count: week.length, quality};
   }, [activities]);
 
-  const today = new Date();
-  const dateLine = today.toLocaleDateString('en-US', {weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'});
-
   if (authLoading) {
     return (
       <div className="min-h-dvh flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{borderColor: 'var(--color-rule)', borderTopColor: 'var(--color-rust)'}} />
+        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{borderColor: 'var(--line-2)', borderTopColor: 'var(--accent)'}} />
       </div>
     );
   }
+  if (!isAuthenticated) return <ConnectPrompt />;
 
-  if (!isAuthenticated) {
-    return <ConnectPrompt />;
-  }
+  const firstName = athlete?.firstname || 'athlete';
 
   return (
     <>
       <AppHeader onRefresh={forceRefresh} />
-
-      <main className="pt-14 pb-24 md:pb-12 min-h-dvh" style={{background: 'var(--color-paper)'}}>
-        <motion.div
-          initial={{opacity: 0}}
-          animate={{opacity: 1}}
-          transition={{duration: 0.4}}
-          className="max-w-[1100px] mx-auto"
-          style={{border: '1px solid var(--color-ink)', borderTop: 'none'}}
-        >
-          {/* ── Masthead ──────────────────────────────────────────────────── */}
-          <div className="masthead">
-            <div className="line">
-              <span>{dateLine}</span>
+      <main className="scroll" style={{minHeight: '100dvh', paddingTop: 52, paddingBottom: 96}}>
+        <div className="rise" style={{padding: 'var(--pad)', display: 'flex', flexDirection: 'column', gap: 'var(--gap)', maxWidth: 1320, margin: '0 auto'}}>
+          {/* greeting */}
+          <div style={{display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap'}}>
+            <div style={{display: 'flex', flexDirection: 'column'}}>
+              <h1 style={{fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em'}}>{greetingWord()}, {firstName}.</h1>
+              <span className="lbl" style={{marginTop: 3}}>
+                {weekStats ? `${weekStats.km.toFixed(0)} KM THIS WEEK · ${weekStats.count} SESSIONS · ${weekStats.quality} QUALITY` : 'YOUR TRAINING BRIEFING'}
+              </span>
             </div>
-            <div className="brand">Today&apos;s Form<sup>The Runner&apos;s Almanac</sup></div>
-            <div className="line">
-              <span>{weekStats ? `${weekStats.km.toFixed(0)} km · this wk` : '— km'}</span>
-              <span>{weekStats ? `${weekStats.count} sessions` : '—'}</span>
-              <span>{weekStats ? `${weekStats.quality} quality` : '—'}</span>
-            </div>
+            <div style={{flex: 1}} />
+            {vdot && <Tag color="var(--accent)">VDOT {vdot.vdot.toFixed(1)}</Tag>}
+            <Link href="/coach" className="btn btn-accent"><Icon name="bolt" size={13} /> Ask coach</Link>
           </div>
 
-          {/* ── Form + last activity ──────────────────────────────────────── */}
+          {/* two-column instrument layout */}
           <div
-            className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr]"
-            style={{borderBottom: '1px solid var(--color-ink)'}}
+            className="grid grid-cols-1 lg:grid-cols-[minmax(0,2.1fr)_minmax(300px,1fr)] items-start"
+            style={{gap: 'var(--gap)'}}
           >
-            <FormHero fitnessData={fitnessData} loading={fitnessLoading} />
-            <LastActivity activities={activities} loading={activitiesLoading} />
-          </div>
+            {/* left column */}
+            <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--gap)', minWidth: 0}}>
+              <Tile title="Today's Session" right={<span className="lbl">{fmtDate(new Date(), {weekday: 'long', month: 'short', day: 'numeric'})}</span>}>
+                <SessionCard plan={plan} loading={plan === undefined && !planError} error={planError} onRetry={loadPlan} />
+              </Tile>
+              <Tile title="Training Load · 90 days" right={<Legend />}>
+                {fitnessData === undefined
+                  ? <Skeleton className="w-full h-[216px] rounded-xl" />
+                  : <FitnessChart series={fitnessData} days={90} height={216} />}
+              </Tile>
+              <Tile title="This Week" right={<Link href="/plan" className="lbl" style={{color: 'var(--accent)'}}>FULL PLAN →</Link>}>
+                <WeekStrip plan={plan} loading={plan === undefined && !planError} athleteId={athlete?.id} weekStart={weekStart} onMutated={invalidatePlan} />
+              </Tile>
+              <Tile title="Recent in the field" right={<Link href="/activities" className="lbl" style={{color: 'var(--accent)'}}>ALL →</Link>} pad={false} bodyStyle={{padding: '4px var(--pad) 10px'}}>
+                <RecentLedger activities={activities} loading={activitiesLoading} />
+              </Tile>
+            </div>
 
-          {/* ── This week strip ───────────────────────────────────────────── */}
-          <div style={{borderBottom: '1px solid var(--color-ink)'}}>
-            <WeekStrip
-              plan={plan}
-              loading={plan === undefined && !planError}
-              athleteId={athlete?.id}
-              weekStart={weekStart}
-              onMutated={invalidatePlan}
-            />
+            {/* right column */}
+            <div style={{display: 'flex', flexDirection: 'column', gap: 'var(--gap)', minWidth: 0}}>
+              <Tile title="Today's Form" right={<Link href="/fitness" className="lbl" style={{color: 'var(--accent)'}}>ANALYTICS →</Link>}>
+                <FormBlock last={last} />
+                <hr className="hairline" style={{margin: '14px 0'}} />
+                <FitnessReadouts series={fitnessData} />
+              </Tile>
+              <Tile title="Last Run">
+                <LastRunCard activity={activities?.[0]} zoneFractions={lastRunZones} />
+              </Tile>
+              <Tile title="Zone Mix · 28d" right={<span className="lbl">TIME IN ZONE</span>}>
+                {zoneMix ? <ZoneBars zones={zones} dist={zoneMix} height={94} /> : <div className="lbl" style={{padding: '20px 0', textAlign: 'center'}}>No zone data yet</div>}
+              </Tile>
+            </div>
           </div>
-
-          {/* ── Prescription + recent ledger ──────────────────────────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr]">
-            <CoachPrescription plan={plan} loading={plan === undefined && !planError} onRetry={loadPlan} error={planError} />
-            <RecentLedger activities={activities} loading={activitiesLoading} />
-          </div>
-        </motion.div>
+        </div>
       </main>
     </>
   );

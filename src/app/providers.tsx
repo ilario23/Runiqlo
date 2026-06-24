@@ -15,12 +15,14 @@ import {SettingsProvider} from '@/contexts/SettingsContext';
 import {ServiceWorkerRegistrar} from '@/components/ServiceWorkerRegistrar';
 
 // Bump to invalidate every persisted cache after a breaking data-shape change.
-const CACHE_BUSTER = 'v1';
+const CACHE_BUSTER = 'v2';
 const PERSIST_MAX_AGE = 1000 * 60 * 60 * 24; // 24h — must be <= queries' gcTime
 
 // Only the small landing/dashboard summary queries are persisted. Heavy or
 // volatile entries (raw HR streams, per-activity detail, weather, segments,
 // paginated lists) are excluded so localStorage stays well under its ~5MB cap.
+// NOTE: zone-breakdowns is intentionally NOT persisted — its query data is a
+// Map, which JSON serialization corrupts into a plain object on rehydration.
 const PERSISTED_KEY_PREFIXES: QueryKey[] = [
   ['strava', 'activities', 'dashboard'],
   ['strava', 'stats'],
@@ -28,7 +30,6 @@ const PERSISTED_KEY_PREFIXES: QueryKey[] = [
   ['strava', 'gear'],
   ['best-efforts'],
   ['dashboard', 'fitness'],
-  ['dashboard', 'zone-breakdowns'],
 ];
 
 const startsWith = (key: QueryKey, prefix: QueryKey): boolean =>

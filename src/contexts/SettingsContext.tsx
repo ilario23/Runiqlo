@@ -1,8 +1,20 @@
 'use client';
 
 import {createContext, useContext, useState, useEffect, useRef, ReactNode} from 'react';
-import {defaultSettings, type UserSettings} from '@/lib/activityModel';
+import {ACCENTS, defaultSettings, type UserSettings} from '@/lib/activityModel';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
+
+/** Push theme + accent to the document so CSS tokens resolve to the chosen look. */
+const applyAppearance = (s: UserSettings) => {
+  if (typeof document === 'undefined') return;
+  const root = document.documentElement;
+  root.setAttribute('data-theme', s.theme ?? 'dark');
+  const a = ACCENTS[s.accent ?? 'lime'] ?? ACCENTS.lime;
+  root.style.setProperty('--accent', a.accent);
+  root.style.setProperty('--accent-2', a.accent2);
+  root.style.setProperty('--accent-glow', a.glow);
+  root.style.setProperty('--accent-ink', a.ink);
+};
 
 interface SettingsContextType {
   settings: UserSettings;
@@ -32,6 +44,7 @@ const rowToSettings = (row: Record<string, unknown>): UserSettings => ({
   restingHr: (row.restingHr as number) ?? defaultSettings.restingHr,
   zones: (row.zones as UserSettings['zones']) ?? defaultSettings.zones,
   coachModel: (row.coachModel as string | null) ?? null,
+  // theme/accent are device-local (not stored in DB) — merged from current state by the caller
 });
 
 export const SettingsProvider = ({children}: {children: ReactNode}) => {
@@ -42,8 +55,15 @@ export const SettingsProvider = ({children}: {children: ReactNode}) => {
 
   // Hydrate from localStorage immediately to avoid flash of defaults
   useEffect(() => {
-    setSettings(readLocal());
+    const local = readLocal();
+    setSettings(local);
+    applyAppearance(local);
   }, []);
+
+  // Keep document theme/accent in sync with settings
+  useEffect(() => {
+    applyAppearance(settings);
+  }, [settings.theme, settings.accent]);
 
   // Load from DB when athlete is known
   useEffect(() => {
@@ -58,9 +78,12 @@ export const SettingsProvider = ({children}: {children: ReactNode}) => {
       .then(r => r.ok ? r.json() : null)
       .then((row) => {
         if (!row) return;
-        const merged = rowToSettings(row);
-        setSettings(merged);
-        writeLocal(merged);
+        // Preserve device-local appearance (theme/accent) across DB hydration.
+        setSettings((prev) => {
+          const merged = {...rowToSettings(row), theme: prev.theme, accent: prev.accent};
+          writeLocal(merged);
+          return merged;
+        });
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === 'AbortError') return;

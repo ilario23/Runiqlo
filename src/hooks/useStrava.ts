@@ -339,7 +339,9 @@ export const usePerActivityZoneBreakdowns = (weeks: number) => {
 export const useZoneBreakdowns = (weeks: number): {data: AggregatedZoneTotals | undefined; isLoading: boolean; progress: ZoneBreakdownProgress} => {
   const {data: breakdownMap, isLoading, progress} = usePerActivityZoneBreakdowns(weeks);
   const aggregated = useMemo(() => {
-    if (!breakdownMap || breakdownMap.size === 0) return undefined;
+    // Defensive: a corrupted (e.g. previously-persisted) Map deserializes to a
+    // plain object without `.values`. Treat anything that isn't a real Map as empty.
+    if (!breakdownMap || typeof breakdownMap.values !== 'function' || breakdownMap.size === 0) return undefined;
     return aggregateZoneBreakdowns(Array.from(breakdownMap.values()));
   }, [breakdownMap]);
   return {data: aggregated, isLoading, progress};

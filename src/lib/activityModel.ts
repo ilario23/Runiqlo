@@ -27,6 +27,9 @@ export interface StreamPoint {
   lng?: number;
 }
 
+export type ThemeMode = 'dark' | 'light';
+export type AccentKey = 'lime' | 'amber' | 'cyan' | 'coral';
+
 export interface UserSettings {
   maxHr: number;
   restingHr: number;
@@ -39,6 +42,8 @@ export interface UserSettings {
     z6: [number, number];
   };
   coachModel?: string | null;
+  theme?: ThemeMode;
+  accent?: AccentKey;
 }
 
 export const defaultSettings: UserSettings = {
@@ -52,6 +57,16 @@ export const defaultSettings: UserSettings = {
     z5: [168, 181],
     z6: [182, 190],
   },
+  theme: 'dark',
+  accent: 'lime',
+};
+
+// Signal-accent presets — mirror ACCENTS in globals/shell. Applied to CSS vars at runtime.
+export const ACCENTS: Record<AccentKey, {accent: string; accent2: string; glow: string; ink: string}> = {
+  lime:  {accent: '#c6f833', accent2: '#a6d420', glow: 'rgba(198,248,51,0.20)', ink: '#0a0d11'},
+  amber: {accent: '#f2a33c', accent2: '#d9871f', glow: 'rgba(242,163,60,0.20)', ink: '#0a0d11'},
+  cyan:  {accent: '#3fd6e0', accent2: '#1fb4be', glow: 'rgba(63,214,224,0.20)', ink: '#06181a'},
+  coral: {accent: '#ff6b5a', accent2: '#e64c3b', glow: 'rgba(255,107,90,0.20)', ink: '#1a0a08'},
 };
 
 export function formatPace(paceMinPerKm: number): string {
@@ -78,35 +93,36 @@ export function getZoneForHr(hr: number, zones: UserSettings['zones']): number {
   return 6;
 }
 
-// Muted almanac palette — mirrors --color-* tokens in globals.css.
+// Carbon-instrument palette (Apple system) — mirrors --z*/--color-* tokens in globals.css.
 // Hex (not CSS vars) so values resolve in SVG/recharts attributes too.
 export const COLORS = {
-  brand: '#c93f1d',
-  blue: '#4a6079',
-  green: '#6b8a76',
-  yellow: '#b08550',
-  orange: '#dc8a5b',
-  red: '#c93f1d',
-  purple: '#7a6a86',
-  cyan: '#6b9c9c',
-  gold: '#b08550',
+  brand: '#c6f833',
+  grey: '#8e8e93',
+  blue: '#0a84ff',
+  green: '#30d158',
+  yellow: '#ffd60a',
+  orange: '#ff9f0a',
+  red: '#ff453a',
+  purple: '#bf5af2',
+  cyan: '#64d2ff',
+  gold: '#ffd60a',
 } as const;
 
 export const SPORT_COLORS: Record<string, string> = {
   Run: COLORS.green,
   Ride: COLORS.blue,
   Hike: COLORS.orange,
-  Swim: COLORS.purple,
+  Swim: COLORS.cyan,
   Walk: COLORS.yellow,
 };
 
 export const ZONE_COLORS: Record<number, string> = {
-  1: COLORS.green,
+  1: COLORS.grey,
   2: COLORS.blue,
-  3: COLORS.yellow,
-  4: COLORS.orange,
-  5: COLORS.red,
-  6: COLORS.purple,
+  3: COLORS.green,
+  4: COLORS.yellow,
+  5: COLORS.orange,
+  6: COLORS.red,
 };
 
 export const ZONE_NAMES: Record<number, string> = {
