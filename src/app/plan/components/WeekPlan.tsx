@@ -134,17 +134,17 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
 
   return (
     <div>
-      {/* Header — broadsheet week nameplate */}
-      <div className="flex items-end justify-between mb-4 pb-3" style={{borderBottom: '2px solid var(--color-ink)'}}>
+      {/* Header */}
+      <div className="flex items-end justify-between mb-4">
         <div>
-          <div className="kicker rust">The Week{plan ? ` · ${plan.phase} · Wk ${plan.weekNumber}` : ''}</div>
-          <h2 className="h-display mt-1" style={{fontSize: 40}}>
-            {isCurrentWeek ? 'This week' : 'Week of'}{' '}
-            <em style={{color: 'var(--color-rust)'}}>
+          <div className="lbl" style={{color: 'var(--accent)'}}>THE WEEK{plan ? ` · ${plan.phase.toUpperCase()} · WK ${plan.weekNumber}` : ''}</div>
+          <h2 style={{fontSize: 'var(--fs-xl)', fontWeight: 600, letterSpacing: '-0.02em', marginTop: 4, lineHeight: 1.05}}>
+            {isCurrentWeek ? 'This week ' : 'Week of '}
+            <span style={{color: 'var(--accent)'}}>
               {new Date(weekStart + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
               {' – '}
               {new Date(weekEnd + 'T00:00:00').toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
-            </em>
+            </span>
           </h2>
         </div>
         <div className="flex items-center gap-1">
@@ -186,10 +186,10 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
         </div>
       </div>
 
-      {/* Coach notes — marginalia */}
+      {/* Coach notes */}
       {plan?.coachNotes && (
-        <div className="mb-4 py-1 pl-4 body-serif" style={{borderLeft: '2px solid var(--color-rust)', fontStyle: 'italic', fontSize: 14, color: 'var(--color-ink)'}}>
-          <span className="label" style={{color: 'var(--color-rust)', fontStyle: 'normal', marginRight: 6}}>Coach</span>
+        <div className="mb-4" style={{padding: '12px 14px', background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: 13, lineHeight: 1.5, color: 'var(--text)'}}>
+          <span className="lbl" style={{color: 'var(--accent)', marginRight: 8}}>COACH</span>
           {plan.coachNotes}
         </div>
       )}
@@ -213,22 +213,25 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                   key={date}
                   className="p-2.5 md:min-h-[120px] transition-colors"
                   style={{
-                    border: `1px solid ${isToday ? 'var(--color-rust)' : 'var(--color-ink)'}`,
-                    borderWidth: isToday ? '2px' : '1px',
-                    background: workouts.length === 0 && plan
-                      ? 'repeating-linear-gradient(-45deg, var(--color-paper), var(--color-paper) 8px, var(--color-paper-2) 8px, var(--color-paper-2) 10px)'
-                      : 'var(--color-paper)',
+                    border: `1px solid ${isToday ? 'color-mix(in srgb, var(--accent) 55%, transparent)' : 'var(--line)'}`,
+                    borderRadius: 'var(--radius-sm)',
+                    background: isToday
+                      ? 'color-mix(in srgb, var(--accent) 9%, var(--panel))'
+                      : workouts.length === 0
+                        ? 'var(--panel)'
+                        : 'var(--panel-2)',
+                    opacity: workouts.length === 0 && !isToday ? 0.72 : 1,
                   }}
                 >
                   <div className="flex items-center gap-3 md:block">
-                    <div className="flex items-baseline justify-between w-12 flex-shrink-0 md:w-auto md:mb-2" style={{borderBottom: '1px solid var(--color-rule)', paddingBottom: 4}}>
-                      <span className="label" style={{color: isToday ? 'var(--color-rust)' : 'var(--color-ink-3)'}}>{DAY_NAMES[i]}</span>
-                      <span className="num" style={{fontSize: 16, color: isToday ? 'var(--color-rust)' : 'var(--color-ink)'}}>
+                    <div className="flex items-baseline justify-between w-12 flex-shrink-0 md:w-auto md:mb-2" style={{borderBottom: '1px solid var(--line)', paddingBottom: 4}}>
+                      <span className="lbl" style={{color: isToday ? 'var(--accent)' : 'var(--faint)'}}>{DAY_NAMES[i]}</span>
+                      <span className="num" style={{fontSize: 16, color: isToday ? 'var(--accent)' : 'var(--text)'}}>
                         {new Date(date + 'T00:00:00').getDate()}
                       </span>
                     </div>
                     {workouts.length === 0 ? (
-                      <div className="md:text-center md:pt-3 body-serif" style={{fontStyle: 'italic', fontSize: 12, color: 'var(--color-ink-3)'}}>Rest.</div>
+                      <div className="md:text-center md:pt-3 lbl">REST</div>
                     ) : (
                       <div className="flex flex-wrap gap-1.5 md:block md:space-y-1.5">
                         {workouts.map((w, wi) => (
@@ -295,20 +298,20 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
       ) : loadError ? (
         <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">
           <CalendarDays className="w-8 h-8 text-accent-red/60 mx-auto mb-2" />
-          <p className="text-sm text-[var(--color-ink-2)] mb-1">Couldn&apos;t load this week&apos;s plan</p>
-          <p className="text-xs text-[var(--color-ink-3)] mb-3">Check your connection and try again.</p>
+          <p className="text-sm text-[var(--dim)] mb-1">Couldn&apos;t load this week&apos;s plan</p>
+          <p className="text-xs text-[var(--faint)] mb-3">Check your connection and try again.</p>
           <button
             onClick={() => fetchPlan(weekStart)}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--color-ink)] transition-colors"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--text)] transition-colors"
           >
             Try again
           </button>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-0)] p-6 text-center">
-          <CalendarDays className="w-8 h-8 text-[var(--color-ink-3)] mx-auto mb-2" />
-          <p className="text-sm text-[var(--color-ink-3)] mb-1">No plan for this week yet</p>
-          <p className="text-xs text-[var(--color-ink-3)]">Ask the coach to generate your weekly schedule</p>
+          <CalendarDays className="w-8 h-8 text-[var(--faint)] mx-auto mb-2" />
+          <p className="text-sm text-[var(--faint)] mb-1">No plan for this week yet</p>
+          <p className="text-xs text-[var(--faint)]">Ask the coach to generate your weekly schedule</p>
         </div>
       )}
     </div>
