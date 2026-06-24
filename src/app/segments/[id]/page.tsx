@@ -69,15 +69,15 @@ function gradeColor(grade: number): string {
 
 function prBadge(rank: number | null) {
   if (rank === 1) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-gold/15 text-gold font-semibold flex-shrink-0">PR</span>;
-  if (rank === 2) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--color-paper-2)] text-[var(--color-ink-2)] flex-shrink-0">2nd</span>;
-  if (rank === 3) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--color-paper-2)] text-[var(--color-ink-3)] flex-shrink-0">3rd</span>;
+  if (rank === 2) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--panel)] text-[var(--dim)] flex-shrink-0">2nd</span>;
+  if (rank === 3) return <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[var(--panel)] text-[var(--faint)] flex-shrink-0">3rd</span>;
   return null;
 }
 
 function StatTile({label, value, accent}: {label: string; value: string | number; accent?: string}) {
   return (
-    <div className="px-3 py-2.5 rounded-xl bg-[var(--color-paper-2)] flex flex-col gap-0.5">
-      <p className="text-[11px] text-[var(--color-ink-3)] uppercase tracking-wide">{label}</p>
+    <div className="px-3 py-2.5 rounded-xl bg-[var(--panel)] flex flex-col gap-0.5">
+      <p className="text-[11px] text-[var(--faint)] uppercase tracking-wide">{label}</p>
       <p className="text-sm font-semibold tabular-nums" style={{color: accent ?? 'rgba(26,24,20,0.85)'}}>
         {value}
       </p>
@@ -101,7 +101,7 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
   if (efforts.length < 2) {
     return (
       <div className="h-[160px] flex items-center justify-center">
-        <p className="text-sm text-[var(--color-ink-3)]">Run this segment again to see your progress trend</p>
+        <p className="text-sm text-[var(--faint)]">Run this segment again to see your progress trend</p>
       </div>
     );
   }
@@ -132,8 +132,8 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
           width={48}
         />
         <RechartsTooltip
-          contentStyle={{background: 'var(--color-paper)', border: '1px solid var(--color-ink)', borderRadius: 0, fontSize: 12, color: 'var(--color-ink)'}}
-          labelStyle={{color: 'var(--color-ink-3)', marginBottom: 4}}
+          contentStyle={{background: 'var(--bg)', border: '1px solid var(--text)', borderRadius: 0, fontSize: 12, color: 'var(--text)'}}
+          labelStyle={{color: 'var(--faint)', marginBottom: 4}}
           formatter={(val) => [fmtTime(Number(val)), 'Time']}
         />
         <Line
@@ -205,7 +205,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-[var(--color-rust)] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--line)] border-t-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -226,7 +226,7 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
       <>
         <AppHeader />
         <div className="pt-[72px] flex items-center justify-center min-h-screen">
-          <p className="text-sm text-[var(--color-ink-3)]">Invalid segment ID</p>
+          <p className="text-sm text-[var(--faint)]">Invalid segment ID</p>
         </div>
       </>
     );
@@ -247,10 +247,10 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
         <div className="max-w-[1100px] mx-auto">
 
           {/* Breadcrumb */}
-          <div className="flex items-center gap-2 py-3 text-xs text-[var(--color-ink-3)]">
-            <Link href="/segments" className="hover:text-[var(--color-ink-2)] transition-colors">Segments</Link>
+          <div className="flex items-center gap-2 py-3 text-xs text-[var(--faint)]">
+            <Link href="/segments" className="hover:text-[var(--dim)] transition-colors">Segments</Link>
             <span>/</span>
-            <span className="text-[var(--color-ink-2)] truncate max-w-[200px]">{segName}</span>
+            <span className="text-[var(--dim)] truncate max-w-[200px]">{segName}</span>
           </div>
 
           {/* Title row */}
@@ -264,15 +264,15 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
                   {segGrade.toFixed(1)}%
                 </span>
               )}
-              <h1 className="text-xl font-semibold tracking-tight text-[var(--color-ink)]">{segName}</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-[var(--text)]">{segName}</h1>
               {segClimb > 0 && (
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--color-paper-2)] text-[var(--color-ink-2)]">
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--panel)] text-[var(--dim)]">
                   {CLIMB_LABELS[segClimb] ?? `Cat ${segClimb}`}
                 </span>
               )}
             </div>
             {(segCity || segState) && (
-              <p className="text-sm text-[var(--color-ink-3)] mt-1 ml-0">
+              <p className="text-sm text-[var(--faint)] mt-1 ml-0">
                 {[segCity, segState].filter(Boolean).join(', ')}
               </p>
             )}
@@ -288,35 +288,35 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
             <div className="col-span-12 lg:col-span-8 space-y-4">
 
               {/* Map */}
-              <motion.div variants={cardVariant} className="bento-card p-4">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Route</h2>
+              <motion.div variants={cardVariant} className="panel p-4">
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-3">Route</h2>
                 {detailLoading ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : mapSegments.length >= 1 ? (
                   <RouteMapLeaflet segments={mapSegments} hoverPos={null} color={COLORS.brand} />
                 ) : (
                   <div className="w-full h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-[var(--color-ink-3)]">No map data</p>
+                    <p className="text-sm text-[var(--faint)]">No map data</p>
                   </div>
                 )}
               </motion.div>
 
               {/* Effort history */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">History</h2>
+              <motion.div variants={cardVariant} className="panel p-5">
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">History</h2>
                 {effortsLoading ? (
                   <div className="space-y-2">
                     {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
                   </div>
                 ) : effortsNewestFirst.length === 0 ? (
                   <div className="py-8 text-center">
-                    <p className="text-sm text-[var(--color-ink-3)]">No efforts recorded yet</p>
+                    <p className="text-sm text-[var(--faint)]">No efforts recorded yet</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide border-b border-[var(--color-rule)]">
+                        <tr className="text-[10px] text-[var(--faint)] uppercase tracking-wide border-b border-[var(--line)]">
                           <th className="pb-2 text-left font-medium">Date</th>
                           <th className="pb-2 text-right font-medium">Time</th>
                           <th className="pb-2 text-right font-medium">Pace</th>
@@ -329,26 +329,26 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
                         {effortsNewestFirst.map((effort) => (
                           <tr
                             key={effort.effortId}
-                            className={`border-b border-[var(--color-rule)] last:border-0 ${effort.pr_rank === 1 ? 'bg-gold/[0.04]' : ''}`}
+                            className={`border-b border-[var(--line)] last:border-0 ${effort.pr_rank === 1 ? 'bg-gold/[0.04]' : ''}`}
                           >
-                            <td className="py-2.5 text-[var(--color-ink-2)] text-xs">
+                            <td className="py-2.5 text-[var(--dim)] text-xs">
                               <Link
                                 href={`/activities/${effort.activityId}`}
-                                className="hover:text-[var(--color-ink)] transition-colors"
+                                className="hover:text-[var(--text)] transition-colors"
                               >
                                 {fmtDate(effort.activityDate)}
                               </Link>
                             </td>
-                            <td className="py-2.5 text-right font-semibold tabular-nums text-[var(--color-ink)]">
+                            <td className="py-2.5 text-right font-semibold tabular-nums text-[var(--text)]">
                               {fmtTime(effort.elapsed_time)}
                             </td>
-                            <td className="py-2.5 text-right tabular-nums text-[var(--color-ink-2)] text-xs">
+                            <td className="py-2.5 text-right tabular-nums text-[var(--dim)] text-xs">
                               {fmtPace(effort.elapsed_time, effort.distance)}/km
                             </td>
-                            <td className="py-2.5 text-right tabular-nums text-[var(--color-ink-2)] text-xs hidden sm:table-cell">
+                            <td className="py-2.5 text-right tabular-nums text-[var(--dim)] text-xs hidden sm:table-cell">
                               {effort.average_heartrate != null ? Math.round(effort.average_heartrate) : '—'}
                             </td>
-                            <td className="py-2.5 text-right tabular-nums text-[var(--color-ink-2)] text-xs hidden sm:table-cell">
+                            <td className="py-2.5 text-right tabular-nums text-[var(--dim)] text-xs hidden sm:table-cell">
                               {effort.max_heartrate != null ? effort.max_heartrate : '—'}
                             </td>
                             <td className="py-2.5 text-right">
@@ -363,8 +363,8 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
               </motion.div>
 
               {/* Progress chart */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Progress</h2>
+              <motion.div variants={cardVariant} className="panel p-5">
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Progress</h2>
                 {effortsLoading ? (
                   <Skeleton className="h-[180px] w-full" />
                 ) : (
@@ -378,8 +378,8 @@ export default function SegmentDetailPage({params}: {params: Promise<{id: string
             <div className="col-span-12 lg:col-span-4 space-y-4">
 
               {/* Stats */}
-              <motion.div variants={cardVariant} className="bento-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Stats</h2>
+              <motion.div variants={cardVariant} className="panel p-5">
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Stats</h2>
                 {effortsLoading && !aggregated ? (
                   <div className="grid grid-cols-2 gap-2">
                     {Array.from({length: 6}).map((_, i) => <Skeleton key={i} className="h-14" />)}

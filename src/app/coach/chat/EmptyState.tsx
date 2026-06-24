@@ -28,7 +28,7 @@ export function EmptyState({onSend, onPrefill}: EmptyStateProps) {
 
       {/* Copy */}
       <div className="space-y-1.5">
-        <h2 className="text-base font-semibold text-[var(--color-ink)]">Ask your coach</h2>
+        <h2 className="text-base font-semibold text-[var(--text)]">Ask your coach</h2>
         <p className="text-sm max-w-[240px] leading-relaxed" style={{color: 'var(--color-text-2)'}}>
           Get a weekly plan, interpret your fitness data, or talk through how a session went.
         </p>
@@ -40,7 +40,7 @@ export function EmptyState({onSend, onPrefill}: EmptyStateProps) {
           <button
             key={s}
             onClick={() => onSend(s)}
-            className="text-sm text-[var(--color-text-2)] hover:text-[var(--color-ink)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 transition-colors text-left"
+            className="text-sm text-[var(--color-text-2)] hover:text-[var(--text)] bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] border border-[var(--color-border)] rounded-xl px-4 py-2.5 transition-colors text-left"
           >
             {s}
           </button>

@@ -67,7 +67,7 @@ function SegmentedControl<T extends string>({
   label?: string;
 }) {
   return (
-    <div className="flex" role="group" aria-label={label} style={{border: '1px solid var(--color-ink)'}}>
+    <div className="flex" role="group" aria-label={label} style={{border: '1px solid var(--text)'}}>
       {options.map((opt, i) => {
         const sel = value === opt.value;
         return (
@@ -80,9 +80,9 @@ function SegmentedControl<T extends string>({
             style={{
               padding: '4px 9px',
               cursor: 'pointer',
-              background: sel ? 'var(--color-ink)' : 'transparent',
-              color: sel ? 'var(--color-paper)' : 'var(--color-ink-3)',
-              borderLeft: i > 0 ? '1px solid var(--color-rule)' : 'none',
+              background: sel ? 'var(--text)' : 'transparent',
+              color: sel ? 'var(--bg)' : 'var(--faint)',
+              borderLeft: i > 0 ? '1px solid var(--line)' : 'none',
             }}
           >
             {opt.label}
@@ -123,7 +123,7 @@ function monotonyNote(v: number | null): string {
 const VDOT_CONFIDENCE_COLOR: Record<string, string> = {
   fresh: 'var(--color-zone-green)',
   stale: 'var(--color-gold)',
-  very_stale: 'var(--color-ink-3)',
+  very_stale: 'var(--faint)',
 };
 
 function Scoreboard({
@@ -273,7 +273,7 @@ function RiskPanel({loading}: {loading: boolean}) {
               <div className="label">Driving the score</div>
               <ul className="mt-2 space-y-1.5">
                 {risk.topContributors.map((c) => (
-                  <li key={c} className="num" style={{fontSize: 12, color: 'var(--color-ink-2)'}}>
+                  <li key={c} className="num" style={{fontSize: 12, color: 'var(--dim)'}}>
                     {c}
                   </li>
                 ))}
@@ -352,14 +352,14 @@ function WeeklyLoadCard({
             const d = new Date(w.week + 'T00:00:00');
             return (
               <div key={w.week} className="flex-1 flex flex-col items-center justify-end gap-1.5" title={`${w.load} TL`}>
-                <span className="num" style={{fontSize: 9, color: 'var(--color-ink-3)'}}>{w.load}</span>
+                <span className="num" style={{fontSize: 9, color: 'var(--faint)'}}>{w.load}</span>
                 <motion.div
                   initial={{height: 0}}
                   animate={{height: h}}
                   transition={{duration: 0.4, delay: i * 0.03, ease: 'easeOut'}}
                   style={{
                     width: '100%',
-                    background: isLast ? 'var(--color-rust)' : 'var(--color-ink)',
+                    background: isLast ? 'var(--accent)' : 'var(--text)',
                   }}
                 />
                 <span className="label" style={{fontSize: 8, letterSpacing: '0.06em'}}>
@@ -442,7 +442,7 @@ function ZoneDistributionCard({
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {isLoading && progress.total > 0 && (
-            <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>{progress.done}/{progress.total}</span>
+            <span className="num" style={{fontSize: 11, color: 'var(--faint)'}}>{progress.done}/{progress.total}</span>
           )}
           <SegmentedControl
             label="Zone grouping"
@@ -488,13 +488,13 @@ function ZoneDistributionCard({
               return (
                 <div key={zone.key}>
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="label" style={{color: 'var(--color-ink-2)'}}>{zone.label}</span>
-                    <span className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>
+                    <span className="label" style={{color: 'var(--dim)'}}>{zone.label}</span>
+                    <span className="num" style={{fontSize: 11, color: 'var(--faint)'}}>
                       {pct}%{' · '}
                       {metric === 'time' ? formatDuration(zone.time) : `${zone.distance.toFixed(1)} km`}
                     </span>
                   </div>
-                  <div className="h-2.5 overflow-hidden" style={{background: 'var(--color-paper-3)'}}>
+                  <div className="h-2.5 overflow-hidden" style={{background: 'var(--panel-2)'}}>
                     <motion.div
                       className="h-full"
                       style={{background: zone.color}}
@@ -674,7 +674,7 @@ function PerformanceCard({adv, loading}: {adv: AdvancedMetricsDataPoint[]; loadi
           </div>
           <div style={{textAlign: 'right'}}>
             <div className="label">Threshold</div>
-            <div className="num" style={{fontSize: 22}}>{thrNow == null ? '—' : formatPace(thrNow)}<span style={{fontSize: 11, color: 'var(--color-ink-3)'}}>/km</span></div>
+            <div className="num" style={{fontSize: 22}}>{thrNow == null ? '—' : formatPace(thrNow)}<span style={{fontSize: 11, color: 'var(--faint)'}}>/km</span></div>
             <DeltaTag delta={thrDelta} goodWhenNegative unit="pace" windowLabel="6w" />
           </div>
         </div>
@@ -709,7 +709,7 @@ function AcwrTrendCard({adv, loading}: {adv: AdvancedMetricsDataPoint[]; loading
         </div>
         <div style={{textAlign: 'right'}}>
           <div className="label">now</div>
-          <div className="num" style={{fontSize: 22, color: now != null && now > 1.5 ? COLORS.red : 'var(--color-ink)'}}>{fmtNum(now, 2)}</div>
+          <div className="num" style={{fontSize: 22, color: now != null && now > 1.5 ? COLORS.red : 'var(--text)'}}>{fmtNum(now, 2)}</div>
         </div>
       </div>
 
@@ -744,7 +744,7 @@ function MonotonyStrainCard({adv, loading}: {adv: AdvancedMetricsDataPoint[]; lo
         <div className="flex gap-6">
           <div style={{textAlign: 'right'}}>
             <div className="label">monotony</div>
-            <div className="num" style={{fontSize: 22, color: monNow != null && monNow > 2 ? COLORS.red : 'var(--color-ink)'}}>{fmtNum(monNow, 2)}</div>
+            <div className="num" style={{fontSize: 22, color: monNow != null && monNow > 2 ? COLORS.red : 'var(--text)'}}>{fmtNum(monNow, 2)}</div>
           </div>
           <div style={{textAlign: 'right'}}>
             <div className="label">strain</div>
@@ -836,8 +836,8 @@ export default function FitnessPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center" style={{background: 'var(--color-paper)'}}>
-        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{borderColor: 'var(--color-rule)', borderTopColor: 'var(--color-rust)'}} />
+      <div className="min-h-dvh flex items-center justify-center" style={{background: 'var(--bg)'}}>
+        <div className="w-8 h-8 rounded-full border-2 animate-spin" style={{borderColor: 'var(--line)', borderTopColor: 'var(--accent)'}} />
       </div>
     );
   }
@@ -854,20 +854,20 @@ export default function FitnessPage() {
   return (
     <>
       <AppHeader />
-      <main className="pt-14 pb-24 md:pb-12 min-h-dvh" style={{background: 'var(--color-paper)'}}>
+      <main className="scroll" style={{minHeight: '100dvh', paddingTop: 52, paddingBottom: 96}}>
         <motion.div
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           transition={{duration: 0.4}}
-          className="max-w-[1100px] mx-auto"
-          style={{border: '1px solid var(--color-ink)', borderTop: 'none'}}
+          className="panel max-w-[1100px] mx-auto"
+          style={{margin: 'var(--pad) auto', overflow: 'hidden'}}
         >
           {/* ── Masthead ──────────────────────────────────────────────────── */}
           <div className="masthead">
             <div className="line">
               <span>{dateLine}</span>
             </div>
-            <div className="brand">Fitness &amp; Form<sup>The Runner&apos;s Almanac</sup></div>
+            <div className="brand">Fitness &amp; Form</div>
             <div className="line">
               <span>{last ? `CTL ${fmtNum(last.ctl)}` : '— ctl'}</span>
               <span>{last ? `ATL ${fmtNum(last.atl)}` : '— atl'}</span>
@@ -877,24 +877,24 @@ export default function FitnessPage() {
           </div>
 
           {/* ── Scoreboard ────────────────────────────────────────────────── */}
-          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--color-ink)'}}>
+          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--text)'}}>
             <Scoreboard fitnessData={fitnessData} loading={fitnessLoading} />
           </div>
 
           {/* ── Topographic fitness ridge ─────────────────────────────────── */}
-          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--color-ink)'}}>
+          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--text)'}}>
             <TopoFitnessChart fitnessData={fitnessData} loading={fitnessLoading} />
           </div>
 
           {/* ── Performance: aerobic efficiency ───────────────────────────── */}
-          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--color-ink)'}}>
+          <div className="p-5 md:p-6" style={{borderBottom: '1px solid var(--text)'}}>
             <PerformanceCard adv={adv} loading={fitnessLoading} />
           </div>
 
           {/* ── Risk + weekly load ────────────────────────────────────────── */}
           <div
             className="grid grid-cols-1 lg:grid-cols-[1fr_1.3fr] gap-5 p-5 md:p-6"
-            style={{borderBottom: '1px solid var(--color-ink)'}}
+            style={{borderBottom: '1px solid var(--text)'}}
           >
             <RiskPanel loading={fitnessLoading} />
             <WeeklyLoadCard fitnessData={fitnessData} loading={fitnessLoading} />
@@ -903,7 +903,7 @@ export default function FitnessPage() {
           {/* ── Risk trends: ACWR + monotony/strain ───────────────────────── */}
           <div
             className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 md:p-6"
-            style={{borderBottom: '1px solid var(--color-ink)'}}
+            style={{borderBottom: '1px solid var(--text)'}}
           >
             <AcwrTrendCard adv={adv} loading={fitnessLoading} />
             <MonotonyStrainCard adv={adv} loading={fitnessLoading} />
@@ -912,7 +912,7 @@ export default function FitnessPage() {
           {/* ── Zone distribution + decoupling ────────────────────────────── */}
           <div
             className="grid grid-cols-1 lg:grid-cols-2 gap-5 p-5 md:p-6"
-            style={{borderBottom: '1px solid var(--color-ink)'}}
+            style={{borderBottom: '1px solid var(--text)'}}
           >
             <ZoneDistributionCard
               breakdownMap={breakdownMap}

@@ -74,7 +74,7 @@ export function ConnectPrompt({
         <div className="flex items-center justify-center gap-2.5 mb-10">
           <Image src="/mylogo.png" alt="" width={32} height={32} className="w-8 h-8" />
           <span
-            className="font-semibold text-sm text-[var(--color-ink)] tracking-[0.18em]"
+            className="font-semibold text-sm text-[var(--text)] tracking-[0.18em]"
           >
             RUNIQLO
           </span>
@@ -82,7 +82,7 @@ export function ConnectPrompt({
 
         {/* Headline */}
         <h1
-          className="text-[2rem] sm:text-[2.5rem] font-bold leading-[1.05] tracking-tight text-[var(--color-ink)]"
+          className="text-[2rem] sm:text-[2.5rem] font-bold leading-[1.05] tracking-tight text-[var(--text)]"
         >
           Train with intent.
         </h1>
@@ -98,7 +98,7 @@ export function ConnectPrompt({
           type="button"
           onClick={login}
           whileTap={{scale: 0.98}}
-          className="group mt-8 inline-flex w-full items-center justify-center gap-2.5 rounded-[10px] bg-brand py-3.5 text-[15px] font-semibold text-[var(--color-ink)] transition-colors hover:bg-brand/90 cursor-pointer"
+          className="group mt-8 inline-flex w-full items-center justify-center gap-2.5 rounded-[10px] bg-brand py-3.5 text-[15px] font-semibold text-[var(--text)] transition-colors hover:bg-brand/90 cursor-pointer"
         >
           {/* Strava bolt mark */}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -120,7 +120,7 @@ export function ConnectPrompt({
           {FEATURES.map(({icon: Icon, title, desc}) => (
             <div key={title} className="flex-1 px-3.5 py-4">
               <Icon size={16} className="mb-2.5" style={{color: 'var(--color-accent)'}} aria-hidden />
-              <p className="text-[12px] font-semibold leading-tight text-[var(--color-ink)]">{title}</p>
+              <p className="text-[12px] font-semibold leading-tight text-[var(--text)]">{title}</p>
               <p className="mt-1 text-[11px] leading-snug" style={{color: 'var(--color-text-2)'}}>
                 {desc}
               </p>

@@ -56,20 +56,20 @@ function StepRow({
               {STEP_LABELS[step.stepType] ?? step.stepType}
             </span>
           </div>
-          <span className="text-xs font-mono text-[var(--color-ink)] tabular-nums">
+          <span className="text-xs font-mono text-[var(--text)] tabular-nums">
             {formatDuration(step.durationSeconds)}
           </span>
         </div>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0">
-          <span className="text-xs text-[var(--color-ink)] font-medium">{step.zoneName}</span>
+          <span className="text-xs text-[var(--text)] font-medium">{step.zoneName}</span>
           {bpm && (
-            <span className="text-[11px] text-[var(--color-ink-3)]">
+            <span className="text-[11px] text-[var(--faint)]">
               {bpm.bpmMin}–{bpm.bpmMax} bpm
             </span>
           )}
         </div>
         {step.notes && (
-          <p className="mt-0.5 text-[11px] text-[var(--color-ink-3)] italic leading-snug">{step.notes}</p>
+          <p className="mt-0.5 text-[11px] text-[var(--faint)] italic leading-snug">{step.notes}</p>
         )}
       </div>
     </div>
@@ -80,10 +80,10 @@ function RepeatContainer({block, zones}: {block: RepeatBlock; zones?: UserSettin
   return (
     <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-0)] overflow-hidden">
       <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--color-surface-2)] border-b border-[var(--color-border)]">
-        <span className="text-[10px] uppercase tracking-widest font-semibold text-[var(--color-ink-3)]">
+        <span className="text-[10px] uppercase tracking-widest font-semibold text-[var(--faint)]">
           Repeat
         </span>
-        <span className="text-[11px] font-bold font-mono tabular-nums text-[var(--color-ink-2)]">
+        <span className="text-[11px] font-bold font-mono tabular-nums text-[var(--dim)]">
           ×{block.repeatCount}
         </span>
       </div>
@@ -133,7 +133,7 @@ export function StructuredWorkoutDisplay({
       )}
       {total > 0 && (
         <div className="pt-0.5 flex items-center justify-end">
-          <span className="text-[10px] text-[var(--color-ink-2)] font-mono tabular-nums">
+          <span className="text-[10px] text-[var(--dim)] font-mono tabular-nums">
             Total: {formatDuration(total)}
           </span>
         </div>

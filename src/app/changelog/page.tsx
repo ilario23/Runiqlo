@@ -91,15 +91,15 @@ export default function ChangelogPage() {
         {/* Back nav */}
         <Link
           href="/settings"
-          className="inline-flex items-center gap-1 text-sm text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] mb-8 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-[var(--faint)] hover:text-[var(--dim)] mb-8 transition-colors"
         >
           <ChevronLeft size={16} />
           Settings
         </Link>
 
         {/* Header */}
-        <h1 className="text-3xl font-bold text-[var(--color-ink)] mb-1">Changelog</h1>
-        <p className="text-sm text-[var(--color-ink-3)] mb-10">See what&apos;s new in this version</p>
+        <h1 className="text-3xl font-bold text-[var(--text)] mb-1">Changelog</h1>
+        <p className="text-sm text-[var(--faint)] mb-10">See what&apos;s new in this version</p>
 
         {/* Timeline */}
         <div className="relative">
@@ -111,19 +111,19 @@ export default function ChangelogPage() {
               <div key={release.version} className="relative pl-8">
                 {/* Dot */}
                 <div className="absolute left-0 top-1.5 w-[23px] h-[23px] rounded-full border-2 border-[var(--color-surface-2)] bg-[var(--color-base)] flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-[var(--color-ink-3)]" />
+                  <div className="w-2 h-2 rounded-full bg-[var(--faint)]" />
                 </div>
 
                 {/* Version header */}
                 <div className="flex items-center gap-3 mb-1">
-                  <span className="text-xl font-bold text-[var(--color-ink)]">v{release.version}</span>
+                  <span className="text-xl font-bold text-[var(--text)]">v{release.version}</span>
                   {release.latest && (
                     <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-violet-500/15 text-violet-400 border border-violet-500/20">
                       Latest
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[var(--color-ink-3)] mb-4">{release.date}</p>
+                <p className="text-xs text-[var(--faint)] mb-4">{release.date}</p>
 
                 {/* Entries */}
                 <div className="surface-card divide-y divide-[var(--color-surface-2)]">
@@ -132,7 +132,7 @@ export default function ChangelogPage() {
                       <div className="pt-0.5 shrink-0">
                         <Badge type={entry.type} />
                       </div>
-                      <p className="text-sm text-[var(--color-ink-2)] leading-relaxed">{entry.text}</p>
+                      <p className="text-sm text-[var(--dim)] leading-relaxed">{entry.text}</p>
                     </div>
                   ))}
                 </div>

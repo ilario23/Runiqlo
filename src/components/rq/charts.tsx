@@ -1,17 +1,18 @@
 // Runner's Almanac — shared topographic SVG primitives (editorial broadsheet).
 // Ported from the design bundle (charts.jsx), typed for the real app.
 
+// Carbon-instrument tokens (CSS vars resolve in SVG attrs + adapt to theme/accent).
 export const RQ = {
-  ink: '#1a1814',
-  ink2: '#4a4136',
-  ink3: '#786e5b',
-  rule: '#c9c1ad',
-  rule2: '#d8d1bd',
-  paper: '#f2ede2',
-  paper2: '#ebe4d3',
-  paper3: '#e3dac3',
-  rust: '#c93f1d',
-  rustDim: '#a83518',
+  ink: 'var(--text)',
+  ink2: 'var(--dim)',
+  ink3: 'var(--faint)',
+  rule: 'var(--line)',
+  rule2: 'var(--line-2)',
+  paper: 'var(--bg)',
+  paper2: 'var(--panel)',
+  paper3: 'var(--panel-2)',
+  rust: 'var(--accent)',
+  rustDim: 'var(--accent-2)',
 } as const;
 
 export type Pt = [number, number];

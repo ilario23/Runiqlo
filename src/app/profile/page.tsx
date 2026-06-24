@@ -64,7 +64,7 @@ function SportStats({
     <div className="min-w-0">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{background: color}} />
-        <span className="text-[10px] font-semibold text-[var(--color-ink-3)] uppercase tracking-widest">{label}</span>
+        <span className="text-[10px] font-semibold text-[var(--faint)] uppercase tracking-widest">{label}</span>
       </div>
       {isLoading ? (
         <div className="space-y-2.5">
@@ -73,29 +73,29 @@ function SportStats({
         </div>
       ) : totals && totals.count > 0 ? (
         <>
-          <p className="text-3xl font-mono font-bold tabular-nums tracking-tight text-[var(--color-ink)] leading-none mb-1">
+          <p className="text-3xl font-mono font-bold tabular-nums tracking-tight text-[var(--text)] leading-none mb-1">
             {fmtKm(totals.distance)}
           </p>
-          <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide mb-4">km</p>
+          <p className="text-[10px] text-[var(--faint)] uppercase tracking-wide mb-4">km</p>
           <div className="space-y-1 text-[11px]">
             <div className="flex items-baseline gap-1.5">
-              <span className="font-mono font-semibold tabular-nums text-[var(--color-ink-2)]">{totals.count}</span>
-              <span className="text-[var(--color-ink-3)]">{activityLabel}</span>
+              <span className="font-mono font-semibold tabular-nums text-[var(--dim)]">{totals.count}</span>
+              <span className="text-[var(--faint)]">{activityLabel}</span>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-mono font-semibold tabular-nums text-[var(--color-ink-2)]">{fmtHrs(totals.moving_time)}</span>
-              <span className="text-[var(--color-ink-3)]">hrs</span>
+              <span className="font-mono font-semibold tabular-nums text-[var(--dim)]">{fmtHrs(totals.moving_time)}</span>
+              <span className="text-[var(--faint)]">hrs</span>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-mono font-semibold tabular-nums text-[var(--color-ink-2)]">
+              <span className="font-mono font-semibold tabular-nums text-[var(--dim)]">
                 {Math.round(totals.elevation_gain / 1000).toLocaleString()}
               </span>
-              <span className="text-[var(--color-ink-3)]">km elev</span>
+              <span className="text-[var(--faint)]">km elev</span>
             </div>
           </div>
         </>
       ) : (
-        <p className="text-3xl font-mono font-bold text-[var(--color-ink-3)] leading-none">—</p>
+        <p className="text-3xl font-mono font-bold text-[var(--faint)] leading-none">—</p>
       )}
     </div>
   );
@@ -193,19 +193,19 @@ function GearItem({
   return (
     <div className={`py-3 px-3 rounded-xl transition-colors ${isRetired ? 'opacity-35' : ''}`}>
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-[var(--color-surface-1)] flex items-center justify-center flex-shrink-0 text-[var(--color-ink-3)]">
+        <div className="w-9 h-9 rounded-xl bg-[var(--color-surface-1)] flex items-center justify-center flex-shrink-0 text-[var(--faint)]">
           {icon}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-medium text-[var(--color-ink)] truncate">{gear.name}</p>
+            <p className="text-sm font-medium text-[var(--text)] truncate">{gear.name}</p>
             {isPrimary && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-accent-dim)] text-[var(--color-accent)] font-medium flex-shrink-0">
                 Primary
               </span>
             )}
             {isRetired && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-surface-1)] text-[var(--color-ink-3)] flex-shrink-0">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[var(--color-surface-1)] text-[var(--faint)] flex-shrink-0">
                 Retired
               </span>
             )}
@@ -218,7 +218,7 @@ function GearItem({
               </span>
             )}
           </div>
-          <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5 font-mono tabular-nums">
+          <p className="text-[11px] text-[var(--faint)] mt-0.5 font-mono tabular-nums">
             {fmtKm(gear.distance)} km
             {thresholdMeters ? ` / ${fmtKm(thresholdMeters)} km limit` : ''}
           </p>
@@ -227,7 +227,7 @@ function GearItem({
         {!isRetired && (
           <button
             onClick={() => { setEditing(true); setInputVal(thresholdMeters ? String(Math.round(thresholdMeters / 1000)) : ''); }}
-            className="text-[10px] text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors flex-shrink-0 cursor-pointer"
+            className="text-[10px] text-[var(--faint)] hover:text-[var(--dim)] transition-colors flex-shrink-0 cursor-pointer"
           >
             {thresholdMeters ? 'Edit limit' : 'Set limit'}
           </button>
@@ -254,7 +254,7 @@ function GearItem({
           <button onClick={handleSave} className="text-xs px-2.5 py-1.5 rounded-lg font-medium cursor-pointer" style={{background: 'var(--color-accent)', color: 'var(--color-on-accent)'}}>
             Save
           </button>
-          <button onClick={() => setEditing(false)} className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] cursor-pointer transition-colors">
+          <button onClick={() => setEditing(false)} className="text-xs text-[var(--faint)] hover:text-[var(--dim)] cursor-pointer transition-colors">
             Cancel
           </button>
         </div>
@@ -263,7 +263,7 @@ function GearItem({
       {/* Progress bar */}
       {pct !== null && !isRetired && (
         <div className="mt-2 ml-12">
-          <div className="h-1.5 rounded-full bg-[var(--color-paper-2)] overflow-hidden">
+          <div className="h-1.5 rounded-full bg-[var(--panel)] overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{width: `${Math.min(pct, 100)}%`, background: barColor}}
@@ -272,7 +272,7 @@ function GearItem({
           <div className="flex items-center justify-between mt-1">
             <span className="text-[10px] font-mono tabular-nums" style={{color: barColor}}>{pct}% used</span>
             {estimatedRetirement && (
-              <span className="text-[10px] text-[var(--color-ink-3)]">Est. retire {estimatedRetirement}</span>
+              <span className="text-[10px] text-[var(--faint)]">Est. retire {estimatedRetirement}</span>
             )}
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function ProfilePage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{background: 'var(--color-base)'}}>
-        <div className="w-5 h-5 rounded-full border-2 border-[var(--color-rule)] border-t-white/60 animate-spin" />
+        <div className="w-5 h-5 rounded-full border-2 border-[var(--line)] border-t-white/60 animate-spin" />
       </div>
     );
   }
@@ -363,7 +363,7 @@ export default function ProfilePage() {
                     />
                   </div>
                 ) : (
-                  <div className="w-20 h-20 md:w-[88px] md:h-[88px] rounded-2xl bg-[var(--color-surface-1)] flex items-center justify-center text-[var(--color-ink-2)] font-bold text-2xl flex-shrink-0 ring-1 ring-white/[0.08]">
+                  <div className="w-20 h-20 md:w-[88px] md:h-[88px] rounded-2xl bg-[var(--color-surface-1)] flex items-center justify-center text-[var(--dim)] font-bold text-2xl flex-shrink-0 ring-1 ring-white/[0.08]">
                     {athlete.firstname[0]}{athlete.lastname[0]}
                   </div>
                 )}
@@ -373,17 +373,17 @@ export default function ProfilePage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h1 className="text-[26px] md:text-[32px] font-bold tracking-tight leading-none">
-                        <span className="text-[var(--color-ink)]">{athlete.firstname} </span>
+                        <span className="text-[var(--text)]">{athlete.firstname} </span>
                         <span style={{color: 'rgba(26,24,20,0.4)'}} className="font-medium">{athlete.lastname}</span>
                       </h1>
                       <div className="flex items-center gap-2.5 mt-2 flex-wrap">
                         {athlete.username && (
-                          <span className="text-[11px] text-[var(--color-ink-3)]">@{athlete.username}</span>
+                          <span className="text-[11px] text-[var(--faint)]">@{athlete.username}</span>
                         )}
                         {location && (
                           <>
-                            <span className="text-[var(--color-ink-3)] text-xs select-none">·</span>
-                            <span className="text-[11px] text-[var(--color-ink-3)]">{location}</span>
+                            <span className="text-[var(--faint)] text-xs select-none">·</span>
+                            <span className="text-[11px] text-[var(--faint)]">{location}</span>
                           </>
                         )}
                       </div>
@@ -391,7 +391,7 @@ export default function ProfilePage() {
                     {/* Connected indicator */}
                     <div className="flex items-center gap-1.5 flex-shrink-0 mt-1">
                       <div className="w-1.5 h-1.5 rounded-full bg-accent-green" />
-                      <span className="text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide hidden sm:block">Connected</span>
+                      <span className="text-[10px] font-medium text-[var(--faint)] uppercase tracking-wide hidden sm:block">Connected</span>
                     </div>
                   </div>
 
@@ -402,17 +402,17 @@ export default function ProfilePage() {
                     ) : ytdKm ? (
                       <div className="flex items-baseline gap-3">
                         <span
-                          className="font-mono font-bold tabular-nums tracking-tight text-[var(--color-ink)] leading-none"
+                          className="font-mono font-bold tabular-nums tracking-tight text-[var(--text)] leading-none"
                           style={{fontSize: 'clamp(2.4rem, 5vw, 3.2rem)'}}
                         >
                           {ytdKm}
                         </span>
                         <div className="flex flex-col gap-0.5 pb-1">
-                          <span className="text-[10px] font-semibold text-[var(--color-ink-3)] uppercase tracking-widest leading-none">
+                          <span className="text-[10px] font-semibold text-[var(--faint)] uppercase tracking-widest leading-none">
                             km this year
                           </span>
                           {ytdCount > 0 && (
-                            <span className="text-[10px] text-[var(--color-ink-3)] tabular-nums">{ytdCount} activities</span>
+                            <span className="text-[10px] text-[var(--faint)] tabular-nums">{ytdCount} activities</span>
                           )}
                         </div>
                       </div>
@@ -425,7 +425,7 @@ export default function ProfilePage() {
             {/* ── Sport breakdown ──────────────────────────────────────────── */}
             <motion.div variants={cardVariant} className="surface-card p-6">
               <div className="flex items-center justify-between mb-6">
-                <span className="text-[10px] font-semibold text-[var(--color-ink-3)] uppercase tracking-widest">By sport</span>
+                <span className="text-[10px] font-semibold text-[var(--faint)] uppercase tracking-widest">By sport</span>
                 <div className="flex items-center border-b border-[var(--color-border)]">
                   {STATS_PERIODS.map(p => (
                     <button
@@ -433,8 +433,8 @@ export default function ProfilePage() {
                       onClick={() => setStatsPeriod(p.key)}
                       className={`cursor-pointer px-3 pb-2 text-[11px] font-medium transition-colors border-b-2 -mb-px ${
                         statsPeriod === p.key
-                          ? 'text-[var(--color-ink)] border-[var(--color-accent)]'
-                          : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] border-transparent'
+                          ? 'text-[var(--text)] border-[var(--color-accent)]'
+                          : 'text-[var(--faint)] hover:text-[var(--dim)] border-transparent'
                       }`}
                     >
                       {p.short}
@@ -462,7 +462,7 @@ export default function ProfilePage() {
 
             {/* ── Gear ─────────────────────────────────────────────────────── */}
             <motion.div variants={cardVariant} className="surface-card p-4">
-              <p className="text-[10px] font-semibold text-[var(--color-ink-3)] uppercase tracking-widest mb-1 px-1">Gear</p>
+              <p className="text-[10px] font-semibold text-[var(--faint)] uppercase tracking-widest mb-1 px-1">Gear</p>
               {gearLoading ? (
                 <div className="space-y-1 mt-2">
                   {Array.from({length: 3}).map((_, i) => (
@@ -476,12 +476,12 @@ export default function ProfilePage() {
                   ))}
                 </div>
               ) : !gear || (gear.bikes.length === 0 && gear.shoes.length === 0) ? (
-                <p className="text-sm text-[var(--color-ink-3)] py-3 px-3">No gear linked</p>
+                <p className="text-sm text-[var(--faint)] py-3 px-3">No gear linked</p>
               ) : (
                 <div className="mt-1">
                   {gear.bikes.length > 0 && (
                     <div className={gear.shoes.length > 0 ? 'mb-2 pb-2 border-b border-[var(--color-border)]' : ''}>
-                      <p className="text-[9px] font-semibold text-[var(--color-ink-3)] uppercase tracking-wider mb-1 px-3">Bikes</p>
+                      <p className="text-[9px] font-semibold text-[var(--faint)] uppercase tracking-wider mb-1 px-3">Bikes</p>
                       {[...gear.bikes].sort((a, b) => b.distance - a.distance).map(bike => (
                         <GearItem
                           key={bike.id}
@@ -498,7 +498,7 @@ export default function ProfilePage() {
                   )}
                   {gear.shoes.length > 0 && (
                     <div>
-                      <p className="text-[9px] font-semibold text-[var(--color-ink-3)] uppercase tracking-wider mb-1 px-3">Shoes</p>
+                      <p className="text-[9px] font-semibold text-[var(--faint)] uppercase tracking-wider mb-1 px-3">Shoes</p>
                       {[...gear.shoes].sort((a, b) => b.distance - a.distance).map(shoe => (
                         <GearItem
                           key={shoe.id}

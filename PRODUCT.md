@@ -14,23 +14,25 @@ Personal training dashboard that pulls Strava activity data and overlays AI coac
 
 ## Brand Personality
 
-Precise · Editorial · Obsessive · Printed · Technical. The feel of a runner's almanac or a sport gazette front page: cream paper, ink rules, serif italic headlines, mono numerals set like a box score, one hot rust accent for race-day signal. No motivational fluff, no badge gamification. Data is the headline; the chrome recedes into paper and rule.
+Precise · Instrumental · Dark · Technical · Calm. The feel of a precision instrument on true-black glass: matte graphite panels floating on a black canvas, tabular mono numerals, one tunable signal accent (lime by default) glowing where it matters. An Apple-grade dark cockpit readout that happens to know your CTL. No motivational fluff, no badge gamification. Data is the signal; the chrome is quiet carbon and recedes into black.
 
 ## Anti-references
 
-- Generic SaaS dashboard (purple gradients, metric-card grids, hero numbers)
-- Fitness influencer apps (streaks, bright colors, motivational copy)
+- Generic SaaS dashboard (purple gradients, glowing metric-card grids, identical hero numbers)
+- Fitness influencer apps (streaks, bright motivational palettes, hype copy)
 - Feature-bloated sports apps (Garmin Connect-style everything-everywhere)
 - Strava's blue activity feed card grid pattern
+- Flat "dark mode by inverting" — washed grey-on-grey with no real black canvas or elevation
 
 ## Design Principles
 
 1. **Data earns its place** — every metric shown must be actionable; remove what informs but doesn't direct.
-2. **Print, not screen** — cream paper, ink hairline rules, square corners, no shadows or blur; depth comes from ink and paper tone, the way ink sits on a page.
-3. **Precision over decoration** — prefer exact numbers and clean typography over gradients and shadows; every number is a tabular mono numeral.
-4. **System not surface** — design system tokens over one-off styles; consistency is trustworthiness.
-5. **Coach speaks plainly** — AI copy is direct and specific, never motivational or hedged.
+2. **Instrument, not poster** — true-black canvas, elevated graphite panels with rounded corners and soft depth; the screen reads like a precision readout, not a printed page.
+3. **Precision over decoration** — prefer exact numbers and clean typography over ornament; every number is a tabular mono numeral (IBM Plex Mono).
+4. **One tunable signal** — a single accent (lime default; amber/cyan/coral selectable) is rationed to the one thing that matters now. Everything else is graphite and text.
+5. **System not surface** — design tokens over one-off styles; consistency is trustworthiness.
+6. **Coach speaks plainly** — AI copy is direct and specific, never motivational or hedged.
 
 ## Accessibility & Inclusion
 
-Single-user personal tool; WCAG AA as baseline. Light editorial paper theme (ink on cream); body text ≥4.5:1 against paper. Reduced motion respected for animations. Mobile-first (used pre/post run on phone).
+Single-user personal tool; WCAG AA as baseline. Dark by default (Apple-dark: `#f5f5f7` text on true-black `#000`), with a light theme toggle (Apple system-grouped: near-black text on `#f2f2f7`); body text ≥4.5:1 in both themes. Keyboard focus shows a 2px accent ring. Reduced motion respected for animations (`prefers-reduced-motion`). Mobile-first (used pre/post run on phone), touch targets ≥44px.

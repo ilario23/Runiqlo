@@ -148,6 +148,31 @@ export const useActivityWeather = (activityId: string | undefined) => {
   });
 };
 
+export const useActivityPlace = (activityId: string | undefined) => {
+  const {isAuthenticated} = useStravaAuth();
+  const {data: detail} = useActivityDetail(activityId);
+  return useQuery<string | null>({
+    queryKey: ['strava', 'place', activityId],
+    queryFn: async () => {
+      // Prefer Strava's own location fields when present.
+      const city = detail?.location_city;
+      const state = detail?.location_state;
+      const parts = [city, state].filter(Boolean) as string[];
+      if (parts.length) return parts.join(', ');
+
+      const latlng = detail?.start_latlng;
+      if (!latlng || latlng.length < 2) return detail?.location_country ?? null;
+      const r = await fetch(`/api/geocode?lat=${latlng[0]}&lng=${latlng[1]}`);
+      if (!r.ok) return null;
+      const place = (await r.json()) as {label: string} | null;
+      return place?.label ?? null;
+    },
+    enabled: isAuthenticated && !!activityId && detail !== undefined,
+    staleTime: Infinity,
+    gcTime: ONE_DAY,
+  });
+};
+
 export const useBestEffortsData = () => {
   const {isAuthenticated, athlete} = useStravaAuth();
   return useQuery<{bests: Record<string, {timeSeconds: number; date: string; activityId: number}>} | null>({
@@ -339,7 +364,9 @@ export const usePerActivityZoneBreakdowns = (weeks: number) => {
 export const useZoneBreakdowns = (weeks: number): {data: AggregatedZoneTotals | undefined; isLoading: boolean; progress: ZoneBreakdownProgress} => {
   const {data: breakdownMap, isLoading, progress} = usePerActivityZoneBreakdowns(weeks);
   const aggregated = useMemo(() => {
-    if (!breakdownMap || breakdownMap.size === 0) return undefined;
+    // Defensive: a corrupted (e.g. previously-persisted) Map deserializes to a
+    // plain object without `.values`. Treat anything that isn't a real Map as empty.
+    if (!breakdownMap || typeof breakdownMap.values !== 'function' || breakdownMap.size === 0) return undefined;
     return aggregateZoneBreakdowns(Array.from(breakdownMap.values()));
   }, [breakdownMap]);
   return {data: aggregated, isLoading, progress};

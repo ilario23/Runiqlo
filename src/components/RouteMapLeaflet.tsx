@@ -42,8 +42,11 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
       doubleClickZoom: true,
     });
 
+    const isLight =
+      typeof document !== 'undefined' &&
+      document.documentElement.getAttribute('data-theme') === 'light';
     L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      `https://{s}.basemaps.cartocdn.com/${isLight ? 'light_all' : 'dark_all'}/{z}/{x}/{y}{r}.png`,
       {maxZoom: 19},
     ).addTo(map);
 
@@ -143,7 +146,7 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
       role="img"
       aria-label="Map of the activity route"
       className="w-full h-[300px] rounded-xl overflow-hidden"
-      style={{background: 'var(--color-paper-2)'}}
+      style={{background: 'var(--panel)'}}
     />
   );
 }

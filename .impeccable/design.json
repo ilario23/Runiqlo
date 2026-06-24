@@ -1,41 +1,59 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-06-07T00:00:00.000Z",
-  "title": "Design System: Runiqlo — The Almanac",
+  "generatedAt": "2026-06-24T00:00:00.000Z",
+  "title": "Design System: Runiqlo — Carbon Instrument",
   "extensions": {
     "colorMeta": {
-      "rust": { "role": "primary", "displayName": "Race-Day Rust", "canonical": "#c93f1d", "tonalRamp": ["#3a120a", "#5e1d0e", "#822814", "#a83518", "#c93f1d", "#dc6b4d", "#e89a82", "#f4cabb"] },
-      "rust-dim": { "role": "primary", "displayName": "Rust Pressed", "canonical": "#a83518", "tonalRamp": ["#330f07", "#54190c", "#762311", "#962f15", "#a83518", "#c66145", "#dd917c", "#f0c3b3"] },
-      "paper": { "role": "neutral", "displayName": "Almanac Paper", "canonical": "#f2ede2", "tonalRamp": ["#2a261d", "#4a4336", "#6e6552", "#968b73", "#bcb29a", "#d8d0bd", "#ebe4d3", "#f2ede2"] },
-      "paper-2": { "role": "neutral", "displayName": "Recessed Paper", "canonical": "#ebe4d3", "tonalRamp": ["#262318", "#45402f", "#675f49", "#8d836a", "#b4a98e", "#d2c9b1", "#e3dac3", "#ebe4d3"] },
-      "paper-3": { "role": "neutral", "displayName": "Deep Paper", "canonical": "#e3dac3", "tonalRamp": ["#242115", "#42402c", "#635c44", "#897f63", "#afa486", "#cdc3a8", "#dbd1b8", "#e3dac3"] },
-      "ink": { "role": "neutral", "displayName": "Press Ink", "canonical": "#1a1814", "tonalRamp": ["#1a1814", "#33302a", "#4a4136", "#615747", "#786e5b", "#9a8f78", "#c2b9a3", "#e3dcca"] },
-      "ink-2": { "role": "neutral", "displayName": "Ink Supporting", "canonical": "#4a4136", "tonalRamp": ["#1a1712", "#2f2a21", "#4a4136", "#665a48", "#857761", "#a99c83", "#cdc2aa", "#ebe4d3"] },
-      "ink-3": { "role": "neutral", "displayName": "Ink Muted", "canonical": "#786e5b", "tonalRamp": ["#221f18", "#3a3528", "#544c3a", "#6e644e", "#786e5b", "#9c9078", "#c2b8a0", "#e6dfcd"] },
-      "rule": { "role": "neutral", "displayName": "Contour Rule", "canonical": "#c9c1ad", "tonalRamp": ["#2a271f", "#484335", "#665f4c", "#8a8268", "#aea688", "#c9c1ad", "#dcd6c5", "#efebdf"] },
-      "zone-green": { "role": "secondary", "displayName": "Easy Green", "canonical": "#6b8a76", "tonalRamp": ["#16201a", "#26392d", "#385343", "#4c6f5a", "#6b8a76", "#8ba896", "#b0c6b8", "#d8e4dd"] },
-      "zone-yellow": { "role": "secondary", "displayName": "Tempo Gold", "canonical": "#b08550", "tonalRamp": ["#241a0e", "#3e2f18", "#5b4524", "#7c5e31", "#b08550", "#c8a578", "#dcc4a4", "#efe2d1"] },
-      "zone-orange": { "role": "secondary", "displayName": "Threshold Orange", "canonical": "#dc8a5b", "tonalRamp": ["#2e1810", "#4c281a", "#6e3b27", "#945237", "#dc8a5b", "#e7aa86", "#f0c8b1", "#f8e4d8"] },
-      "zone-blue": { "role": "secondary", "displayName": "Aerobic Slate", "canonical": "#4a6079", "tonalRamp": ["#11171e", "#1f2a36", "#2f3f51", "#3e526b", "#4a6079", "#7385a0", "#a0aec2", "#d2d9e3"] },
-      "zone-purple": { "role": "secondary", "displayName": "Anaerobic Mauve", "canonical": "#7a6a86", "tonalRamp": ["#1c1820", "#322c3a", "#4b4255", "#645872", "#7a6a86", "#9c8fa6", "#c0b6c8", "#e3dde8"] },
-      "zone-cyan": { "role": "secondary", "displayName": "Recovery Teal", "canonical": "#6b9c9c", "tonalRamp": ["#16201f", "#263937", "#385351", "#4c6f6d", "#6b9c9c", "#8db8b8", "#b2d0d0", "#dae8e8"] }
+      "accent": { "role": "primary", "displayName": "Signal Lime", "canonical": "#c6f833", "tunable": true, "presets": { "lime": "#c6f833", "amber": "#f2a33c", "cyan": "#3fd6e0", "coral": "#ff6b5a" }, "tonalRamp": ["#1a210a", "#37460e", "#556b14", "#7a9a1c", "#a6d420", "#c6f833", "#dbfa6e", "#edfcb0"] },
+      "accent-2": { "role": "primary", "displayName": "Signal Pressed", "canonical": "#a6d420", "tonalRamp": ["#161c08", "#2e3a0e", "#465814", "#67801b", "#a6d420", "#bce64a", "#d3f184", "#e8f9bb"] },
+      "accent-ink": { "role": "primary", "displayName": "On-Accent Ink", "canonical": "#0a0d11", "tonalRamp": ["#0a0d11", "#161b22", "#252c36", "#39424f", "#525d6c", "#74808f", "#9da7b3", "#cdd2d9"] },
+      "bg": { "role": "neutral", "displayName": "True-Black Canvas", "canonical": "#000000", "tonalRamp": ["#000000", "#0a0a0c", "#151517", "#1e1e22", "#2a2a2f", "#3a3a40", "#56565d", "#8a8a90"] },
+      "panel": { "role": "neutral", "displayName": "Graphite Panel", "canonical": "#151517", "tonalRamp": ["#000000", "#0a0a0c", "#151517", "#1e1e22", "#2a2a2f", "#3a3a40", "#56565d", "#8a8a90"] },
+      "panel-2": { "role": "neutral", "displayName": "Raised Graphite", "canonical": "#1e1e22", "tonalRamp": ["#0a0a0c", "#151517", "#1e1e22", "#2a2a2f", "#3a3a40", "#56565d", "#7c7c83", "#a8a8ae"] },
+      "panel-3": { "role": "neutral", "displayName": "Deep Graphite", "canonical": "#2a2a2f", "tonalRamp": ["#151517", "#1e1e22", "#2a2a2f", "#3a3a40", "#4d4d54", "#69696f", "#90909600", "#bcbcc1"] },
+      "text": { "role": "neutral", "displayName": "Primary Text", "canonical": "#f5f5f7", "tonalRamp": ["#1c1c1e", "#39393c", "#5a5a5e", "#7e7e83", "#a4a4a9", "#c9c9cd", "#e6e6e9", "#f5f5f7"] },
+      "dim": { "role": "neutral", "displayName": "Supporting Text", "canonical": "rgba(235,235,245,0.62)" },
+      "faint": { "role": "neutral", "displayName": "Label Text", "canonical": "rgba(235,235,245,0.32)" },
+      "line": { "role": "neutral", "displayName": "Hairline", "canonical": "rgba(255,255,255,0.07)" },
+      "fresh": { "role": "secondary", "displayName": "Fresh (TSB+)", "canonical": "#30d158", "tonalRamp": ["#0a2614", "#114321", "#176030", "#1e8040", "#30d158", "#5fdd7e", "#94e8ab", "#cdf4d8"] },
+      "neutral-tsb": { "role": "secondary", "displayName": "Neutral (TSB caution)", "canonical": "#ffd60a", "tonalRamp": ["#2e2700", "#4d4100", "#6e5d00", "#937c00", "#ffd60a", "#ffe04f", "#ffe98a", "#fff3c2"] },
+      "fatigue": { "role": "secondary", "displayName": "Fatigue (TSB-)", "canonical": "#ff453a", "tonalRamp": ["#2e0c09", "#4d1611", "#6e211a", "#942c24", "#ff453a", "#ff7167", "#ffa098", "#ffcfca"] },
+      "z1": { "role": "secondary", "displayName": "Z1 Recovery", "canonical": "#8e8e93" },
+      "z2": { "role": "secondary", "displayName": "Z2 Aerobic", "canonical": "#0a84ff" },
+      "z3": { "role": "secondary", "displayName": "Z3 Tempo", "canonical": "#30d158" },
+      "z4": { "role": "secondary", "displayName": "Z4 Threshold", "canonical": "#ffd60a" },
+      "z5": { "role": "secondary", "displayName": "Z5 VO2max", "canonical": "#ff9f0a" },
+      "z6": { "role": "secondary", "displayName": "Z6 Anaerobic", "canonical": "#ff453a" }
+    },
+    "themes": {
+      "dark": { "displayName": "Apple Dark (default)", "bg": "#000000", "panel": "#151517", "text": "#f5f5f7" },
+      "light": { "displayName": "Apple Light ([data-theme=light])", "bg": "#f2f2f7", "panel": "#ffffff", "panel-2": "#f5f5f7", "panel-3": "#ebebf0", "text": "#1c1c1e", "z2": "#007aff", "z3": "#28a745", "z4": "#e6a100", "z5": "#ff9500", "z6": "#ff3b30", "fresh": "#28a745", "fatigue": "#ff3b30" }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display (Newsreader Italic)", "purpose": "Page nameplate headlines, once per page. Italic; em flips upright weight 200." },
-      "headline": { "displayName": "Section Headline (Newsreader Italic)", "purpose": "Section titles." },
-      "deck": { "displayName": "Deck / Standfirst (Newsreader Italic)", "purpose": "Subhead under a headline, ink-2." },
-      "body": { "displayName": "Body (Newsreader)", "purpose": "Coach messages, descriptions, notes; max 65-75ch, ink-2." },
-      "label": { "displayName": "Label (Geist Sans)", "purpose": "Uppercase labels, kickers, nav, buttons only. Never headlines or numbers." },
-      "num": { "displayName": "Numeral (JetBrains Mono)", "purpose": "All data: pace, HR, distance, CTL/ATL/TSB. tabular-nums always." }
+      "display": { "displayName": "Display (Space Grotesk 600)", "purpose": "Page nameplate headlines, once per page. Upright; em flips weight 300 dim." },
+      "headline": { "displayName": "Section Headline (Space Grotesk 600)", "purpose": "Section titles, 27px, -0.02em." },
+      "deck": { "displayName": "Deck / Standfirst (Space Grotesk 400)", "purpose": "Subhead under a headline, 16px, dim." },
+      "body": { "displayName": "Body (Space Grotesk 400)", "purpose": "Coach messages, descriptions, notes; max 65-75ch, dim." },
+      "label": { "displayName": "Label / Eyebrow (Space Grotesk 600)", "purpose": "Uppercase labels, kickers, nav, buttons. 9.5px, 0.07em, faint." },
+      "num": { "displayName": "Numeral (IBM Plex Mono)", "purpose": "All data: pace, HR, distance, CTL/ATL/TSB. tabular-nums always." }
     },
     "shadows": [
-      { "name": "none", "value": "none", "purpose": "The Print Rule. No surface lifts; --shadow-base/elevated/slab are all none. Depth is ink hairlines + paper-tone steps only." }
+      { "name": "panel", "value": "0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px -16px rgba(0,0,0,0.7)", "purpose": "The Lift Rule. Primary panels rise off the true-black canvas: bright inset top edge + soft cast below." },
+      { "name": "panel-light", "value": "0 1px 0 rgba(0,0,0,0.02) inset, 0 8px 24px -16px rgba(0,0,0,0.22)", "purpose": "Light-theme panel lift, softened for white surfaces." },
+      { "name": "button-accent", "value": "0 4px 16px -6px var(--accent-glow)", "purpose": "Reserved glow under the one accent button per screen." }
     ],
     "motion": [
-      { "name": "surface-transition", "value": "background 0.15s ease", "purpose": "Hover paper-tone step on cards/buttons/rows." },
-      { "name": "nav-indicator", "value": "opacity 0.25s ease", "purpose": "Active nav underline fades in via opacity, never animates width." },
-      { "name": "icon-bounce", "value": "iconBounce 0.45s ease", "purpose": "Mobile tab icon bounce on activate." },
-      { "name": "dot-breathe", "value": "breath 2s ease-in-out infinite", "purpose": "Refresh/sync status dot pulse." }
+      { "name": "press-scale", "value": "transform 0.18s cubic-bezier(.3,.7,.3,1)", "purpose": "Button press scales to 0.97." },
+      { "name": "nav-indicator", "value": "opacity 0.25s ease", "purpose": "Active nav/tab underline fades in via opacity, never animates width." },
+      { "name": "icon-lift", "value": "iconLift 0.4s cubic-bezier(.22,1,.36,1)", "purpose": "Mobile tab icon lift on activate." },
+      { "name": "pulse", "value": "pulse 2.2s infinite", "purpose": "Live dot / sync status accent pulse." },
+      { "name": "rise", "value": "rise 0.4s cubic-bezier(.2,.7,.3,1)", "purpose": "Panel fade-in on mount (reduced-motion aware)." }
+    ],
+    "radius": [
+      { "name": "card", "value": "18px" },
+      { "name": "inner", "value": "12px" },
+      { "name": "button", "value": "11px" },
+      { "name": "badge", "value": "980px" }
     ],
     "breakpoints": [
       { "name": "sm", "value": "640px" },
@@ -44,121 +62,124 @@
   },
   "components": [
     {
-      "name": "Ink Button (Primary)",
+      "name": "Accent Button (Signal)",
       "kind": "button",
-      "refersTo": "button-ink",
-      "description": "Standard primary action. Square, ink fill, uppercase sans label.",
-      "html": "<button class=\"ds-btn-ink\">Save changes</button>",
-      "css": ".ds-btn-ink { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border: 1.5px solid #1a1814; background: #1a1814; color: #f2ede2; cursor: pointer; border-radius: 0; transition: background 0.15s ease, color 0.15s ease; } .ds-btn-ink:hover { background: #4a4136; } .ds-btn-ink:focus-visible { outline: 2px solid #c93f1d; outline-offset: 2px; }"
+      "refersTo": "button-accent",
+      "description": "The one rationed primary per screen. Accent fill, accent-ink text, glow shadow.",
+      "html": "<button class=\"ds-btn-accent\">Start workout</button>",
+      "css": ".ds-btn-accent { display: inline-flex; align-items: center; gap: 7px; font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 12.5px; letter-spacing: -0.01em; font-weight: 650; padding: 9px 16px; border: none; background: var(--accent, #c6f833); color: var(--accent-ink, #0a0d11); cursor: pointer; border-radius: 11px; box-shadow: 0 4px 16px -6px var(--accent-glow, rgba(198,248,51,0.2)); transition: background 0.18s cubic-bezier(.3,.7,.3,1), transform 0.18s; } .ds-btn-accent:hover { background: var(--accent-2, #a6d420); } .ds-btn-accent:active { transform: scale(0.97); } .ds-btn-accent:focus-visible { outline: 2px solid var(--accent, #c6f833); outline-offset: 2px; }"
     },
     {
-      "name": "Rust Button (Race-Day)",
+      "name": "Default Button (Tinted)",
       "kind": "button",
-      "refersTo": "button-rust",
-      "description": "The one rationed primary per screen. Rust fill, paper text.",
-      "html": "<button class=\"ds-btn-rust\">Start workout</button>",
-      "css": ".ds-btn-rust { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border: 1.5px solid #c93f1d; background: #c93f1d; color: #f2ede2; cursor: pointer; border-radius: 0; transition: background 0.15s ease; } .ds-btn-rust:hover { background: #a83518; } .ds-btn-rust:focus-visible { outline: 2px solid #1a1814; outline-offset: 2px; }"
+      "refersTo": "button-default",
+      "description": "Standard action. Faint white tint fill, primary text.",
+      "html": "<button class=\"ds-btn\">Save changes</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; gap: 7px; font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 12.5px; letter-spacing: -0.01em; font-weight: 590; padding: 9px 16px; border: none; background: rgba(255,255,255,0.08); color: var(--text, #f5f5f7); cursor: pointer; border-radius: 11px; transition: background 0.18s cubic-bezier(.3,.7,.3,1), transform 0.18s; } .ds-btn:hover { background: rgba(255,255,255,0.13); } .ds-btn:active { transform: scale(0.97); } .ds-btn:focus-visible { outline: 2px solid var(--accent, #c6f833); outline-offset: 2px; }"
     },
     {
       "name": "Ghost Button",
       "kind": "button",
       "refersTo": "button-ghost",
-      "description": "Secondary action. Paper fill, ink border, steps to paper-2 on hover.",
+      "description": "Secondary action. Transparent, dim text; faint fill + full text on hover.",
       "html": "<button class=\"ds-btn-ghost\">Export</button>",
-      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 8px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; padding: 8px 14px; border: 1.5px solid #1a1814; background: #f2ede2; color: #1a1814; cursor: pointer; border-radius: 0; transition: background 0.15s ease; } .ds-btn-ghost:hover { background: #ebe4d3; } .ds-btn-ghost:focus-visible { outline: 2px solid #c93f1d; outline-offset: 2px; }"
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; gap: 7px; font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 12.5px; letter-spacing: -0.01em; font-weight: 590; padding: 9px 16px; border: none; background: transparent; color: var(--dim, rgba(235,235,245,0.62)); cursor: pointer; border-radius: 11px; transition: background 0.18s, color 0.18s; } .ds-btn-ghost:hover { background: rgba(255,255,255,0.07); color: var(--text, #f5f5f7); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent, #c6f833); outline-offset: 2px; }"
     },
     {
       "name": "Field Input",
       "kind": "input",
       "refersTo": "field",
-      "description": "Fill-in-the-blank line. Ink border, Newsreader italic text.",
+      "description": "Raised graphite field, 1px line border, 12px radius, sans text.",
       "html": "<input class=\"ds-field\" placeholder=\"Add a note...\" />",
-      "css": ".ds-field { border: 1px solid #1a1814; padding: 10px 12px; font-family: var(--serif, Newsreader, Georgia, serif); font-style: italic; color: #4a4136; background: #f2ede2; font-size: 14px; border-radius: 0; width: 100%; } .ds-field::placeholder { color: #786e5b; } .ds-field:focus-visible { outline: 2px solid #c93f1d; outline-offset: 2px; }"
+      "css": ".ds-field { border: 1px solid var(--line-2, rgba(255,255,255,0.11)); padding: 10px 12px; font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); color: var(--text, #f5f5f7); background: var(--panel-2, #1e1e22); font-size: 14px; border-radius: 12px; width: 100%; } .ds-field::placeholder { color: var(--faint, rgba(235,235,245,0.32)); } .ds-field:focus-visible { outline: 2px solid var(--accent, #c6f833); outline-offset: 2px; }"
     },
     {
       "name": "Chip",
       "kind": "chip",
       "refersTo": "chip",
-      "description": "Square uppercase tag. Variants: default, ink-fill, rust.",
+      "description": "Pill-rounded uppercase tag. Variants: default, accent-fill (ink), accent-outline (rust).",
       "html": "<span class=\"ds-chip\">Tempo</span> <span class=\"ds-chip ds-chip--ink\">Today</span> <span class=\"ds-chip ds-chip--rust\">Race</span>",
-      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 8px; border: 1px solid #1a1814; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #1a1814; border-radius: 0; } .ds-chip--ink { background: #1a1814; color: #f2ede2; border-color: #1a1814; } .ds-chip--rust { border-color: #c93f1d; color: #c93f1d; }"
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border: 1px solid var(--line-2, rgba(255,255,255,0.11)); font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 600; color: var(--dim, rgba(235,235,245,0.62)); border-radius: 980px; } .ds-chip--ink { background: var(--accent, #c6f833); color: var(--accent-ink, #0a0d11); border-color: var(--accent, #c6f833); } .ds-chip--rust { border-color: color-mix(in srgb, var(--accent, #c6f833) 45%, transparent); color: var(--accent, #c6f833); }"
     },
     {
-      "name": "Surface Card",
+      "name": "Panel (Elevated Card)",
       "kind": "card",
-      "refersTo": "card-surface",
-      "description": "Primary container. Paper with a 1px ink hairline. Square, no shadow.",
-      "html": "<div class=\"ds-card\"><div class=\"ds-card__label\">Last run</div><div class=\"ds-card__body\">Easy 8.2 km along the canal.</div></div>",
-      "css": ".ds-card { background: #f2ede2; border: 1px solid #1a1814; border-radius: 0; padding: 20px; transition: background 0.18s ease; } .ds-card:hover { background: #ebe4d3; } .ds-card__label { font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #786e5b; margin-bottom: 8px; } .ds-card__body { font-family: var(--serif, Newsreader, Georgia, serif); font-size: 14px; line-height: 1.5; color: #4a4136; }"
+      "refersTo": "panel",
+      "description": "Primary container. Graphite panel lifted off the black canvas with a soft shadow + hairline. 18px radius.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-panel__label\">Last run</div><div class=\"ds-panel__body\">Easy 8.2 km along the canal.</div></div>",
+      "css": ".ds-panel { background: var(--panel, #151517); border: 1px solid var(--line, rgba(255,255,255,0.07)); border-radius: 18px; padding: 20px; box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px -16px rgba(0,0,0,0.7); transition: background 0.18s ease; } .ds-panel:hover { background: var(--panel-2, #1e1e22); } .ds-panel__label { font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; color: var(--faint, rgba(235,235,245,0.32)); margin-bottom: 8px; } .ds-panel__body { font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 14px; line-height: 1.5; color: var(--dim, rgba(235,235,245,0.62)); }"
     },
     {
       "name": "Scoreboard Tile",
       "kind": "custom",
       "refersTo": "tile",
-      "description": "Box-score readout for a single metric (CTL/ATL/TSB). Rust variant marks the live metric.",
+      "description": "Instrument readout for a single metric (CTL/ATL/TSB). Accent variant marks the live metric.",
       "html": "<div class=\"ds-tile ds-tile--rust\"><div class=\"ds-tile__label\">TSB<span>FORM</span></div><div class=\"ds-tile__num\">+8.4</div><div class=\"ds-tile__delta\">&#9650; 2.1 vs last week</div></div>",
-      "css": ".ds-tile { border: 1px solid #1a1814; padding: 14px 16px 16px; background: #f2ede2; position: relative; } .ds-tile__label { font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.22em; text-transform: uppercase; color: #4a4136; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; } .ds-tile__num { font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 36px; letter-spacing: -0.03em; font-weight: 500; line-height: 1; font-variant-numeric: tabular-nums; } .ds-tile__delta { font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 11px; margin-top: 6px; color: #c93f1d; } .ds-tile--rust { border-color: #c93f1d; } .ds-tile--rust .ds-tile__label, .ds-tile--rust .ds-tile__num { color: #c93f1d; }"
+      "css": ".ds-tile { border: 1px solid var(--line, rgba(255,255,255,0.07)); border-radius: 18px; padding: 14px 16px 16px; background: var(--panel, #151517); position: relative; } .ds-tile__label { font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; color: var(--dim, rgba(235,235,245,0.62)); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; } .ds-tile__num { font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 36px; letter-spacing: -0.03em; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; } .ds-tile__delta { font-family: var(--mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 11px; margin-top: 6px; color: var(--dim, rgba(235,235,245,0.62)); } .ds-tile--rust { border-color: color-mix(in srgb, var(--accent, #c6f833) 45%, transparent); } .ds-tile--rust .ds-tile__label, .ds-tile--rust .ds-tile__num { color: var(--accent, #c6f833); }"
     },
     {
       "name": "Masthead",
       "kind": "nav",
       "refersTo": null,
-      "description": "Broadsheet nameplate. Double ink top rule, italic serif brand with rust mono superscript, sans dateline.",
+      "description": "Quiet top strip. 1px line bottom edge, sans brand (700) with mono accent superscript, dot-separated dateline.",
       "html": "<div class=\"ds-masthead\"><span class=\"ds-masthead__brand\">Runiqlo<sup>No.7</sup></span><span class=\"ds-masthead__line\">Mon 7 Jun<span>&middot;</span>Week 23<span>&middot;</span>Build</span></div>",
-      "css": ".ds-masthead { border-bottom: 2px solid #1a1814; border-top: 6px double #1a1814; padding: 16px 24px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 18px; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #4a4136; } .ds-masthead__brand { font-family: var(--serif, Newsreader, Georgia, serif); font-style: italic; font-weight: 600; font-size: 26px; letter-spacing: -0.02em; text-transform: none; color: #1a1814; } .ds-masthead__brand sup { font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 9px; font-style: normal; letter-spacing: 0.1em; color: #c93f1d; margin-left: 6px; top: -0.9em; } .ds-masthead__line span { margin: 0 12px; color: #c9c1ad; }"
+      "css": ".ds-masthead { border-bottom: 1px solid var(--line, rgba(255,255,255,0.07)); padding: 16px 24px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 18px; font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 10px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--dim, rgba(235,235,245,0.62)); } .ds-masthead__brand { font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; text-transform: none; color: var(--text, #f5f5f7); } .ds-masthead__brand sup { font-family: var(--mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 9px; font-weight: 400; letter-spacing: 0.07em; color: var(--accent, #c6f833); margin-left: 6px; top: -0.9em; } .ds-masthead__line span { margin: 0 12px; color: var(--line-2, rgba(255,255,255,0.11)); }"
     },
     {
       "name": "Ledger Table",
       "kind": "custom",
       "refersTo": null,
-      "description": "Efforts log set as an almanac records page. Mono cells, dotted row rules, italic first column.",
+      "description": "Efforts log as an instrument records page. Mono cells, hairline row rules, sans first column.",
       "html": "<table class=\"ds-ledger\"><thead><tr><th>Date</th><th>Session</th><th class=\"ds-num\">Dist</th><th class=\"ds-num\">Pace</th></tr></thead><tbody><tr><td>06 Jun</td><td class=\"ds-key\">Tempo</td><td class=\"ds-num\">10.0</td><td class=\"ds-num\">4:38</td></tr><tr><td>05 Jun</td><td class=\"ds-key\">Easy</td><td class=\"ds-num\">8.2</td><td class=\"ds-num\">5:21</td></tr></tbody></table>",
-      "css": ".ds-ledger { width: 100%; border-collapse: collapse; font-family: var(--mono, 'JetBrains Mono', ui-monospace, monospace); font-size: 12px; font-variant-numeric: tabular-nums; } .ds-ledger th { text-align: left; font-family: var(--sans, 'Helvetica Neue', Arial, sans-serif); font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #786e5b; font-weight: 400; padding: 8px 10px; border-bottom: 1px solid #1a1814; } .ds-ledger td { padding: 10px; border-bottom: 1px dotted #c9c1ad; color: #1a1814; } .ds-ledger tr:hover td { background: #ebe4d3; } .ds-ledger .ds-num { text-align: right; } .ds-ledger .ds-key { font-family: var(--serif, Newsreader, Georgia, serif); font-style: italic; color: #1a1814; }"
+      "css": ".ds-ledger { width: 100%; border-collapse: collapse; font-family: var(--mono, 'IBM Plex Mono', ui-monospace, monospace); font-size: 12px; font-variant-numeric: tabular-nums; } .ds-ledger th { text-align: left; font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--faint, rgba(235,235,245,0.32)); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line-2, rgba(255,255,255,0.11)); } .ds-ledger td { padding: 10px; border-bottom: 1px solid var(--line, rgba(255,255,255,0.07)); color: var(--text, #f5f5f7); } .ds-ledger tr:hover td { background: var(--panel-2, #1e1e22); } .ds-ledger .ds-num { text-align: right; } .ds-ledger .ds-key { font-family: var(--sans, 'Space Grotesk', system-ui, sans-serif); color: var(--text, #f5f5f7); }"
     }
   ],
   "narrative": {
-    "northStar": "The Runner's Almanac",
-    "overview": "Runiqlo is a printed almanac for a single athlete, not an app skin. The interface is a cream-paper broadsheet: ink-black hairline rules, a serif italic masthead, mono numerals set like a box score, and one hot rust accent reserved for race-day signal. It reads like the front page of a sport gazette that happens to know your CTL. The chrome recedes into paper and rule; the data is the headline. It rejects every fitness-app and SaaS-dashboard reflex, and rejects its own former self: this is not the dark terminal 'Dark Lab' the project once shipped. Warmth is carried by paper, serif, and letterpress detail, never by a near-white tint pretending to be a dark surface. Square corners, no shadows, no blur; depth comes from ink rules and paper tones.",
+    "northStar": "The Precision Instrument",
+    "overview": "Runiqlo is a precision training instrument for a single athlete, not an app skin. The interface is a true-black canvas with matte graphite panels floating on it: rounded 18px corners, hairline edges, a soft drop shadow that lifts each panel off the black, tabular mono numerals, and one tunable signal accent (lime by default) reserved for what matters now. It reads like an Apple-grade dark cockpit readout that happens to know your CTL. It rejects every fitness-app and SaaS-dashboard reflex, and rejects the lazy 'dark mode by inversion': this is a real black canvas (#000) with genuinely elevated panels, not washed grey-on-grey. The accent is rationed and tunable — swap lime for amber, cyan, or coral at runtime — but only ever one signal per screen. Dark is default; a light theme toggle (Apple system-grouped, white panels on #f2f2f7) covers bright daylight.",
     "keyCharacteristics": [
-      "Cream paper base (#f2ede2) with two darker paper tones; never a card-on-card stack",
-      "Ink-black hairline borders (1px) and hard rules (2px); square corners everywhere (0px radius)",
-      "One rust accent (#c93f1d), used for race-day signal and primary action only",
-      "Three typefaces with clear jobs: Newsreader serif (display + body), Geist sans (labels), JetBrains Mono (numerals)",
-      "Tabular mono numerals throughout — every metric reads like a box score",
-      "No shadows, no blur; depth from ink rules and paper tone steps"
+      "True-black canvas (#000000) with elevated graphite panels (#151517 to #1e1e22 to #2a2a2f)",
+      "18px rounded panels (12px inner) with 1px hairline edges and a soft lifting shadow",
+      "One tunable signal accent — lime #c6f833 default, with amber / cyan / coral presets; rationed to one per screen",
+      "Two typefaces, two jobs: Space Grotesk (display, headlines, body, labels, UI) and IBM Plex Mono (every numeral)",
+      "Tabular mono numerals throughout — every metric reads like an instrument readout",
+      "Apple dual theme: dark by default, light toggle via [data-theme=light]"
     ],
     "rules": [
-      { "name": "The Rust Rationing Rule", "body": "Rust appears once, maybe twice, per screen. It marks the one thing that matters now: the primary action, today's workout, the live race signal. A page where three things are rust has nothing urgent.", "section": "colors" },
-      { "name": "The Ink-On-Paper Rule", "body": "Structure is drawn with ink rules and paper tone steps, never with shadow, blur, or color fills. If a surface needs to separate from another, it gets a 1px ink hairline or a paper-tone step, not a drop shadow.", "section": "colors" },
-      { "name": "The Muted-Zone Rule", "body": "Zone and phase colors are deliberately desaturated to live on cream paper. Never substitute a bright, full-saturation version; the gazette doesn't print neon. Each hue maps to one training meaning and is never reused decoratively.", "section": "colors" },
-      { "name": "The Box-Score Rule", "body": "Every numeric metric — pace, HR, distance, duration, percentage, CTL/ATL/TSB — is JetBrains Mono with font-variant-numeric: tabular-nums. Numbers in a serif or sans are a bug; they must align in a column like a box score.", "section": "typography" },
-      { "name": "The Italic-Voice Rule", "body": "Display and section headlines are Newsreader italic. The italic is the almanac's voice; an upright serif headline reads as a different publication. Reserve upright weight (200) for the emphasized em inside a display line.", "section": "typography" },
-      { "name": "The Sans-Is-Labels-Only Rule", "body": "Geist appears only as small uppercase labels, kickers, nav, and button text. It never sets a headline, a body paragraph, or a number.", "section": "typography" },
-      { "name": "The Print Rule", "body": "Surfaces never lift. No box-shadow, no backdrop-filter, no blur, anywhere. This is ink on paper, and paper doesn't float.", "section": "elevation" },
-      { "name": "The Tone-Step Rule", "body": "Hover and recessed states step a paper tone (paper to paper-2), never add a shadow and never animate a layout property.", "section": "elevation" }
+      { "name": "The Single-Signal Rule", "body": "The accent appears once, maybe twice, per screen. It marks the one thing that matters now: the primary action, today's workout, the live/peak metric. A screen where three things glow accent has nothing urgent.", "section": "colors" },
+      { "name": "The Tunable-Accent Rule", "body": "The accent is a runtime token, not a fixed brand color. Always reference var(--accent) / var(--accent-2) / var(--accent-glow) / var(--accent-ink) — never a literal #c6f833. Swapping the preset must re-tint the entire UI.", "section": "colors" },
+      { "name": "The Apple-Zone Rule", "body": "Zone and form hues are the Apple system palette and map one-to-one to a training meaning. Never substitute an arbitrary hue or reuse a zone color decoratively.", "section": "colors" },
+      { "name": "The Instrument-Numeral Rule", "body": "Every standalone numeric metric — pace, HR, distance, duration, percentage, CTL/ATL/TSB — uses font-variant-numeric: tabular-nums so figures align like an instrument readout. Tiles, ledgers, and pills use IBM Plex Mono.", "section": "typography" },
+      { "name": "The Weight-Is-Hierarchy Rule", "body": "With one display face, hierarchy is carried by Space Grotesk weight (300 dim to 650 accent) and the type scale — never by a second display typeface or by italic.", "section": "typography" },
+      { "name": "The Two-Faces Rule", "body": "Space Grotesk does everything textual; IBM Plex Mono does numerals (and only numerals). No third face.", "section": "typography" },
+      { "name": "The Lift Rule", "body": "Primary panels lift off the black canvas with the panel shadow + hairline. This is intentional Apple-style elevation — do not flatten panels to borderless rectangles, and do not stack a shadowed card inside a shadowed card (use .surface-raised, tone-stepped and flat).", "section": "elevation" },
+      { "name": "The Glow-Is-Rationed Rule", "body": "Soft accent glow (button shadow, hero gridbg, live dot) follows the Single-Signal Rule — at most one glowing element per screen.", "section": "elevation" }
     ],
     "dos": [
-      "Do keep every corner square (0px radius) — the one allowed exception is .pill at 99px.",
-      "Do draw structure with 1px ink hairlines, 2px hard rules, and paper-tone steps. Reach for .rq-rule / .rq-rule.thick / .rq-rule.double.",
-      "Do set every number in JetBrains Mono with tabular-nums. Pace, HR, distance, CTL/ATL/TSB, percentages — all box-score.",
-      "Do set display and section headlines in Newsreader italic; keep Geist for labels/nav/buttons only.",
-      "Do ration rust to one race-day signal per screen: primary action, today's workout, live/peak metric, marginalia.",
-      "Do step a paper tone (paper to paper-2) for hover/recessed states.",
-      "Do desaturate zone and phase colors to sit on cream paper; map each hue to exactly one training meaning.",
-      "Do respect @media (prefers-reduced-motion: reduce) (handled globally) and keep transitions 150-250ms, state-only."
+      "Do keep panels at 18px radius, inner blocks at 12px, pills/badges at 980px.",
+      "Do lift primary panels off the black canvas with the panel shadow + 1px hairline; use .surface-raised (flat, tone-stepped) for inner blocks.",
+      "Do set every standalone number with tabular-nums; use IBM Plex Mono for tiles, ledgers, and pills.",
+      "Do drive hierarchy with Space Grotesk weight + the type scale; keep IBM Plex Mono for numerals only.",
+      "Do ration the accent to one signal per screen: primary action, today's workout, live/peak metric, live dot.",
+      "Do reference accent via var(--accent) / var(--accent-2) / var(--accent-glow) / var(--accent-ink) so preset swaps (lime/amber/cyan/coral) re-tint everything.",
+      "Do step a graphite tone (panel to panel-2) for hover/recessed states.",
+      "Do use the Apple system zone/form palette; map each hue to exactly one training meaning.",
+      "Do support both themes — verify contrast under [data-theme=light] (white panels) and default dark.",
+      "Do respect @media (prefers-reduced-motion: reduce) (handled globally) and keep transitions ~180ms, state-only."
     ],
     "donts": [
-      "Don't add any box-shadow, backdrop-filter, or blur. The Print Rule: paper doesn't float. Glassmorphism is banned by name.",
-      "Don't use border-left/border-right >1px as a colored side-stripe on cards, callouts, or list items. Use full ink borders, paper tints, or leading numerals/dots.",
-      "Don't use gradient text (background-clip: text) or any gradient accent. Solid ink or solid rust only; emphasis via weight/size.",
-      "Don't revert to the old dark 'Dark Lab' terminal theme — near-black surfaces, Geist-everywhere, orange-only. This app is light editorial paper now.",
-      "Don't build a generic SaaS dashboard: no purple gradients, no glowing hero-metric cards, no identical-card grids.",
+      "Don't hardcode the lime hex (#c6f833) or any accent literal in a component — always use the CSS var so the tunable presets work.",
+      "Don't flatten the design to grey-on-grey 'inverted' dark mode — the canvas is true black (#000) and panels genuinely lift.",
+      "Don't nest a shadowed panel inside a shadowed panel; inner blocks are .surface-raised (flat).",
+      "Don't use gradient text (background-clip: text) or rainbow accents. Solid text or solid accent; emphasis via weight/size.",
+      "Don't revert to the old editorial 'Almanac' theme — cream paper, ink rules, Newsreader serif italic, square 0px corners. This app is a dark carbon instrument now.",
+      "Don't build a generic SaaS dashboard: no purple gradients, no glowing identical-card grids.",
       "Don't use fitness-influencer aesthetics: no streaks UI, no bright motivational palettes, no badge gamification.",
       "Don't build Garmin Connect: no feature-bloat, no everything-everywhere screens.",
       "Don't replicate Strava's blue/orange activity feed card grid — the explicit anti-reference.",
-      "Don't set numbers in serif or sans, or headlines in Geist. Three faces, three jobs.",
-      "Don't animate layout properties (width, height, top). Use transform, opacity, clip-path (e.g. nav underline animates opacity, not width).",
-      "Don't nest a bordered card inside a bordered card; use .surface-raised for inner blocks."
+      "Don't set numerals in the sans display weight or headlines in mono. Two faces, two jobs.",
+      "Don't animate layout properties (width, height, top). Use transform, opacity (e.g. nav underline animates opacity, not width).",
+      "Don't let more than one element glow accent per screen."
     ]
   }
 }

@@ -81,7 +81,7 @@ export function TopoFitnessChart({
             Fitness, fatigue, form, plotted as a topographic ridge.
           </span>
         </div>
-        <div className="flex" role="group" aria-label="Chart time range" style={{border: '1px solid var(--color-ink)'}}>
+        <div className="flex" role="group" aria-label="Chart time range" style={{border: '1px solid var(--text)'}}>
           {RANGES.map((r) => {
             const sel = range === r.key;
             return (
@@ -93,9 +93,9 @@ export function TopoFitnessChart({
                 className="label"
                 style={{
                   padding: '5px 10px',
-                  background: sel ? 'var(--color-ink)' : 'transparent',
-                  color: sel ? 'var(--color-paper)' : 'var(--color-ink-3)',
-                  borderLeft: r.key !== '6w' ? '1px solid var(--color-rule)' : 'none',
+                  background: sel ? 'var(--text)' : 'transparent',
+                  color: sel ? 'var(--bg)' : 'var(--faint)',
+                  borderLeft: r.key !== '6w' ? '1px solid var(--line)' : 'none',
                 }}
               >
                 {r.label}
@@ -108,15 +108,15 @@ export function TopoFitnessChart({
       {/* Legend */}
       <div className="flex items-center gap-4 mt-3 flex-wrap">
         <span className="label" style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
-          <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke={RQ.ink} strokeWidth={1.6} /></svg>
+          <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke="var(--accent)" strokeWidth={1.6} /></svg>
           CTL · fitness
         </span>
         <span className="label" style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
-          <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke={RQ.ink} strokeWidth={1.1} strokeDasharray="4 3" /></svg>
+          <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke="var(--z5)" strokeWidth={1.1} strokeDasharray="4 3" /></svg>
           ATL · fatigue
         </span>
         <span className="label" style={{display: 'inline-flex', alignItems: 'center', gap: 5}}>
-          <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke={RQ.rust} strokeWidth={1.6} /></svg>
+          <svg width={18} height={6}><line x1={0} y1={3} x2={18} y2={3} stroke="var(--fresh)" strokeWidth={1.6} /></svg>
           TSB · form
         </span>
       </div>
@@ -128,13 +128,13 @@ export function TopoFitnessChart({
           <svg viewBox={`0 0 ${VB_W} ${VB_H}`} style={{width: '100%', height: '100%', display: 'block'}} preserveAspectRatio="none">
             <ContourBg x={X} y={Y} w={W} h={H} lines={6} stroke={RQ.rule} opacity={0.5} />
             {/* zero baseline */}
-            <line x1={X} y1={geom.zeroY} x2={X + W} y2={geom.zeroY} stroke={RQ.ink} strokeWidth={0.6} strokeDasharray="2 4" />
+            <line x1={X} y1={geom.zeroY} x2={X + W} y2={geom.zeroY} stroke="var(--line-2)" strokeWidth={0.6} strokeDasharray="2 4" />
             {/* TSB fill to zero */}
-            <path d={`${geom.tsbD} L ${X + W},${geom.zeroY} L ${X},${geom.zeroY} Z`} fill={RQ.rust} fillOpacity={0.08} />
+            <path d={`${geom.tsbD} L ${X + W},${geom.zeroY} L ${X},${geom.zeroY} Z`} fill="var(--fresh)" fillOpacity={0.1} />
             {/* series */}
-            <TopoLine d={geom.ctlD} color={RQ.ink} width={1.8} contours={5} contourGap={5} />
-            <path d={geom.atlD} stroke={RQ.ink} strokeWidth={1.1} strokeDasharray="4 3" fill="none" />
-            <path d={geom.tsbD} stroke={RQ.rust} strokeWidth={1.6} fill="none" />
+            <TopoLine d={geom.ctlD} color="var(--accent)" width={1.8} contours={5} contourGap={5} />
+            <path d={geom.atlD} stroke="var(--z5)" strokeWidth={1.1} strokeDasharray="4 3" fill="none" />
+            <path d={geom.tsbD} stroke="var(--fresh)" strokeWidth={1.6} fill="none" />
             {/* y-axis labels */}
             {geom.ticks.map((v) => (
               <text key={v} x={X - 8} y={geom.yPos(v) + 3} fontSize={9} fontFamily="var(--mono)" fill={RQ.ink3} textAnchor="end">

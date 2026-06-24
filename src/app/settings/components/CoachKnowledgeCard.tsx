@@ -54,7 +54,7 @@ function StatusPill({status}: {status: DataStatus}) {
   return (
     <span
       className={`text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${
-        status === 'set' ? 'bg-accent-green/10 text-accent-green' : 'bg-[var(--color-surface-1)] text-[var(--color-ink-3)]'
+        status === 'set' ? 'bg-accent-green/10 text-accent-green' : 'bg-[var(--color-surface-1)] text-[var(--faint)]'
       }`}
     >
       {status === 'set' ? 'Active' : 'Not set'}
@@ -66,8 +66,8 @@ function DataRow({label, status, summary}: DataSection) {
   return (
     <div className="flex items-start justify-between gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--color-surface-1)] transition-colors">
       <div className="min-w-0">
-        <p className="text-xs font-medium text-[var(--color-ink-2)]">{label}</p>
-        <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5 leading-relaxed">
+        <p className="text-xs font-medium text-[var(--dim)]">{label}</p>
+        <p className="text-[11px] text-[var(--faint)] mt-0.5 leading-relaxed">
           {status === 'loading' ? 'Loading…' : summary}
         </p>
       </div>
@@ -84,12 +84,12 @@ function KnowledgeGroup({title, topics}: {title: string; topics: KnowledgeTopic[
         onClick={() => setOpen(o => !o)}
         className="w-full flex items-center justify-between gap-3 px-3.5 py-3 bg-[var(--color-surface-0)] hover:bg-[var(--color-surface-1)] transition-colors cursor-pointer"
       >
-        <span className="text-xs font-medium text-[var(--color-ink)]">{title}</span>
+        <span className="text-xs font-medium text-[var(--text)]">{title}</span>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-[10px] text-[var(--color-ink-3)] tabular-nums">{topics.length}</span>
+          <span className="text-[10px] text-[var(--faint)] tabular-nums">{topics.length}</span>
           <svg
             width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-            className={`text-[var(--color-ink-3)] transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+            className={`text-[var(--faint)] transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
           >
             <path d="M6 9l6 6 6-6" />
           </svg>
@@ -102,8 +102,8 @@ function KnowledgeGroup({title, topics}: {title: string; topics: KnowledgeTopic[
               key={t}
               className={`px-3.5 py-2.5 bg-[var(--color-surface-0)] ${i > 0 ? 'border-t border-[var(--color-border)]' : ''}`}
             >
-              <p className="text-[11px] font-semibold text-[var(--color-ink-2)] capitalize">{t.replace(/_/g, ' ')}</p>
-              <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5 leading-relaxed">{KNOWLEDGE_TOPIC_SUMMARY[t]}</p>
+              <p className="text-[11px] font-semibold text-[var(--dim)] capitalize">{t.replace(/_/g, ' ')}</p>
+              <p className="text-[11px] text-[var(--faint)] mt-0.5 leading-relaxed">{KNOWLEDGE_TOPIC_SUMMARY[t]}</p>
             </div>
           ))}
         </div>
@@ -187,8 +187,8 @@ export default function CoachKnowledgeCard() {
     <div className="surface-card p-5 space-y-5">
       {/* Your data */}
       <div>
-        <p className="text-sm font-medium text-[var(--color-ink)] mb-0.5">What the coach knows about you</p>
-        <p className="text-xs text-[var(--color-ink-3)] mb-2">Live data injected into every conversation</p>
+        <p className="text-sm font-medium text-[var(--text)] mb-0.5">What the coach knows about you</p>
+        <p className="text-xs text-[var(--faint)] mb-2">Live data injected into every conversation</p>
         <div className="space-y-0.5">
           {sections.map(s => <DataRow key={s.label} {...s} />)}
         </div>
@@ -198,8 +198,8 @@ export default function CoachKnowledgeCard() {
 
       {/* Coaching approach */}
       <div>
-        <p className="text-sm font-medium text-[var(--color-ink)] mb-2">Coaching approach</p>
-        <p className="text-xs text-[var(--color-ink-3)] leading-relaxed">
+        <p className="text-sm font-medium text-[var(--text)] mb-2">Coaching approach</p>
+        <p className="text-xs text-[var(--faint)] leading-relaxed">
           Periodized training (Base → Build → Peak → Taper) mixing running, strength, cycling, and mobility.
           Always checks TSB and ACWR before prescribing hard sessions, and prioritizes injury prevention over
           aggressive progress.
@@ -215,18 +215,18 @@ export default function CoachKnowledgeCard() {
           className="w-full flex items-center justify-between gap-3 cursor-pointer"
         >
           <div className="text-left">
-            <p className="text-sm font-medium text-[var(--color-ink)]">Core training science</p>
-            <p className="text-xs text-[var(--color-ink-3)] mt-0.5">Always loaded — load, fatigue & intensity fundamentals</p>
+            <p className="text-sm font-medium text-[var(--text)]">Core training science</p>
+            <p className="text-xs text-[var(--faint)] mt-0.5">Always loaded — load, fatigue & intensity fundamentals</p>
           </div>
           <svg
             width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-            className={`text-[var(--color-ink-3)] flex-shrink-0 transition-transform duration-200 ${showCore ? 'rotate-180' : ''}`}
+            className={`text-[var(--faint)] flex-shrink-0 transition-transform duration-200 ${showCore ? 'rotate-180' : ''}`}
           >
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
         {showCore && (
-          <pre className="mt-3 text-[11px] text-[var(--color-ink-3)] leading-relaxed whitespace-pre-wrap font-sans bg-[var(--color-surface-0)] rounded-xl p-3.5 border border-[var(--color-border)]">
+          <pre className="mt-3 text-[11px] text-[var(--faint)] leading-relaxed whitespace-pre-wrap font-sans bg-[var(--color-surface-0)] rounded-xl p-3.5 border border-[var(--color-border)]">
             {COACH_KNOWLEDGE_CORE}
           </pre>
         )}
@@ -236,8 +236,8 @@ export default function CoachKnowledgeCard() {
 
       {/* On-demand library */}
       <div>
-        <p className="text-sm font-medium text-[var(--color-ink)] mb-0.5">On-demand expertise library</p>
-        <p className="text-xs text-[var(--color-ink-3)] mb-3">
+        <p className="text-sm font-medium text-[var(--text)] mb-0.5">On-demand expertise library</p>
+        <p className="text-xs text-[var(--faint)] mb-3">
           {totalTopics} reference topics the coach fetches mid-conversation when relevant
         </p>
         <div className="space-y-1.5">

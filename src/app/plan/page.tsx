@@ -87,14 +87,14 @@ function PlanPageInner() {
         <div className="flex flex-col flex-1 min-h-0 pt-14">
           {/* GoalBanner skeleton */}
           <div className="flex-shrink-0 flex items-center gap-3 px-5 border-b border-[var(--color-border)] animate-pulse" style={{height: '40px', background: 'var(--color-surface-0)'}}>
-            <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-paper-3)] flex-shrink-0" />
-            <div className="h-2.5 w-24 rounded bg-[var(--color-paper-2)]" />
-            <div className="h-2.5 w-16 rounded bg-[var(--color-paper-2)]" />
+            <div className="w-1.5 h-1.5 rounded-full bg-[var(--panel-2)] flex-shrink-0" />
+            <div className="h-2.5 w-24 rounded bg-[var(--panel)]" />
+            <div className="h-2.5 w-16 rounded bg-[var(--panel)]" />
           </div>
           {/* Tab bar skeleton */}
           <div className="flex-shrink-0 flex items-center border-b border-[var(--color-border)] px-5 animate-pulse" style={{height: '42px', background: 'var(--color-base)'}}>
-            <div className="h-2.5 w-20 rounded bg-[var(--color-paper-2)] mr-6" />
-            <div className="h-2.5 w-24 rounded bg-[var(--color-paper-2)]" />
+            <div className="h-2.5 w-20 rounded bg-[var(--panel)] mr-6" />
+            <div className="h-2.5 w-24 rounded bg-[var(--panel)]" />
           </div>
           {/* Week grid skeleton */}
           <div className="flex-1 overflow-hidden px-5 py-5">
@@ -117,15 +117,15 @@ function PlanPageInner() {
       <div className="flex flex-col h-dvh" style={{background: 'var(--color-base)'}}>
         <AppHeader />
         <div className="flex flex-col flex-1 items-center justify-center gap-4 mt-14 px-5">
-          <CalendarDays className="w-10 h-10 text-[var(--color-ink-3)]" />
+          <CalendarDays className="w-10 h-10 text-[var(--faint)]" />
           <div className="text-center">
-            <p className="text-sm font-medium text-[var(--color-ink-2)] mb-1">No training plan yet</p>
-            <p className="text-xs text-[var(--color-ink-3)]">Chat with your coach to set one up</p>
+            <p className="text-sm font-medium text-[var(--dim)] mb-1">No training plan yet</p>
+            <p className="text-xs text-[var(--faint)]">Chat with your coach to set one up</p>
           </div>
           <Link
             href="/coach"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-            style={{background: 'var(--color-accent)', color: 'white'}}
+            style={{background: 'var(--accent)', color: 'var(--accent-ink)'}}
           >
             Chat with Coach →
           </Link>
@@ -156,8 +156,8 @@ function PlanPageInner() {
               onClick={() => setView(v)}
               className={`px-4 pb-2.5 pt-2.5 text-xs font-semibold uppercase tracking-wide transition-colors border-b-2 -mb-px cursor-pointer ${
                 view === v
-                  ? 'text-[var(--color-ink)] border-[var(--color-accent)]'
-                  : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] border-transparent'
+                  ? 'text-[var(--text)] border-[var(--color-accent)]'
+                  : 'text-[var(--faint)] hover:text-[var(--dim)] border-transparent'
               }`}
             >
               {label}

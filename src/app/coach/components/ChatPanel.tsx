@@ -52,7 +52,7 @@ function ScrollPill({onClick}: {onClick: () => void}) {
       exit={{opacity: 0, y: 6}}
       transition={{duration: 0.15}}
       onClick={onClick}
-      className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-text-2)] hover:text-[var(--color-ink)] hover:border-[var(--color-rule)] shadow-lg transition-colors z-10"
+      className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--color-surface-2)] border border-[var(--color-border)] text-xs text-[var(--color-text-2)] hover:text-[var(--text)] hover:border-[var(--line)] shadow-lg transition-colors z-10"
     >
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
         <polyline points="6 9 12 15 18 9" />
@@ -113,7 +113,7 @@ function ChatInner({
   if (historyMessages === undefined) {
     return (
       <div className="flex flex-col flex-1 items-center justify-center">
-        <div className="w-5 h-5 rounded-full border-2 border-[var(--color-rule)] border-t-white/60 animate-spin" />
+        <div className="w-5 h-5 rounded-full border-2 border-[var(--line)] border-t-white/60 animate-spin" />
       </div>
     );
   }
@@ -126,7 +126,7 @@ function ChatInner({
             <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
           </svg>
         </div>
-        <p className="text-sm text-[var(--color-ink-2)]">Couldn&apos;t load conversation.</p>
+        <p className="text-sm text-[var(--dim)]">Couldn&apos;t load conversation.</p>
         <button
           onClick={() => setRetryCount(c => c + 1)}
           className="text-xs text-brand hover:underline transition-colors"
@@ -360,16 +360,14 @@ export function ChatPanel({
       <div className="flex-shrink-0 px-4 py-3 border-b border-[var(--color-border)]">
         <div className="flex items-center gap-2">
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{background: 'var(--color-accent-dim)', color: 'var(--color-accent)'}}
+            className="flex items-center justify-center flex-shrink-0 mono"
+            style={{width: 34, height: 34, borderRadius: 9, background: 'var(--accent)', color: 'var(--accent-ink)', fontWeight: 700, fontSize: 15, boxShadow: '0 0 14px var(--accent-glow)'}}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z" />
-            </svg>
+            C
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-display" style={{fontStyle: 'italic', fontWeight: 600, fontSize: 18, color: 'var(--color-ink)', lineHeight: 1}}>From the Coach</div>
-            <div className="label truncate" style={{marginTop: 2}}>Letters · correspondence</div>
+            <div style={{fontWeight: 600, fontSize: 15, color: 'var(--text)', lineHeight: 1.1}}>Coach</div>
+            <div className="lbl truncate" style={{marginTop: 2}}>AI Training Director</div>
           </div>
 
           {/* New chat */}

@@ -41,7 +41,7 @@ const TYPE_COLOR: Record<WorkoutType, string> = {
   cycling:       'text-accent-blue border-accent-blue/30 bg-accent-blue/8',
   yoga:          'text-accent-purple border-accent-purple/30 bg-accent-purple/8',
   cross_training:'text-accent-cyan border-accent-cyan/30 bg-accent-cyan/8',
-  rest:          'text-[var(--color-ink-3)] border-[var(--color-rule)] bg-[var(--color-paper)]/4',
+  rest:          'text-[var(--faint)] border-[var(--line)] bg-[var(--bg)]/4',
   swim:          'text-accent-cyan border-accent-cyan/30 bg-accent-cyan/8',
   walk:          'text-accent-green border-accent-green/30 bg-accent-green/8',
   hike:          'text-accent-green border-accent-green/30 bg-accent-green/8',
@@ -178,7 +178,7 @@ function pctScore(actual: number, planned: number): number {
 }
 
 function badgeClass(pct: number | null): string {
-  if (pct === null) return 'text-[var(--color-ink-3)]';
+  if (pct === null) return 'text-[var(--faint)]';
   if (pct >= 90) return 'text-accent-green';
   if (pct >= 70) return 'text-accent-yellow';
   return 'text-accent-red';
@@ -198,10 +198,10 @@ function fmtMin(secs: number): string {
 
 function MetricRow({label, planned, actual, pct}: {label: string; planned: string; actual: string; pct: number | null}) {
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-2 border-b border-[var(--color-rule)] last:border-0">
-      <span className="text-[11px] text-[var(--color-ink-2)]">{label}</span>
-      <span className="text-[11px] text-[var(--color-ink-3)] tabular-nums">{planned}</span>
-      <span className="text-[11px] text-[var(--color-ink)] tabular-nums font-medium">{actual}</span>
+    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-2 border-b border-[var(--line)] last:border-0">
+      <span className="text-[11px] text-[var(--dim)]">{label}</span>
+      <span className="text-[11px] text-[var(--faint)] tabular-nums">{planned}</span>
+      <span className="text-[11px] text-[var(--text)] tabular-nums font-medium">{actual}</span>
       <span className={`text-[11px] font-semibold tabular-nums w-8 text-right ${badgeClass(pct)}`}>
         {pct !== null ? `${pct}%` : '—'}
       </span>
@@ -210,12 +210,12 @@ function MetricRow({label, planned, actual, pct}: {label: string; planned: strin
 }
 
 function SectionRow({section}: {section: SectionResult}) {
-  const phaseDim = section.phase === 'rest' ? 'text-[var(--color-ink-3)]' : 'text-[var(--color-ink-2)]';
+  const phaseDim = section.phase === 'rest' ? 'text-[var(--faint)]' : 'text-[var(--dim)]';
   return (
-    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-1.5 border-b border-[var(--color-rule)] last:border-0">
+    <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 items-center py-1.5 border-b border-[var(--line)] last:border-0">
       <span className={`text-[11px] ${phaseDim}`}>{section.label}</span>
-      <span className="text-[11px] text-[var(--color-ink-3)] tabular-nums">{section.bpmTarget}</span>
-      <span className="text-[11px] text-[var(--color-ink-2)] tabular-nums font-medium">
+      <span className="text-[11px] text-[var(--faint)] tabular-nums">{section.bpmTarget}</span>
+      <span className="text-[11px] text-[var(--dim)] tabular-nums font-medium">
         {section.actualAvgHr ? `${section.actualAvgHr} bpm` : '—'}
       </span>
       <span className={`text-[11px] font-semibold tabular-nums w-8 text-right ${badgeClass(section.adherencePct)}`}>
@@ -321,23 +321,23 @@ export default function PlanAdherencePanel({activityId, actualDistanceKm, actual
 
   return (
     <motion.div variants={cardVariant} className="surface-card p-5">
-      <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Plan Adherence</h2>
+      <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-3">Plan Adherence</h2>
 
       {/* Workout type pill */}
       <div className="mb-3">
         <span className={`inline-flex text-xs font-semibold uppercase rounded-lg px-2 py-1 border ${typeColor}`}>
           {typeLabel}
         </span>
-        <p className="text-[11px] text-[var(--color-ink-3)] mt-1.5 leading-snug">{plannedWorkout.intensityDescription}</p>
+        <p className="text-[11px] text-[var(--faint)] mt-1.5 leading-snug">{plannedWorkout.intensityDescription}</p>
       </div>
 
       {/* Distance / Duration / Pace rows */}
       <div className="mb-3">
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pb-1 mb-1 border-b border-[var(--color-rule)]">
-          <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Metric</span>
-          <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Plan</span>
-          <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Actual</span>
-          <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide w-8 text-right">%</span>
+        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pb-1 mb-1 border-b border-[var(--line)]">
+          <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Metric</span>
+          <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Plan</span>
+          <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Actual</span>
+          <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide w-8 text-right">%</span>
         </div>
         <MetricRow
           label="Distance"
@@ -362,27 +362,27 @@ export default function PlanAdherencePanel({activityId, actualDistanceKm, actual
       {/* HR section — section-based for structured workouts, global for others */}
       {hasStructuredSteps ? (
         <div className="mb-3">
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pb-1 mb-1 border-b border-[var(--color-rule)]">
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Phase</span>
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Target</span>
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Avg HR</span>
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide w-8 text-right">%</span>
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pb-1 mb-1 border-b border-[var(--line)]">
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Phase</span>
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Target</span>
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Avg HR</span>
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide w-8 text-right">%</span>
           </div>
           {streamsLoading ? (
-            <p className="text-[11px] text-[var(--color-ink-3)] py-2">Analysing sections…</p>
+            <p className="text-[11px] text-[var(--faint)] py-2">Analysing sections…</p>
           ) : sections && sections.length > 0 ? (
             sections.map(s => <SectionRow key={s.phase} section={s} />)
           ) : (
-            <p className="text-[11px] text-[var(--color-ink-3)] py-2">No HR data</p>
+            <p className="text-[11px] text-[var(--faint)] py-2">No HR data</p>
           )}
         </div>
       ) : TYPE_TARGET_ZONE[plannedWorkout.type] ? (
         <div className="mb-3">
-          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pb-1 mb-1 border-b border-[var(--color-rule)]">
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">HR Zone</span>
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Plan</span>
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide">Actual</span>
-            <span className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide w-8 text-right">%</span>
+          <div className="grid grid-cols-[1fr_auto_auto_auto] gap-x-3 pb-1 mb-1 border-b border-[var(--line)]">
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">HR Zone</span>
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Plan</span>
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide">Actual</span>
+            <span className="text-[10px] text-[var(--faint)] uppercase tracking-wide w-8 text-right">%</span>
           </div>
           {(() => {
             const targetZone = TYPE_TARGET_ZONE[plannedWorkout.type]!;
@@ -411,15 +411,15 @@ export default function PlanAdherencePanel({activityId, actualDistanceKm, actual
       ) : null}
 
       {/* Overall score */}
-      <div className="border-t border-[var(--color-rule)] pt-3 flex items-center justify-between">
-        <span className="text-[11px] text-[var(--color-ink-3)]">Overall Adherence</span>
+      <div className="border-t border-[var(--line)] pt-3 flex items-center justify-between">
+        <span className="text-[11px] text-[var(--faint)]">Overall Adherence</span>
         <span className={`text-xl font-bold tabular-nums ${badgeClass(overallPct)}`}>
           {overallPct !== null ? `${overallPct}%` : '—'}
         </span>
       </div>
 
       <div className="mt-2.5">
-        <Link href={`/plan?week=${weekStart}`} className="text-[11px] text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors">
+        <Link href={`/plan?week=${weekStart}`} className="text-[11px] text-[var(--faint)] hover:text-[var(--dim)] transition-colors">
           Week of {fmtWeekStart} →
         </Link>
       </div>
