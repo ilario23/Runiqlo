@@ -10,6 +10,7 @@ import type {ActivitySummary, ActivityType} from '@/lib/activityModel';
 import type {AggregatedSegment} from '@/lib/stravaCache';
 import {Skeleton} from '@/components/ui/skeleton';
 import AppHeader from '@/components/AppHeader';
+import {Tile, Readout} from '@/components/rq2/ui';
 import Link from 'next/link';
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -417,6 +418,15 @@ export default function ActivitiesPage() {
     [filtered, visibleCount],
   );
 
+  const stats = useMemo(() => {
+    if (!filtered.length) return null;
+    const volume = filtered.reduce((s, a) => s + a.distance, 0);
+    const time = filtered.reduce((s, a) => s + a.duration, 0);
+    const paced = filtered.filter((a) => a.avgPace > 0);
+    const avgPace = paced.length ? paced.reduce((s, a) => s + a.avgPace, 0) / paced.length : 0;
+    return {count: filtered.length, volume, time, avgPace};
+  }, [filtered]);
+
   const loadMore = useCallback(() => {
     setVisibleCount((n) => Math.min(n + BATCH_SIZE, filtered.length));
   }, [filtered.length]);
@@ -452,33 +462,18 @@ export default function ActivitiesPage() {
   return (
     <>
       <AppHeader onRefresh={forceRefresh} />
-      <main className="pt-[72px] pb-24 md:pb-8 px-5 min-h-screen">
-        <div className="max-w-[1100px] mx-auto space-y-4">
+      <main className="scroll" style={{minHeight: '100dvh', paddingTop: 52, paddingBottom: 96}}>
+        <div className="rise max-w-[1100px] mx-auto space-y-4" style={{padding: 'var(--pad)'}}>
 
-          {/* Page title */}
-          <div className="pt-2 pb-1">
-            <div className="kicker rust">The Ledger</div>
-            <h1 className="h-display" style={{fontSize: 52}}>Activities</h1>
-            {activeTab === 'activities' && (
-              <div className="flex items-center gap-3 mt-0.5">
-                <p className="text-sm text-[var(--color-ink-2)]">
-                  {activities
-                    ? isFullyLoaded
-                      ? `${activities.length} activities synced`
-                      : `${activities.length}+ activities`
-                    : 'Loading…'}
-                </p>
-                {activities && !isFullyLoaded && (
-                  <div className="flex items-center gap-2">
-                    <div className="h-1 w-24 rounded-full bg-[var(--color-paper-3)] overflow-hidden">
-                      <div className="h-full w-1/3 rounded-full bg-accent-blue animate-pulse" />
-                    </div>
-                    <span className="text-[11px] text-[var(--color-ink-3)]">syncing…</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Stat tiles */}
+          {activeTab === 'activities' && (
+            <div className="grid grid-cols-2 md:grid-cols-4" style={{gap: 'var(--gap)'}}>
+              <Tile pad><Readout label={isFullyLoaded ? 'ACTIVITIES' : 'ACTIVITIES (SO FAR)'} value={stats?.count ?? '—'} unit="runs" size="var(--fs-xl)" /></Tile>
+              <Tile pad><Readout label="VOLUME" value={stats ? stats.volume.toFixed(0) : '—'} unit="km" size="var(--fs-xl)" /></Tile>
+              <Tile pad><Readout label="MOVING TIME" value={stats ? (stats.time / 3600).toFixed(1) : '—'} unit="h" size="var(--fs-xl)" /></Tile>
+              <Tile pad><Readout label="AVG PACE" value={stats && stats.avgPace > 0 ? formatPace(stats.avgPace) : '—'} unit="/km" size="var(--fs-xl)" color="var(--accent)" /></Tile>
+            </div>
+          )}
 
           {/* Tab bar */}
           <div className="flex items-center border-b border-[var(--color-border)]">

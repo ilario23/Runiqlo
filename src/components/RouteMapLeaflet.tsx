@@ -42,8 +42,11 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
       doubleClickZoom: true,
     });
 
+    const isLight =
+      typeof document !== 'undefined' &&
+      document.documentElement.getAttribute('data-theme') === 'light';
     L.tileLayer(
-      'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+      `https://{s}.basemaps.cartocdn.com/${isLight ? 'light_all' : 'dark_all'}/{z}/{x}/{y}{r}.png`,
       {maxZoom: 19},
     ).addTo(map);
 

@@ -1,289 +1,363 @@
 ---
-name: Runiqlo — The Almanac
-description: A runner's almanac. Personal training dashboard rendered as an editorial broadsheet.
+name: Runiqlo — Carbon Instrument
+description: A precision training instrument. Personal dashboard on a true-black canvas with elevated graphite panels and one tunable signal accent.
+theme: dark-default with light toggle (Apple dual, via [data-theme])
 colors:
-  paper: "#f2ede2"
-  paper-2: "#ebe4d3"
-  paper-3: "#e3dac3"
-  ink: "#1a1814"
-  ink-2: "#4a4136"
-  ink-3: "#786e5b"
-  rule: "#c9c1ad"
-  rule-2: "#d8d1bd"
-  rust: "#c93f1d"
-  rust-dim: "#a83518"
-  zone-green: "#6b8a76"
-  zone-yellow: "#b08550"
-  zone-orange: "#dc8a5b"
-  zone-blue: "#4a6079"
-  zone-purple: "#7a6a86"
-  zone-cyan: "#6b9c9c"
-  gold: "#b08550"
+  # canvas
+  bg: "#000000"
+  bg-2: "#0a0a0c"
+  # elevated graphite panels
+  panel: "#151517"
+  panel-2: "#1e1e22"
+  panel-3: "#2a2a2f"
+  # hairlines (alpha-white on dark)
+  line: "rgba(255,255,255,0.07)"
+  line-2: "rgba(255,255,255,0.11)"
+  line-3: "rgba(255,255,255,0.18)"
+  # text
+  text: "#f5f5f7"
+  dim: "rgba(235,235,245,0.62)"
+  faint: "rgba(235,235,245,0.32)"
+  faintest: "rgba(235,235,245,0.18)"
+  # signal accent — runtime-tweakable (lime default)
+  accent: "#c6f833"
+  accent-2: "#a6d420"
+  accent-ink: "#0a0d11"
+  accent-glow: "rgba(198,248,51,0.20)"
+  # form / TSB diverging
+  fresh: "#30d158"
+  neutral: "#ffd60a"
+  fatigue: "#ff453a"
+  # HR zones (Apple system palette)
+  z1: "#8e8e93"
+  z2: "#0a84ff"
+  z3: "#30d158"
+  z4: "#ffd60a"
+  z5: "#ff9f0a"
+  z6: "#ff453a"
+accentPresets:
+  lime:  { accent: "#c6f833", accent-2: "#a6d420", glow: "rgba(198,248,51,0.20)", ink: "#0a0d11" }
+  amber: { accent: "#f2a33c", accent-2: "#d9871f", glow: "rgba(242,163,60,0.20)", ink: "#0a0d11" }
+  cyan:  { accent: "#3fd6e0", accent-2: "#1fb4be", glow: "rgba(63,214,224,0.20)", ink: "#06181a" }
+  coral: { accent: "#ff6b5a", accent-2: "#e64c3b", glow: "rgba(255,107,90,0.20)", ink: "#1a0a08" }
+themeLight:
+  bg: "#f2f2f7"
+  bg-2: "#e8e8ed"
+  panel: "#ffffff"
+  panel-2: "#f5f5f7"
+  panel-3: "#ebebf0"
+  line: "rgba(0,0,0,0.07)"
+  line-2: "rgba(0,0,0,0.11)"
+  line-3: "rgba(0,0,0,0.18)"
+  text: "#1c1c1e"
+  dim: "rgba(60,60,67,0.62)"
+  faint: "rgba(60,60,67,0.42)"
+  fresh: "#28a745"
+  neutral: "#e6a100"
+  fatigue: "#ff3b30"
+  z2: "#007aff"
+  z3: "#28a745"
+  z4: "#e6a100"
+  z5: "#ff9500"
+  z6: "#ff3b30"
 typography:
   display:
-    fontFamily: "Newsreader, Source Serif Pro, Georgia, serif"
+    fontFamily: "Space Grotesk, -apple-system, BlinkMacSystemFont, system-ui, sans-serif"
     fontSize: "clamp(3.5rem, 6vw, 6rem)"
-    fontWeight: 400
-    lineHeight: 0.92
+    fontWeight: 600
+    lineHeight: 0.96
     letterSpacing: "-0.03em"
   headline:
-    fontFamily: "Newsreader, Source Serif Pro, Georgia, serif"
-    fontSize: "28px"
-    fontWeight: 500
-    lineHeight: 1
-    letterSpacing: "-0.015em"
+    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontSize: "27px"
+    fontWeight: 600
+    lineHeight: 1.05
+    letterSpacing: "-0.02em"
   deck:
-    fontFamily: "Newsreader, Source Serif Pro, Georgia, serif"
-    fontSize: "18px"
-    fontWeight: 300
-    lineHeight: 1.35
+    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 400
+    lineHeight: 1.4
     letterSpacing: "-0.005em"
   body:
-    fontFamily: "Newsreader, Source Serif Pro, Georgia, serif"
+    fontFamily: "Space Grotesk, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
     lineHeight: 1.5
   label:
-    fontFamily: "Geist, Helvetica Neue, Arial, sans-serif"
-    fontSize: "9px"
-    fontWeight: 400
-    letterSpacing: "0.18em"
+    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontSize: "9.5px"
+    fontWeight: 600
+    letterSpacing: "0.07em"
+    textTransform: uppercase
   num:
-    fontFamily: "JetBrains Mono, IBM Plex Mono, ui-monospace, monospace"
+    fontFamily: "IBM Plex Mono, ui-monospace, SF Mono, Menlo, monospace"
     fontSize: "36px"
-    fontWeight: 500
+    fontWeight: 600
     letterSpacing: "-0.03em"
     fontFeature: "tnum"
 rounded:
-  card: "0px"
-  inner: "0px"
-  badge: "0px"
-  pill: "99px"
+  card: "18px"
+  inner: "12px"
+  badge: "980px"
+  pill: "980px"
+  button: "11px"
 spacing:
   xs: "4px"
   sm: "8px"
-  md: "16px"
+  gap: "14px"
+  pad: "18px"
   lg: "24px"
   xl: "32px"
+elevation:
+  panel: "0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px -16px rgba(0,0,0,0.7)"
+  panel-light: "0 1px 0 rgba(0,0,0,0.02) inset, 0 8px 24px -16px rgba(0,0,0,0.22)"
+  button-accent: "0 4px 16px -6px var(--accent-glow)"
 components:
-  button-ink:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.paper}"
-    rounded: "{rounded.inner}"
-    padding: "8px 14px"
-  button-ink-hover:
-    backgroundColor: "{colors.ink-2}"
-    textColor: "{colors.paper}"
-  button-rust:
-    backgroundColor: "{colors.rust}"
-    textColor: "{colors.paper}"
-    rounded: "{rounded.inner}"
-    padding: "8px 14px"
-  button-rust-hover:
-    backgroundColor: "{colors.rust-dim}"
-    textColor: "{colors.paper}"
+  button-accent:
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.accent-ink}"
+    rounded: "{rounded.button}"
+    padding: "9px 16px"
+    fontWeight: 650
+    boxShadow: "{elevation.button-accent}"
+  button-accent-hover:
+    backgroundColor: "{colors.accent-2}"
+    textColor: "{colors.accent-ink}"
+  button-default:
+    backgroundColor: "rgba(255,255,255,0.08)"
+    textColor: "{colors.text}"
+    rounded: "{rounded.button}"
+    padding: "9px 16px"
+    fontWeight: 590
+  button-default-hover:
+    backgroundColor: "rgba(255,255,255,0.13)"
   button-ghost:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.inner}"
-    padding: "8px 14px"
+    backgroundColor: "transparent"
+    textColor: "{colors.dim}"
+    rounded: "{rounded.button}"
+    padding: "9px 16px"
   button-ghost-hover:
-    backgroundColor: "{colors.paper-2}"
-    textColor: "{colors.ink}"
-  card-surface:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
+    backgroundColor: "rgba(255,255,255,0.07)"
+    textColor: "{colors.text}"
+  panel:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.text}"
+    border: "1px solid {colors.line}"
     rounded: "{rounded.card}"
-  card-raised:
-    backgroundColor: "{colors.paper-2}"
-    textColor: "{colors.ink}"
+    boxShadow: "{elevation.panel}"
+  surface-raised:
+    backgroundColor: "{colors.panel-2}"
+    textColor: "{colors.text}"
+    border: "1px solid {colors.line}"
     rounded: "{rounded.card}"
   field:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink-2}"
+    backgroundColor: "{colors.panel-2}"
+    textColor: "{colors.text}"
+    border: "1px solid {colors.line-2}"
     rounded: "{rounded.inner}"
     padding: "10px 12px"
   chip:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
+    backgroundColor: "transparent"
+    textColor: "{colors.dim}"
+    border: "1px solid {colors.line-2}"
     rounded: "{rounded.badge}"
-    padding: "3px 8px"
+    padding: "4px 9px"
   chip-ink:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.paper}"
+    backgroundColor: "{colors.accent}"
+    textColor: "{colors.accent-ink}"
+    border: "1px solid {colors.accent}"
     rounded: "{rounded.badge}"
-    padding: "3px 8px"
+    padding: "4px 9px"
   tile:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.text}"
+    border: "1px solid {colors.line}"
     rounded: "{rounded.card}"
     padding: "14px 16px 16px"
+  pill:
+    backgroundColor: "{colors.panel-2}"
+    textColor: "{colors.dim}"
+    rounded: "{rounded.pill}"
+    padding: "3px 8px"
 ---
 
-# Design System: Runiqlo — The Almanac
+# Design System: Runiqlo — Carbon Instrument
 
 ## 1. Overview
 
-**Creative North Star: "The Runner's Almanac"**
+**Creative North Star: "The Precision Instrument"**
 
-Runiqlo is a printed almanac for a single athlete, not an app skin. The interface is a cream-paper broadsheet: ink-black hairline rules, a serif italic masthead, mono numerals set like a box score, and one hot rust accent reserved for race-day signal. It reads like the front page of a sport gazette that happens to know your CTL. The chrome recedes into paper and rule; the data is the headline.
+Runiqlo is a precision training instrument for a single athlete, not an app skin. The interface is a true-black canvas with matte graphite panels floating on it: rounded 18px corners, hairline edges, a soft drop shadow that lifts each panel off the black, tabular mono numerals, and one tunable signal accent (lime by default) reserved for what matters now. It reads like an Apple-grade dark cockpit readout that happens to know your CTL. The chrome is quiet carbon; the data is the signal.
 
-It rejects every fitness-app and SaaS-dashboard reflex. No purple gradients, no metric-card grids with glow, no streak badges or motivational copy, no Strava blue feed. It also rejects its own former self: this is not the dark terminal "Dark Lab" the project once shipped. Warmth here is carried by paper, serif, and letterpress detail, never by a near-white tint pretending to be a dark surface. Square corners, no shadows, no blur. Depth comes from ink rules and paper tones, the way ink sits on a printed page.
+It rejects every fitness-app and SaaS-dashboard reflex. No purple gradients, no glowing metric-card grids, no streak badges or motivational copy, no Strava blue feed. It also rejects the lazy "dark mode by inversion": this is a real black canvas (`#000`) with genuinely elevated panels, not washed grey-on-grey. The accent is rationed and tunable — swap lime for amber, cyan, or coral at runtime — but only ever one signal per screen.
 
-The athlete reads this at a kitchen table with morning light, or on a phone after a run. The ambient light is daylight; the surface is paper that reflects it. Density is editorial: a masthead, a scoreboard of tiles, a ledger of efforts, marginalia from the coach.
+The athlete reads this in any light, day or night: on a phone after a run, at a desk while planning a week. Dark is the default; a light theme toggle (Apple system-grouped — white panels on `#f2f2f7`) covers bright daylight. Density is instrumental: a status rail, a panel of headline tiles, a ledger of efforts, a coach margin note.
 
 **Key Characteristics:**
-- Cream paper base (`#f2ede2`) with two darker paper tones; never a card-on-card stack
-- Ink-black hairline borders (1px) and hard rules (2px); square corners everywhere (`0px` radius)
-- One rust accent (`#c93f1d`), used for race-day signal and primary action only
-- Three typefaces with clear jobs: Newsreader serif (display + body), Geist sans (labels), JetBrains Mono (numerals)
-- Tabular mono numerals throughout — every metric reads like a box score
-- No shadows, no blur; depth from ink rules and paper tone steps
+- True-black canvas (`#000000`), with elevated graphite panels (`#151517` → `#1e1e22` → `#2a2a2f`)
+- 18px rounded panels (12px inner) with 1px hairline edges and a soft lifting shadow
+- One tunable signal accent — lime `#c6f833` default, with amber / cyan / coral presets; rationed to one per screen
+- Two typefaces, two jobs: Space Grotesk (display, headlines, body, labels, UI) and IBM Plex Mono (every numeral)
+- Tabular mono numerals throughout — every metric reads like an instrument readout
+- Apple dual theme: dark by default, light toggle via `[data-theme="light"]`
 
-## 2. Colors: The Broadsheet Palette
+## 2. Colors: The Carbon Palette
 
-A warm cream-and-ink palette with one hot accent. Color is paper and ink first; the rust and the muted zone hues are the only saturation, and each carries meaning.
+A true-black-and-graphite palette with one tunable signal accent. Color is black and graphite first; the accent and the Apple-system zone hues are the only saturation, and each carries meaning. All hues exposed as CSS variables in `src/app/globals.css`; the accent presets live in `ACCENTS` in `src/lib/activityModel.ts`.
 
-### Primary
-- **Rust** (`#c93f1d`): The single hot accent. Race-day signal: primary CTA, active nav underline, today's workout highlight, peak-phase marker, the coach's marginalia, the stamped seal. Reserved; its rarity is the signal. **Rust-Dim** (`#a83518`) is its pressed/hover state.
+### Signal Accent (tunable)
+- **Accent** (`#c6f833`, lime default): The single signal. Primary CTA, active nav indicator, today's workout highlight, live dot, peak-phase marker, hero glow, sparkline stroke. Rationed; its rarity is the signal. **Accent-2** (`#a6d420`) is the pressed/hover state. **Accent-ink** (`#0a0d11`) is the text color *on* a filled accent surface. **Accent-glow** (`rgba(198,248,51,0.20)`) drives soft glows, selection, and focus tint.
+- **Presets** (runtime-swappable via `ACCENTS`): **lime** `#c6f833`, **amber** `#f2a33c`, **cyan** `#3fd6e0`, **coral** `#ff6b5a`. Each ships its own accent-2, glow, and ink. The whole UI re-tints from these CSS vars — never hardcode the lime hex in a component.
 
-### Secondary — Zone & Phase Hues
-Muted, earthy versions of the training vocabulary, tuned to sit on paper without shouting.
-- **Zone Green** (`#6b8a76`): Easy effort, Zone 1–2, recovery and long runs; base training phase. Success states.
-- **Zone Yellow / Gold** (`#b08550`): Tempo effort, Zone 3; build phase; medals/bronze. Warning states.
-- **Zone Orange** (`#dc8a5b`): Threshold, gym, cross-training; Zone 4–5 adjacent.
-- **Zone Blue** (`#4a6079`): Cycling, aerobic indicators; taper phase. Informational states.
-- **Zone Purple** (`#7a6a86`): VO2max, anaerobic, yoga. Secondary informational.
-- **Zone Cyan** (`#6b9c9c`): Recovery, swim, cooldown steps.
+### Form / TSB Diverging
+The training-balance scale, used for TSB and freshness indicators.
+- **Fresh** (`#30d158`): Positive TSB, recovered, ready. Success states.
+- **Neutral** (`#ffd60a`): Balanced / caution band. Warning states.
+- **Fatigue** (`#ff453a`): Negative TSB, fatigued, hard. Danger states.
 
-### Neutral — Paper & Ink
-- **Paper** (`#f2ede2`): App base and primary card background. The page.
-- **Paper-2** (`#ebe4d3`): Recessed/raised surfaces, hover fill, rest-day hatching.
-- **Paper-3** (`#e3dac3`): Deepest paper tone; pills, nested recesses.
-- **Ink** (`#1a1814`): Headlines, key values, hard rules, hairline card borders. The print color.
-- **Ink-2** (`#4a4136`): Supporting text, decks, metadata, masthead lines.
-- **Ink-3** (`#786e5b`): Labels, muted captions, placeholders, scrollbar hover.
-- **Rule** (`#c9c1ad`): Faint contour rules, subtle dividers, dotted ledger lines, default scrollbar.
-- **Rule-2** (`#d8d1bd`): Lightest divider tone.
+### HR Zones (Apple system palette)
+Each zone maps to exactly one training intensity; mirrored in `ZONE_COLORS` (`src/lib/activityModel.ts`).
+- **Z1** (`#8e8e93`, grey): Recovery.
+- **Z2** (`#0a84ff`, blue): Aerobic.
+- **Z3** (`#30d158`, green): Tempo.
+- **Z4** (`#ffd60a`, yellow): Threshold.
+- **Z5** (`#ff9f0a`, orange): VO2max.
+- **Z6** (`#ff453a`, red): Anaerobic.
+
+### Neutral — Canvas, Panels & Text
+- **Bg** (`#000000`): App canvas. True black. **Bg-2** (`#0a0a0c`): mobile-menu / recessed chrome.
+- **Panel** (`#151517`): Primary elevated card surface. **Panel-2** (`#1e1e22`): raised/recessed inner blocks, hover fill. **Panel-3** (`#2a2a2f`): deepest graphite; nested recesses, pressed `.btn.ink`.
+- **Text** (`#f5f5f7`): Headlines, key values. **Dim** (`rgba(235,235,245,0.62)`): supporting text, decks, metadata. **Faint** (`0.32`): labels, captions. **Faintest** (`0.18`): disabled / lowest emphasis.
+- **Line** (`rgba(255,255,255,0.07)`): default hairline border. **Line-2** (`0.11`): chips, fields, slightly stronger dividers. **Line-3** (`0.18`): strongest hairline, hover edges, scrollbar hover.
+
+### Light Theme (`[data-theme="light"]`)
+Apple system-grouped: **Bg** `#f2f2f7`, **Panel** `#ffffff`, **Panel-2** `#f5f5f7`, **Panel-3** `#ebebf0`; **Text** `#1c1c1e`, **Dim** `rgba(60,60,67,0.62)`; hairlines flip to alpha-black (`rgba(0,0,0,0.07/0.11/0.18)`). Form and zone hues shift to light-surface variants (e.g. Z2 `#007aff`, Fresh `#28a745`). The accent is unchanged across themes.
 
 ### Named Rules
-**The Rust Rationing Rule.** Rust appears once, maybe twice, per screen. It marks the one thing that matters now: the primary action, today's workout, the live race signal. A page where three things are rust has nothing urgent.
+**The Single-Signal Rule.** The accent appears once, maybe twice, per screen. It marks the one thing that matters now: the primary action, today's workout, the live/peak metric. A screen where three things glow accent has nothing urgent.
 
-**The Ink-On-Paper Rule.** Structure is drawn with ink rules and paper tone steps, never with shadow, blur, or color fills. If a surface needs to separate from another, it gets a 1px ink hairline or a paper-tone step, not a drop shadow.
+**The Tunable-Accent Rule.** The accent is a runtime token, not a fixed brand color. Always reference `var(--accent)` / `var(--accent-2)` / `var(--accent-glow)` / `var(--accent-ink)` — never a literal `#c6f833`. Swapping the preset must re-tint the entire UI.
 
-**The Muted-Zone Rule.** Zone and phase colors are deliberately desaturated to live on cream paper. Never substitute a bright, full-saturation version; the gazette doesn't print neon. Each hue maps to one training meaning and is never reused decoratively.
+**The Apple-Zone Rule.** Zone and form hues are the Apple system palette and map one-to-one to a training meaning. Never substitute an arbitrary hue or reuse a zone color decoratively.
 
 ## 3. Typography
 
-**Display & Body Font:** Newsreader (with Source Serif Pro, Georgia, serif). Set in *italic* for display, section headlines, decks, and the masthead brand — the almanac's voice.
-**Label Font:** Geist (with Helvetica Neue, Arial, sans-serif). Uppercase, wide-tracked, small. The sans does only labels, kickers, nav, and buttons.
-**Numeral Font:** JetBrains Mono (with IBM Plex Mono, ui-monospace, monospace). Every number — pace, HR, distance, CTL/ATL/TSB, the scoreboard. Exposed in CSS as `--font-geist-mono`.
+**Display, Headline, Body & Label Font:** Space Grotesk (`--font-sans`, with `-apple-system`, system-ui fallbacks). One geometric sans does the display headline, section titles, decks, body copy, labels, nav, and buttons — weight and size carry the hierarchy. The legacy editorial serif (`--serif`) is retired and aliased to the sans.
+**Numeral Font:** IBM Plex Mono (`--font-mono`, with `ui-monospace`, SF Mono, Menlo). Every number — pace, HR, distance, CTL/ATL/TSB, the scoreboard, ledger cells.
 
-**Character:** Three faces, three jobs, no overlap. Newsreader italic is the headline voice and the reading voice; Geist is the quiet sans label; JetBrains Mono is the box-score numeral. The contrast axis is serif-vs-sans-vs-mono, never two similar sans competing.
+**Character:** Two faces, two jobs. Space Grotesk is the entire reading and labeling voice; IBM Plex Mono is the instrument numeral. The contrast axis is geometric-sans-vs-mono. Hierarchy comes from weight (300–650) and the type scale, not from a second display face. Display and headlines are upright (no italic).
+
+### Type Scale (CSS vars)
+`--fs-mega 68px` · `--fs-hero 42px` · `--fs-xl 27px` · `--fs-lg 19px` · `--fs-md 14px` · `--fs-sm 12.5px` · `--fs-xs 11px` · `--fs-2xs 9.5px`.
 
 ### Hierarchy
-- **Display** (Newsreader italic, 400, clamp 3.5rem–6rem, line-height 0.92, -0.03em): Page nameplate headlines (`.h-display`). `em` inside flips to upright weight 200 for emphasis. Once per page. `text-wrap: balance`.
-- **Headline** (Newsreader italic, 500, 28px, line-height 1, -0.015em): Section titles (`.h-section`).
-- **Deck** (Newsreader italic, 300, 18px, line-height 1.35): Standfirst / subhead under a headline (`.deck`), in ink-2.
-- **Body** (Newsreader, 400, 14px, line-height 1.5): Coach messages, workout descriptions, notes (`.body-serif`), in ink-2. Max 65–75ch.
-- **Label** (Geist, 400, 9px, letter-spacing 0.18em, uppercase): Tile labels, kickers, nav, badges (`.label`, `.kicker`, `.metric-label`), in ink-3.
-- **Numeral** (JetBrains Mono, tabular-nums): All data. `.num` for inline; `.num.big` (56px), `.num.huge` (96px) for hero metrics; `.tile-num` (36px) for the scoreboard; `.metric-display` (clamp 3.5–6rem).
+- **Display** (Space Grotesk, 600, clamp 3.5rem–6rem, line-height 0.96, -0.03em): Page nameplate headlines (`.h-display`). `em` inside flips to weight 300 dim for emphasis. Once per page. `text-wrap: balance`.
+- **Headline** (Space Grotesk, 600, `--fs-xl` 27px, line-height 1.05, -0.02em): Section titles (`.h-section`).
+- **Deck** (Space Grotesk, 400, 16px, line-height 1.4): Standfirst / subhead (`.deck`), in dim.
+- **Body** (Space Grotesk, 400, 14px, line-height 1.5): Coach messages, descriptions, notes (`.body-serif` — name kept, now sans), in dim. Max 65–75ch.
+- **Label / Eyebrow** (Space Grotesk, 600, `--fs-2xs` 9.5px, letter-spacing 0.07em, uppercase): Tile labels, kickers, nav, badges (`.lbl`, `.label`, `.kicker`, `.metric-label`), in faint.
+- **Numeral** (IBM Plex Mono, tabular-nums): All data. `.mono` / `.num` inline; `.num.big` (56px), `.num.huge` (96px) for hero metrics; `.tile-num` (36px) for tiles; `.metric-display` (clamp 3.5–6rem). Note `.num` uses the *sans* with tabular-nums for tight inline figures; `.mono` and ledger/pill numerals use IBM Plex Mono.
 
 ### Named Rules
-**The Box-Score Rule.** Every numeric metric — pace, HR, distance, duration, percentage, CTL/ATL/TSB — is JetBrains Mono with `font-variant-numeric: tabular-nums`. Numbers in a serif or sans are a bug; they must align in a column like a box score.
+**The Instrument-Numeral Rule.** Every standalone numeric metric — pace, HR, distance, duration, percentage, CTL/ATL/TSB — is set with `font-variant-numeric: tabular-nums` so figures align in a column like an instrument readout. Tiles, ledgers, and pills use IBM Plex Mono.
 
-**The Italic-Voice Rule.** Display and section headlines are Newsreader *italic*. The italic is the almanac's voice; an upright serif headline reads as a different publication. Reserve upright weight (200) for the emphasized `em` inside a display line.
+**The Weight-Is-Hierarchy Rule.** With one display face, hierarchy is carried by weight (300 dim → 400 body → 590/600 labels → 650 accent buttons) and the type scale — never by switching to a second display typeface or by italic.
 
-**The Sans-Is-Labels-Only Rule.** Geist appears only as small uppercase labels, kickers, nav, and button text. It never sets a headline, a body paragraph, or a number.
+**The Two-Faces Rule.** Space Grotesk does everything textual; IBM Plex Mono does numerals (and only numerals). No third face.
 
 ## 4. Elevation
 
-The Almanac is print: flat, shadowless, by doctrine. `--shadow-base`, `--shadow-elevated`, and `--shadow-slab` are all set to `none`. There is no blur and no backdrop-filter; the legacy glass classes are remapped to flat paper. Depth is conveyed exactly two ways, the way ink behaves on a page: hairline ink rules and paper-tone steps.
+The Carbon Instrument lifts panels off a true-black canvas with a soft shadow and a hairline — depth is real, not flat. This is the deliberate reversal of the old print doctrine: panels float now.
 
-### Depth Vocabulary (no shadows)
-- **Ink hairline** (`1px solid #1a1814`): The default card and tile edge. Separates a surface from the page.
-- **Hard rule** (`2px solid #1a1814`): Masthead bottom, header bottom, section dividers (`.rq-rule.thick`).
-- **Double rule** (`6px double #1a1814`): Masthead top edge; the broadsheet nameplate signature.
-- **Rust top rule** (`3px solid #c93f1d` on `.surface-slab`): A hero slab carrying race-day energy.
-- **Paper-tone step** (`paper → paper-2 → paper-3`): Recessed and hover surfaces step down a paper tone instead of lifting.
+### Depth Vocabulary
+- **Panel shadow** (`0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px -16px rgba(0,0,0,0.7)`): The default lift on `.panel` / `.surface-card`. A bright 1px inset top edge + a soft cast below — the panel reads as a slab raised off black. Light theme softens to `0 1px 0 rgba(0,0,0,0.02) inset, 0 8px 24px -16px rgba(0,0,0,0.22)`.
+- **Hairline** (`1px solid var(--line)`): The panel edge that catches the canvas; `--line-2` / `--line-3` for stronger dividers and hover edges.
+- **Accent glow** (`0 4px 16px -6px var(--accent-glow)`): Reserved lift under the one accent button; soft radial accent glow behind the hero (`.gridbg`) and the live dot.
+- **Tone step** (`panel → panel-2 → panel-3`): Recessed inner blocks and hover states step *up* a graphite tone.
 
 ### Named Rules
-**The Print Rule.** Surfaces never lift. No `box-shadow`, no `backdrop-filter`, no blur, anywhere. If 2014's app problem was "shadow too dark, blur too small," the Almanac's answer is no shadow at all: this is ink on paper, and paper doesn't float.
+**The Lift Rule.** Primary panels lift off the black canvas with the panel shadow + hairline. This is intentional Apple-style elevation — do not flatten panels to borderless rectangles, and do not stack a shadowed card inside a shadowed card (use `.surface-raised`, which is tone-stepped and flat).
 
-**The Tone-Step Rule.** Hover and recessed states step a paper tone (`paper → paper-2`), never add a shadow and never animate a layout property.
+**The Glow-Is-Rationed Rule.** Soft accent glow (button shadow, hero `.gridbg`, live dot) follows the Single-Signal Rule — at most one glowing element per screen.
 
 ## 5. Components
 
 ### Buttons (`.btn`)
-The letterpress control: square, hard-edged, uppercase sans label, confident.
-- **Shape:** Square (`0px` radius), 1.5px ink border, padding 8px 14px, Geist 11px uppercase letter-spacing 0.12em.
-- **Ghost (default):** Paper background, ink text. Hover: steps to paper-2.
-- **Ink:** Ink fill, paper text. Hover: ink-2. The standard primary.
-- **Rust:** Rust fill, paper text, rust border. Hover: rust-dim. Reserved for the one race-day primary action.
-- **Focus:** 2px rust outline, 2px offset (global `:focus-visible`).
+Apple tinted/filled controls: rounded, soft, confident; press scales to 0.97.
+- **Shape:** `11px` radius, no border, padding 9px 16px, Space Grotesk 12.5px weight 590.
+- **Default (tinted):** `rgba(255,255,255,0.08)` fill, text color. Hover → `0.13`. (Light theme uses alpha-black fills.)
+- **Accent** (`.btn-accent` / `.btn.rust`): Accent fill, accent-ink text, weight 650, accent-glow shadow. Hover → accent-2. The one signal action.
+- **Ghost** (`.btn-ghost`): Transparent, dim text. Hover → faint white fill + full-strength text.
+- **Ink** (`.btn.ink`): `panel-2` fill, text color. Hover → `panel-3`.
+- **Focus:** 2px accent outline, 2px offset (global `:focus-visible`).
 
-### Chips & Pills
-- **Chip** (`.chip`): Square, 1px ink border, Geist 9px uppercase 0.18em, padding 3px 8px. Variants: `.rust` (rust border + text), `.ink` (ink fill, paper text), `.ghost` (rule border, ink-3 text).
-- **Pill** (`.pill`): The one rounded exception (`99px`) — mono 10px on paper-3. Used for small inline numeric tags.
-- **Form pill** (`.form-pill`): 1.5px ink border with a rust dot; training-state indicator.
+### Chips, Tags & Pills (all rounded)
+- **Tag / Chip** (`.tag`, `.chip`): Pill-rounded (`980px`), 1px `line-2` border, transparent fill, Space Grotesk 9.5px uppercase 0.04em, dim text, padding 4px 9px. Chip variants: `.rust` (accent border + accent text), `.ink` (accent fill, accent-ink text), `.ghost` (faint).
+- **Badge** (`.badge`): Pill-rounded, 1px `currentColor` border, 8.5px uppercase.
+- **Pill** (`.pill`): Pill-rounded, IBM Plex Mono 10px on `panel-2`. Small inline numeric tags.
+- **Form pill** (`.form-pill`): Pill-rounded, 1px `line-2`, `panel-2` fill, with an accent dot — training-state indicator.
 
 ### Cards / Containers
-- **Corner Style:** Square (`0px`) everywhere — `--radius-card`, `--radius-inner`, `--radius-badge` all `0`.
-- **Surface card** (`.surface-card`): Paper background, 1px ink hairline border. The primary container.
-- **Raised** (`.surface-raised`): Paper-2 background, 1px rule border. For recessed/inner blocks.
-- **Slab** (`.surface-slab`): Paper, 1px ink border, 3px rust top rule. The hero block.
-- **Stage** (`.surface-stage`): Transparent; open broadsheet area, no chrome.
-- **Hover:** Paper-tone step (`bento-card:hover → paper-2`). Never a shadow.
-- **Nesting:** Use `.surface-raised` for inner blocks. Never a bordered card inside a bordered card.
+- **Corner Style:** `18px` (`--radius` / `--radius-card`) for panels and tiles; `12px` (`--radius-sm` / `--radius-inner`) for inner blocks and fields; `980px` for pills/badges.
+- **Panel** (`.panel` / `.surface-card`): `panel` background, 1px `line` hairline, 18px radius, panel shadow. The primary elevated container. `.panel-hd` is the header strip with a bottom hairline.
+- **Raised** (`.surface-raised` / `.bento-card-recessed`): `panel-2` background, 1px `line`, 18px radius, flat (no shadow). For inner blocks.
+- **Slab** (`.surface-slab`): `panel`, 1px `line`, 18px radius — hero block (glow comes from `.gridbg`, not a top rule).
+- **Stage** (`.surface-stage`): Transparent; open area, no chrome.
+- **Hover:** Graphite tone step (`.bento-card:hover → panel-2`).
+- **Nesting:** Use `.surface-raised` for inner blocks. Never a shadowed panel inside a shadowed panel.
 
 ### Inputs / Fields (`.field`)
-- **Style:** 1px ink border, paper background, Newsreader *italic* 14px in ink-2, square corners. The field reads like a fill-in-the-blank line on a form.
-- **Focus:** 2px rust outline (global focus-visible). No glow.
-- **Placeholder:** ink-3 minimum; do not go lighter than ink-3 on paper.
+- **Style:** 1px `line-2` border, `panel-2` background, Space Grotesk 14px text color, 12px radius.
+- **Focus:** 2px accent outline (global focus-visible).
+- **Placeholder:** faint.
 
 ### Navigation
-- **Desktop:** Fixed top bar, paper background, 2px ink bottom rule. Links are Geist uppercase 12px. Active: 2px rust underline + ink text; inactive: ink-2; hover steps toward ink. Icon + label always.
-- **Mobile:** Fixed bottom tab bar (`InteractiveMenu`), paper background, 2px ink top rule. Active tab: rust 2px underline indicator (animated opacity, not width) + rust label/icon; `iconBounce` on activate. Touch target ≥44px.
-- **Masthead** (`.masthead`): The broadsheet nameplate — 6px double ink top rule, 2px ink bottom rule, italic serif brand with a mono rust superscript, dot-separated sans dateline.
+- **Desktop:** Fixed left rail (`--rail-w` 66px; body padded left to clear it). Icon-led; active item carries the accent.
+- **Mobile:** Fixed bottom tab bar (`.menu` / `InteractiveMenu`), `bg-2` background, 1px `line` top edge. Active tab: accent 2px underline indicator (animated opacity, not width) + accent label/icon; `iconLift` bounce on activate. Touch target ≥44px.
+- **Masthead** (`.masthead`): Quiet top strip — 1px `line` bottom edge, Space Grotesk brand (weight 700, -0.02em) with a mono accent superscript, dot-separated dateline in dim.
 
 ### Scoreboard Tile (Signature Component) (`.tile`)
-The box-score readout for CTL/ATL/TSB and headline metrics.
-- **Frame:** 1px ink border, paper background, padding 14px 16px 16px, square.
-- **Label:** Geist 9px uppercase 0.22em ink-2, with a right-aligned secondary slot.
-- **Number:** JetBrains Mono 36px, weight 500, -0.03em.
-- **Delta:** Mono 11px; `.up` is rust, `.down` is ink-3.
-- **Rust variant** (`.tile.rust`): Rust border, rust label and number — the one live/peak metric.
+The instrument readout for CTL/ATL/TSB and headline metrics.
+- **Frame:** 1px `line` border, `panel` background, 18px radius, padding 14px 16px 16px.
+- **Label:** Space Grotesk 9.5px uppercase 0.07em dim, with a right-aligned secondary slot.
+- **Number:** `.tile-num` — 36px weight 600 -0.03em, tabular-nums.
+- **Delta:** Mono 11px; `.up` is fresh (green), `.down` is fatigue (red).
+- **Accent variant** (`.tile.rust`): Accent-tinted border, accent label + number — the one live/peak metric.
 
 ### Ledger Table (Signature Component) (`table.ledger`)
-The efforts log, set like an almanac records page.
-- **Header:** Geist 9px uppercase 0.18em ink-3, 1px ink bottom rule.
-- **Cells:** JetBrains Mono 12px tabular-nums; 1px **dotted** rule row separators; numeric cells right-aligned (`.num-cell`); first-column labels can flip to Newsreader italic (`.kicker-cell`).
-- **Hover:** Row steps to paper-2.
+The efforts log, set like an instrument records page.
+- **Header:** Space Grotesk 9.5px uppercase 0.07em faint, 1px `line-2` bottom border.
+- **Cells:** IBM Plex Mono 12px tabular-nums; 1px `line` row separators; numeric cells right-aligned (`.num-cell`); first-column labels can flip to sans (`.kicker-cell`).
+- **Hover:** Row steps to `panel-2`.
 
-### Other editorial primitives
-Seal (`.seal`, rotated rust stamp), marginalia (`.marginalia`, rust serif italic coach note), phase tags (`.phase-tag` with a square color block), calendar day cell (`.day`, with `-45deg` hatched `.rest` variant), topographic SVG strokes (`.topo-stroke` / `.topo-rust`) for charts.
+### Other primitives
+Seal (`.seal`, accent-ringed circle), marginalia (`.marginalia`, accent italic coach note), phase tags (`.phase-tag` with a colored dot — base→z3, build→z4, peak→accent, taper→z2), segmented bar (`.seg-bar`, 4px rounded zone-fill row), live dot (`.live-dot`, pulsing accent with glow), calendar day cell (`.day` on `panel-2`, with a `-45deg` hatched `.rest` variant), topographic SVG strokes (`.topo-stroke` text / `.topo-rust` accent) for charts.
 
 ## 6. Do's and Don'ts
 
 ### Do:
-- **Do** keep every corner square (`0px` radius) — the one allowed exception is `.pill` at `99px`.
-- **Do** draw structure with 1px ink hairlines, 2px hard rules, and paper-tone steps. Reach for `.rq-rule` / `.rq-rule.thick` / `.rq-rule.double`.
-- **Do** set every number in JetBrains Mono with `tabular-nums`. Pace, HR, distance, CTL/ATL/TSB, percentages — all box-score.
-- **Do** set display and section headlines in Newsreader *italic*; keep Geist for labels/nav/buttons only.
-- **Do** ration rust to one race-day signal per screen: primary action, today's workout, live/peak metric, marginalia.
-- **Do** step a paper tone (`paper → paper-2`) for hover/recessed states.
-- **Do** desaturate zone and phase colors to sit on cream paper; map each hue to exactly one training meaning.
-- **Do** respect `@media (prefers-reduced-motion: reduce)` (handled globally) and keep transitions 150–250ms, state-only.
+- **Do** keep panels at 18px radius, inner blocks at 12px, pills/badges at 980px.
+- **Do** lift primary panels off the black canvas with the panel shadow + 1px hairline; use `.surface-raised` (flat, tone-stepped) for inner blocks.
+- **Do** set every standalone number with `tabular-nums`; use IBM Plex Mono for tiles, ledgers, and pills.
+- **Do** drive hierarchy with Space Grotesk weight + the type scale; keep the second face (IBM Plex Mono) for numerals only.
+- **Do** ration the accent to one signal per screen: primary action, today's workout, live/peak metric, live dot.
+- **Do** reference accent via `var(--accent)` / `var(--accent-2)` / `var(--accent-glow)` / `var(--accent-ink)` so preset swaps (lime/amber/cyan/coral) re-tint everything.
+- **Do** step a graphite tone (`panel → panel-2`) for hover/recessed states.
+- **Do** use the Apple system zone/form palette; map each hue to exactly one training meaning.
+- **Do** support both themes — verify contrast under `[data-theme="light"]` (white panels) and default dark.
+- **Do** respect `@media (prefers-reduced-motion: reduce)` (handled globally) and keep transitions ~180ms, state-only.
 
 ### Don't:
-- **Don't** add any `box-shadow`, `backdrop-filter`, or blur. The Print Rule: paper doesn't float. Glassmorphism is banned by name.
-- **Don't** use `border-left`/`border-right` >1px as a colored side-stripe on cards, callouts, or list items. Use full ink borders, paper tints, or leading numerals/dots.
-- **Don't** use gradient text (`background-clip: text`) or any gradient accent. Solid ink or solid rust only; emphasis via weight/size.
-- **Don't** revert to the old dark "Dark Lab" terminal theme — near-black surfaces, Geist-everywhere, orange-only. This app is light editorial paper now.
-- **Don't** build a generic SaaS dashboard: no purple gradients, no glowing hero-metric cards, no identical-card grids.
+- **Don't** hardcode the lime hex (`#c6f833`) or any accent literal in a component — always use the CSS var so the tunable presets work.
+- **Don't** flatten the design to grey-on-grey "inverted" dark mode — the canvas is true black (`#000`) and panels genuinely lift.
+- **Don't** nest a shadowed panel inside a shadowed panel; inner blocks are `.surface-raised` (flat).
+- **Don't** use gradient text (`background-clip: text`) or rainbow accents. Solid text or solid accent; emphasis via weight/size.
+- **Don't** revert to the old editorial "Almanac" theme — cream paper, ink rules, Newsreader serif italic, square `0px` corners. This app is a dark carbon instrument now.
+- **Don't** build a generic SaaS dashboard: no purple gradients, no glowing identical-card grids.
 - **Don't** use fitness-influencer aesthetics: no streaks UI, no bright motivational palettes, no badge gamification.
 - **Don't** build Garmin Connect: no feature-bloat, no everything-everywhere screens.
 - **Don't** replicate Strava's blue/orange activity feed card grid — the explicit anti-reference.
-- **Don't** set numbers in serif or sans, or headlines in Geist. Three faces, three jobs.
-- **Don't** animate layout properties (`width`, `height`, `top`). Use `transform`, `opacity`, `clip-path` (e.g. nav underline animates opacity, not width).
-- **Don't** nest a bordered card inside a bordered card; use `.surface-raised` for inner blocks.
+- **Don't** set numerals in the sans display weight or headlines in mono. Two faces, two jobs.
+- **Don't** animate layout properties (`width`, `height`, `top`). Use `transform`, `opacity` (e.g. nav underline animates opacity, not width).
+- **Don't** let more than one element glow accent per screen.

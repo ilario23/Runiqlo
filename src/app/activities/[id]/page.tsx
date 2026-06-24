@@ -19,6 +19,7 @@ import {formatPace, formatDuration, ZONE_COLORS, getZoneForHr, SPORT_COLORS, COL
 import {Skeleton} from '@/components/ui/skeleton';
 import {useSettings} from '@/contexts/SettingsContext';
 import AppHeader from '@/components/AppHeader';
+import {Icon} from '@/components/rq2/ui';
 import {ConnectPrompt} from '@/components/ConnectPrompt';
 import type {ZoneSegment} from '@/components/RouteMapLeaflet';
 import PlanAdherencePanel from './PlanAdherencePanel';
@@ -178,28 +179,30 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   return (
     <>
       <AppHeader />
-      <main className="pt-[72px] pb-24 md:pb-8 px-5 min-h-screen">
-        <div className="max-w-[1100px] mx-auto">
+      <main className="scroll" style={{minHeight: '100dvh', paddingTop: 52, paddingBottom: 96}}>
+        <div className="rise max-w-[1100px] mx-auto" style={{padding: 'var(--pad)'}}>
 
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 py-3 text-xs text-[var(--color-ink-3)]">
-            <Link href="/activities" className="hover:text-[var(--color-ink-2)] transition-colors">Activities</Link>
-            <span>/</span>
-            <span className="text-[var(--color-ink-2)] truncate max-w-[200px]">{activityName}</span>
-          </div>
-
-          {/* Title row — editorial long-read hero */}
-          <div className="mb-6 pb-4" style={{borderBottom: '2px solid var(--color-ink)'}}>
+          {/* Header row */}
+          <div className="flex items-center gap-3 flex-wrap" style={{marginBottom: 'var(--gap)'}}>
+            <Link href="/activities" className="btn btn-ghost">
+              <Icon name="arrow" size={14} style={{transform: 'rotate(180deg)'}} /> Log
+            </Link>
+            <span style={{width: 1, height: 26, background: 'var(--line)'}} />
             {detailLoading && !summary ? (
-              <Skeleton className="h-16 w-3/4 mb-2" />
+              <Skeleton className="h-8 w-64" />
             ) : (
               <>
-                <div className="kicker rust">
-                  The Long Read{summary?.type ? ` · ${summary.type}` : ''}{activityDate ? ` · ${fmtDateLong(activityDate)}` : ''}
+                <span style={{width: 34, height: 34, borderRadius: 8, border: '1px solid ' + sportColor, display: 'grid', placeItems: 'center', background: `color-mix(in srgb, ${sportColor} 12%, transparent)`}}>
+                  <span style={{width: 11, height: 11, borderRadius: '50%', background: sportColor}} />
+                </span>
+                <div>
+                  <div style={{fontSize: 'var(--fs-lg)', fontWeight: 600}}>{activityName}</div>
+                  <div className="lbl" style={{marginTop: 2}}>
+                    {summary?.type ?? detail?.sport_type ?? 'Run'}{activityDate ? ` · ${fmtDateLong(activityDate)}` : ''}
+                  </div>
                 </div>
-                <h1 className="h-display mt-2" style={{fontSize: 'clamp(40px, 7vw, 72px)'}}>
-                  {activityName}
-                </h1>
+                <div style={{flex: 1}} />
+                <Link href={`/coach?q=${encodeURIComponent('Discuss my ' + activityName)}`} className="btn"><Icon name="coach" size={13} /> Discuss</Link>
               </>
             )}
           </div>
