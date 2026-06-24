@@ -854,20 +854,20 @@ export default function FitnessPage() {
   return (
     <>
       <AppHeader />
-      <main className="pt-14 pb-24 md:pb-12 min-h-dvh" style={{background: 'var(--color-paper)'}}>
+      <main className="scroll" style={{minHeight: '100dvh', paddingTop: 52, paddingBottom: 96}}>
         <motion.div
           initial={{opacity: 0}}
           animate={{opacity: 1}}
           transition={{duration: 0.4}}
-          className="max-w-[1100px] mx-auto"
-          style={{border: '1px solid var(--color-ink)', borderTop: 'none'}}
+          className="panel max-w-[1100px] mx-auto"
+          style={{margin: 'var(--pad) auto', overflow: 'hidden'}}
         >
           {/* ── Masthead ──────────────────────────────────────────────────── */}
           <div className="masthead">
             <div className="line">
               <span>{dateLine}</span>
             </div>
-            <div className="brand">Fitness &amp; Form<sup>The Runner&apos;s Almanac</sup></div>
+            <div className="brand">Fitness &amp; Form</div>
             <div className="line">
               <span>{last ? `CTL ${fmtNum(last.ctl)}` : '— ctl'}</span>
               <span>{last ? `ATL ${fmtNum(last.atl)}` : '— atl'}</span>

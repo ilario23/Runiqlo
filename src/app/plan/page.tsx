@@ -125,7 +125,7 @@ function PlanPageInner() {
           <Link
             href="/coach"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-            style={{background: 'var(--color-accent)', color: 'white'}}
+            style={{background: 'var(--accent)', color: 'var(--accent-ink)'}}
           >
             Chat with Coach →
           </Link>
