@@ -22,6 +22,14 @@
   --color-gold: #ffd60a;
   --color-medal-silver: #8e8e93;
   --color-medal-bronze: #ff9f0a;
+  /* Named accents (Apple system) — power the text-accent and bg-accent utilities app-wide */
+  --color-accent-green:  #30d158;
+  --color-accent-blue:   #0a84ff;
+  --color-accent-yellow: #ffd60a;
+  --color-accent-orange: #ff9f0a;
+  --color-accent-red:    #ff453a;
+  --color-accent-purple: #bf5af2;
+  --color-accent-cyan:   #64d2ff;
 }
 
 :root {
@@ -89,19 +97,6 @@
   --color-accent: var(--accent);
   --color-accent-dim: var(--accent-glow);
   --color-on-accent: var(--accent-ink);
-
-  /* Legacy editorial aliases — repointed so old pages stay legible until rebuilt */
-  --color-paper: var(--bg);
-  --color-paper-2: var(--panel);
-  --color-paper-3: var(--panel-2);
-  --color-ink: var(--text);
-  --color-ink-2: var(--dim);
-  --color-ink-3: var(--faint);
-  --color-rule: var(--line);
-  --color-rule-2: var(--line-2);
-  --color-rust: var(--accent);
-  --color-rust-dim: var(--accent-2);
-  --primary-hover: var(--accent-glow);
 
   /* shadcn aliases */
   --background: var(--bg);
@@ -331,20 +326,17 @@ button { font-family: inherit; }
 .topo-rust   { stroke: var(--accent); fill: none; }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   Legacy editorial classes — reskinned to dark panels so not-yet-rebuilt pages
-   (activities, coach, segments, profile, settings, fitness, plan) stay coherent
-   until each is rebuilt onto the new primitives.
+   Surface primitives — alias forms of .panel for page-level containers.
    ════════════════════════════════════════════════════════════════════════════ */
 
-.surface-card, .bento-card, .bento-card-stage, .bento-card-matte {
+.surface-card {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 10px 30px -16px rgba(0, 0, 0, 0.7);
-  backdrop-filter: none; -webkit-backdrop-filter: none;
 }
-.bento-card:hover { background: var(--panel-2); }
-.surface-raised, .bento-card-recessed {
+.surface-card:hover { background: var(--panel-2); }
+.surface-raised {
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
