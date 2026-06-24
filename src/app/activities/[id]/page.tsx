@@ -12,8 +12,11 @@ import {
   useActivityZoneBreakdown,
   useActivityWeather,
   useActivityDecoupling,
+  useActivityPlace,
   useFitnessData,
 } from '@/hooks/useStrava';
+import {gapFromStreams} from '@/lib/gap';
+import {findRunsOnRoute} from '@/lib/routeMatch';
 import {windDirectionLabel} from '@/lib/weather';
 import {formatPace, formatDuration, ZONE_COLORS, getZoneForHr, SPORT_COLORS, COLORS} from '@/lib/activityModel';
 import {Skeleton} from '@/components/ui/skeleton';
@@ -24,6 +27,7 @@ import {ConnectPrompt} from '@/components/ConnectPrompt';
 import type {ZoneSegment} from '@/components/RouteMapLeaflet';
 import PlanAdherencePanel from './PlanAdherencePanel';
 import {ZoneCard, TrainingLoadCard} from './components/ActivityCards';
+import {SplitsCard, TopResultsCard, RunsOnRouteCard} from './components/ActivityInsights';
 import type {ChartPoint} from './components/StreamCharts';
 
 // Leaflet map is client-only (no SSR)
@@ -80,6 +84,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   const {data: decouplingResult} = useActivityDecoupling(id);
   const decouplingPct = decouplingResult?.value;
   const {data: fitnessData} = useFitnessData();
+  const {data: place} = useActivityPlace(id);
 
   // Hover index into chartData → drives the map dot
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -92,6 +97,18 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
   const sportColor = SPORT_COLORS[summary?.type ?? detail?.sport_type ?? 'Run'] ?? COLORS.green;
   const {settings} = useSettings();
+
+  // Overall grade-adjusted pace from raw streams (Strava shows GAP, API doesn't).
+  const overallGap = useMemo(
+    () => (streams && streams.length > 1 ? gapFromStreams(streams) : null),
+    [streams],
+  );
+
+  // Other runs covering the same route — pace progression.
+  const routeMatches = useMemo(
+    () => (summary && allActivities ? findRunsOnRoute(summary, allActivities) : null),
+    [summary, allActivities],
+  );
 
   // Zone-coloured map segments — group consecutive GPS points by HR zone.
   // Falls back to the sport colour when HR data is absent.
@@ -157,7 +174,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-[var(--color-rust)] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--line)] border-t-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -198,7 +215,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                 <div>
                   <div style={{fontSize: 'var(--fs-lg)', fontWeight: 600}}>{activityName}</div>
                   <div className="lbl" style={{marginTop: 2}}>
-                    {summary?.type ?? detail?.sport_type ?? 'Run'}{activityDate ? ` · ${fmtDateLong(activityDate)}` : ''}
+                    {summary?.type ?? detail?.sport_type ?? 'Run'}{activityDate ? ` · ${fmtDateLong(activityDate)}` : ''}{place ? ` · ${place}` : ''}
                   </div>
                 </div>
                 <div style={{flex: 1}} />
@@ -218,7 +235,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Map */}
               <motion.div variants={cardVariant} className="surface-card p-4">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Route</h2>
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-3">Route</h2>
                 {streamsLoading || detailLoading ? (
                   <Skeleton className="h-[300px] w-full" />
                 ) : mapSegments.length >= 1 ? (
@@ -229,14 +246,14 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   />
                 ) : (
                   <div className="w-full h-[300px] flex items-center justify-center">
-                    <p className="text-sm text-[var(--color-ink-3)]">No GPS data</p>
+                    <p className="text-sm text-[var(--faint)]">No GPS data</p>
                   </div>
                 )}
               </motion.div>
 
               {/* Charts */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Analysis</h2>
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Analysis</h2>
                 {streamsLoading ? (
                   <div className="space-y-5">
                     <Skeleton className="h-[100px] w-full" />
@@ -245,21 +262,36 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   </div>
                 ) : chartData.length === 0 ? (
                   <div className="h-[200px] flex items-center justify-center">
-                    <p className="text-sm text-[var(--color-ink-3)]">No stream data available</p>
+                    <p className="text-sm text-[var(--faint)]">No stream data available</p>
                   </div>
                 ) : (
                   <StreamCharts chartData={chartData} color={sportColor} onHover={handleHover} />
                 )}
               </motion.div>
 
+              {/* Splits (per-km) + Grade Adjusted Pace */}
+              {(detail?.splits_metric?.length ?? 0) > 0 && (
+                <motion.div variants={cardVariant} className="surface-card p-5">
+                  <div className="flex items-baseline justify-between mb-4">
+                    <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide">Splits</h2>
+                    {overallGap != null && (
+                      <span className="text-[11px] text-[var(--faint)] tabular-nums">
+                        Avg GAP <span className="text-[var(--dim)] font-medium">{formatPace(overallGap)}/km</span>
+                      </span>
+                    )}
+                  </div>
+                  <SplitsCard splits={detail!.splits_metric} />
+                </motion.div>
+              )}
+
               {/* Laps */}
               {(detail?.laps?.length ?? 0) > 0 && (
                 <motion.div variants={cardVariant} className="surface-card p-5">
-                  <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Laps</h2>
+                  <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Laps</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide border-b border-[var(--color-rule)]">
+                        <tr className="text-[10px] text-[var(--faint)] uppercase tracking-wide border-b border-[var(--line)]">
                           <th className="pb-2 text-left font-medium">#</th>
                           <th className="pb-2 text-right font-medium">Dist</th>
                           <th className="pb-2 text-right font-medium">Time</th>
@@ -272,13 +304,13 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                         {detail!.laps.map((lap) => {
                           const lapPace = lap.distance > 0 ? (lap.moving_time / 60) / (lap.distance / 1000) : 0;
                           return (
-                            <tr key={lap.id} className="border-b border-[var(--color-rule)] last:border-0">
-                              <td className="py-2.5 text-[var(--color-ink-2)] text-xs">{lap.lap_index}</td>
-                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs">{(lap.distance / 1000).toFixed(2)} km</td>
-                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs">{formatDuration(lap.moving_time)}</td>
-                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs">{lapPace > 0 ? formatPace(lapPace) + '/km' : '—'}</td>
-                              <td className="py-2.5 text-right text-[var(--color-ink-2)] tabular-nums text-xs">{lap.average_heartrate ? Math.round(lap.average_heartrate) + ' bpm' : '—'}</td>
-                              <td className="py-2.5 text-right text-[var(--color-ink-2)] tabular-nums text-xs">{lap.total_elevation_gain ? Math.round(lap.total_elevation_gain) + 'm' : '—'}</td>
+                            <tr key={lap.id} className="border-b border-[var(--line)] last:border-0">
+                              <td className="py-2.5 text-[var(--dim)] text-xs">{lap.lap_index}</td>
+                              <td className="py-2.5 text-right text-[var(--text)] tabular-nums text-xs">{(lap.distance / 1000).toFixed(2)} km</td>
+                              <td className="py-2.5 text-right text-[var(--text)] tabular-nums text-xs">{formatDuration(lap.moving_time)}</td>
+                              <td className="py-2.5 text-right text-[var(--text)] tabular-nums text-xs">{lapPace > 0 ? formatPace(lapPace) + '/km' : '—'}</td>
+                              <td className="py-2.5 text-right text-[var(--dim)] tabular-nums text-xs">{lap.average_heartrate ? Math.round(lap.average_heartrate) + ' bpm' : '—'}</td>
+                              <td className="py-2.5 text-right text-[var(--dim)] tabular-nums text-xs">{lap.total_elevation_gain ? Math.round(lap.total_elevation_gain) + 'm' : '—'}</td>
                             </tr>
                           );
                         })}
@@ -291,8 +323,8 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               {/* Segment efforts */}
               {(detail?.segment_efforts?.length ?? 0) > 0 && (
                 <motion.div variants={cardVariant} className="surface-card p-5">
-                  <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">
-                    Segments <span className="text-[var(--color-ink-3)] ml-1 normal-case">({detail!.segment_efforts.length})</span>
+                  <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">
+                    Segments <span className="text-[var(--faint)] ml-1 normal-case">({detail!.segment_efforts.length})</span>
                   </h2>
                   <div className="space-y-0.5">
                     {detail!.segment_efforts.map((se) => {
@@ -301,23 +333,23 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                         <Link key={se.id} href={`/segments/${se.segment.id}`} className="flex items-center justify-between py-2.5 px-2 rounded-xl hover:bg-[var(--color-surface-1)] transition-colors group">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm text-[var(--color-ink)] truncate group-hover:text-[var(--color-ink)] transition-colors">{se.name}</p>
+                              <p className="text-sm text-[var(--text)] truncate group-hover:text-[var(--text)] transition-colors">{se.name}</p>
                               {se.pr_rank && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md flex-shrink-0" style={{color: prColor, background: prColor ? prBg(prColor) : undefined}}>
                                   #{se.pr_rank}
                                 </span>
                               )}
                             </div>
-                            <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">{(se.distance / 1000).toFixed(1)} km</p>
+                            <p className="text-[11px] text-[var(--faint)] mt-0.5">{(se.distance / 1000).toFixed(1)} km</p>
                           </div>
                           <div className="flex items-center gap-3 flex-shrink-0 ml-4">
                             <div className="text-right">
-                              <p className="text-sm font-medium tabular-nums text-[var(--color-ink)]">{fmtTime(se.elapsed_time)}</p>
+                              <p className="text-sm font-medium tabular-nums text-[var(--text)]">{fmtTime(se.elapsed_time)}</p>
                               {se.average_heartrate && (
-                                <p className="text-[11px] text-[var(--color-ink-3)] tabular-nums">{Math.round(se.average_heartrate)} bpm</p>
+                                <p className="text-[11px] text-[var(--faint)] tabular-nums">{Math.round(se.average_heartrate)} bpm</p>
                               )}
                             </div>
-                            <svg className="w-3.5 h-3.5 text-[var(--color-ink-3)] group-hover:text-[var(--color-ink-2)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                            <svg className="w-3.5 h-3.5 text-[var(--faint)] group-hover:text-[var(--dim)] transition-colors flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                             </svg>
                           </div>
@@ -331,11 +363,11 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
               {/* Best efforts */}
               {(detail?.best_efforts?.length ?? 0) > 0 && (
                 <motion.div variants={cardVariant} className="surface-card p-5">
-                  <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Best Efforts</h2>
+                  <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Best Efforts</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide border-b border-[var(--color-rule)]">
+                        <tr className="text-[10px] text-[var(--faint)] uppercase tracking-wide border-b border-[var(--line)]">
                           <th className="pb-2 text-left font-medium">Distance</th>
                           <th className="pb-2 text-right font-medium">Time</th>
                           <th className="pb-2 text-right font-medium">Rank</th>
@@ -345,15 +377,15 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                         {detail!.best_efforts.map((be) => {
                           const prColor = be.pr_rank ? PR_COLORS[be.pr_rank] : undefined;
                           return (
-                            <tr key={be.id} className="border-b border-[var(--color-rule)] last:border-0">
-                              <td className="py-2.5 text-[var(--color-ink)] text-xs">{be.name}</td>
-                              <td className="py-2.5 text-right text-[var(--color-ink)] tabular-nums text-xs font-medium">{fmtTime(be.elapsed_time)}</td>
+                            <tr key={be.id} className="border-b border-[var(--line)] last:border-0">
+                              <td className="py-2.5 text-[var(--text)] text-xs">{be.name}</td>
+                              <td className="py-2.5 text-right text-[var(--text)] tabular-nums text-xs font-medium">{fmtTime(be.elapsed_time)}</td>
                               <td className="py-2.5 text-right text-xs">
                                 {be.pr_rank ? (
                                   <span className="font-bold px-1.5 py-0.5 rounded-md" style={{color: prColor, background: prColor ? prBg(prColor) : undefined}}>
                                     #{be.pr_rank}
                                   </span>
-                                ) : <span className="text-[var(--color-ink-3)]">—</span>}
+                                ) : <span className="text-[var(--faint)]">—</span>}
                               </td>
                             </tr>
                           );
@@ -370,7 +402,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Key stats */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Stats</h2>
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Stats</h2>
                 {detailLoading && !summary ? (
                   <div className="space-y-3">
                     {Array.from({length: 5}).map((_, i) => <Skeleton key={i} className="h-10" />)}
@@ -379,26 +411,53 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       {label: 'Distance', value: `${(summary?.distance ?? (detail?.distance ?? 0) / 1000).toFixed(2)} km`},
-                      {label: 'Time', value: formatDuration(summary?.duration ?? detail?.moving_time ?? 0)},
+                      {label: 'Moving', value: formatDuration(summary?.duration ?? detail?.moving_time ?? 0)},
+                      {label: 'Elapsed', value: detail?.elapsed_time ? formatDuration(detail.elapsed_time) : '—'},
                       {label: 'Avg Pace', value: summary?.avgPace && summary.avgPace > 0 ? `${formatPace(summary.avgPace)}/km` : '—'},
                       {label: 'Elevation', value: `${Math.round(summary?.elevationGain ?? detail?.total_elevation_gain ?? 0)} m`},
                       {label: 'Avg HR', value: summary?.avgHr ? `${Math.round(summary.avgHr)} bpm` : detail?.average_heartrate ? `${Math.round(detail.average_heartrate)} bpm` : '—'},
                       {label: 'Max HR', value: summary?.maxHr ? `${Math.round(summary.maxHr)} bpm` : detail?.max_heartrate ? `${Math.round(detail.max_heartrate)} bpm` : '—'},
                       {label: 'Calories', value: detail?.calories ? `${detail.calories} kcal` : '—'},
                       {label: 'Device', value: detail?.device_name ?? '—'},
+                      {label: 'Shoes', value: detail?.gear?.name
+                        ? `${detail.gear.name}${detail.gear.distance ? ` · ${(detail.gear.distance / 1000).toFixed(0)} km` : ''}`
+                        : '—'},
                     ].map(({label, value}) => (
                       <div key={label} className="surface-raised px-3 py-2.5">
-                        <p className="text-[10px] text-[var(--color-ink-3)] font-medium uppercase tracking-wide">{label}</p>
-                        <p className="text-sm font-semibold text-[var(--color-ink)] mt-0.5 tabular-nums">{value}</p>
+                        <p className="text-[10px] text-[var(--faint)] font-medium uppercase tracking-wide">{label}</p>
+                        <p className="text-sm font-semibold text-[var(--text)] mt-0.5 tabular-nums">{value}</p>
                       </div>
                     ))}
                   </div>
                 )}
               </motion.div>
 
+              {/* Top Results — medal-worthy achievements */}
+              {((detail?.best_efforts?.some((b) => b.pr_rank && b.pr_rank <= 3)) ||
+                (detail?.segment_efforts?.some((s) => (s.pr_rank && s.pr_rank <= 3) || s.achievements?.some((a) => a.rank <= 3)))) && (
+                <motion.div variants={cardVariant} className="surface-card p-5">
+                  <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-3">Top Results</h2>
+                  <TopResultsCard
+                    segmentEfforts={detail?.segment_efforts ?? []}
+                    bestEfforts={detail?.best_efforts ?? []}
+                    activityId={id}
+                  />
+                </motion.div>
+              )}
+
+              {/* Runs on this route */}
+              {routeMatches && routeMatches.length >= 2 && (
+                <motion.div variants={cardVariant} className="surface-card p-5">
+                  <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-3">
+                    Runs on this Route <span className="text-[var(--faint)] ml-1 normal-case">({routeMatches.length})</span>
+                  </h2>
+                  <RunsOnRouteCard matches={routeMatches} />
+                </motion.div>
+              )}
+
               {/* Training Load */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Training Load</h2>
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-3">Training Load</h2>
                 <TrainingLoadCard
                   breakdown={zoneBreakdown}
                   summary={summary}
@@ -412,13 +471,13 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Aerobic Decoupling */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-3">Aerobic Decoupling</h2>
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-3">Aerobic Decoupling</h2>
                 {streamsLoading ? (
                   <div className="h-10 flex items-center">
-                    <div className="w-5 h-5 rounded-full border-2 border-[var(--color-rule)] border-t-white/50 animate-spin" />
+                    <div className="w-5 h-5 rounded-full border-2 border-[var(--line)] border-t-white/50 animate-spin" />
                   </div>
                 ) : !decouplingResult || decouplingPct === null || decouplingPct === undefined ? (
-                  <p className="text-sm text-[var(--color-ink-3)]">
+                  <p className="text-sm text-[var(--faint)]">
                     {decouplingResult?.reason === 'too_short'
                       ? 'n/a, run shorter than 45 min'
                       : decouplingResult?.reason === 'asymmetric'
@@ -442,7 +501,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                       {decouplingPct > 0 ? '+' : ''}{decouplingPct}%
                     </span>
                     <div>
-                      <p className="text-xs text-[var(--color-ink-2)]">
+                      <p className="text-xs text-[var(--dim)]">
                         {decouplingPct < 0
                           ? 'HR fell vs pace, improving or easy effort'
                           : decouplingPct < 5
@@ -451,7 +510,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                           ? 'Mild decoupling, acceptable'
                           : 'High decoupling, HR drifted vs pace'}
                       </p>
-                      <p className="text-[10px] text-[var(--color-ink-3)] mt-0.5">Pa:Hr ratio, first vs second half</p>
+                      <p className="text-[10px] text-[var(--faint)] mt-0.5">Pa:Hr ratio, first vs second half</p>
                     </div>
                   </div>
                 )}
@@ -466,26 +525,26 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* Weather */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Weather at Start</h2>
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Weather at Start</h2>
                 {weatherLoading || detailLoading ? (
                   <div className="space-y-3">
                     <Skeleton className="h-12 w-full" />
                     <Skeleton className="h-8 w-full" />
                   </div>
                 ) : !detail?.start_latlng?.length ? (
-                  <p className="text-sm text-[var(--color-ink-3)]">No GPS data</p>
+                  <p className="text-sm text-[var(--faint)]">No GPS data</p>
                 ) : !weather ? (
-                  <p className="text-sm text-[var(--color-ink-3)]">Weather unavailable</p>
+                  <p className="text-sm text-[var(--faint)]">Weather unavailable</p>
                 ) : (
                   <div className="space-y-4">
                     {/* Condition + temperature */}
                     <div className="flex items-center gap-3">
                       <span className="text-3xl leading-none">{weather.conditionEmoji}</span>
                       <div>
-                        <p className="text-sm text-[var(--color-ink)]">{weather.conditionLabel}</p>
-                        <p className="text-xl font-semibold text-[var(--color-ink)] tabular-nums">
+                        <p className="text-sm text-[var(--text)]">{weather.conditionLabel}</p>
+                        <p className="text-xl font-semibold text-[var(--text)] tabular-nums">
                           {weather.temperatureC}°C
-                          <span className="text-sm font-normal text-[var(--color-ink-3)] ml-2">
+                          <span className="text-sm font-normal text-[var(--faint)] ml-2">
                             feels {weather.apparentTemperatureC}°C
                           </span>
                         </p>
@@ -494,18 +553,18 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
                     {/* Sub-stats grid */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="surface-raised px-3 py-2">
-                        <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide font-medium">Wind</p>
-                        <p className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
+                        <p className="text-[10px] text-[var(--faint)] uppercase tracking-wide font-medium">Wind</p>
+                        <p className="text-sm font-semibold text-[var(--text)] tabular-nums">
                           {weather.windSpeedKmh} km/h {windDirectionLabel(weather.windDirectionDeg)}
                         </p>
                       </div>
                       <div className="surface-raised px-3 py-2">
-                        <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide font-medium">Humidity</p>
-                        <p className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{weather.humidityPct}%</p>
+                        <p className="text-[10px] text-[var(--faint)] uppercase tracking-wide font-medium">Humidity</p>
+                        <p className="text-sm font-semibold text-[var(--text)] tabular-nums">{weather.humidityPct}%</p>
                       </div>
                       <div className="surface-raised px-3 py-2 col-span-2">
-                        <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide font-medium">Precipitation</p>
-                        <p className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">
+                        <p className="text-[10px] text-[var(--faint)] uppercase tracking-wide font-medium">Precipitation</p>
+                        <p className="text-sm font-semibold text-[var(--text)] tabular-nums">
                           {weather.precipitationMm > 0 ? `${weather.precipitationMm} mm` : 'None'}
                         </p>
                       </div>
@@ -516,7 +575,7 @@ export default function ActivityDetailPage({params}: {params: Promise<{id: strin
 
               {/* HR Zone breakdown */}
               <motion.div variants={cardVariant} className="surface-card p-5">
-                <h2 className="text-xs font-medium text-[var(--color-ink-3)] uppercase tracking-wide mb-4">Zone Distribution</h2>
+                <h2 className="text-xs font-medium text-[var(--faint)] uppercase tracking-wide mb-4">Zone Distribution</h2>
                 {streamsLoading ? (
                   <div className="space-y-3">
                     {[1,2,3,4,5,6].map((z) => <Skeleton key={z} className="h-6" />)}

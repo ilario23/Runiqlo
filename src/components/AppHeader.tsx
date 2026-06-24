@@ -7,7 +7,7 @@ import {usePathname, useRouter} from 'next/navigation';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
 import {InteractiveMenu, type InteractiveMenuItem} from '@/components/ui/modern-mobile-menu';
 import {
-  LayoutDashboard, Activity, Bot, Route, User, Settings as SettingsIcon,
+  LayoutDashboard, Activity, Bot, Route, Settings as SettingsIcon,
   CalendarRange, LineChart, RefreshCw,
 } from 'lucide-react';
 
@@ -23,7 +23,6 @@ const RAIL_ITEMS = [
   {href: '/plan', label: 'Plan', icon: CalendarRange, exact: false},
   {href: '/coach', label: 'Coach', icon: Bot, exact: false},
   {href: '/segments', label: 'Segments', icon: Route, exact: false},
-  {href: '/profile', label: 'Profile', icon: User, exact: false},
 ];
 
 /* ── Mobile bottom nav (keeps Fitness + Plan as separate tabs) ──────────────── */

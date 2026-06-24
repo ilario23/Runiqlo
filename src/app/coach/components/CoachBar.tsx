@@ -48,14 +48,14 @@ export function CoachBar({athleteId, onPlanSaved, initialMessage}: CoachBarProps
                 >
                   <CoachIcon size={12} />
                 </div>
-                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-ink)]">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text)]">
                   Coach
                 </span>
               </div>
 
               <button
                 onClick={handleClose}
-                className="flex items-center gap-1.5 text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors"
+                className="flex items-center gap-1.5 text-xs text-[var(--faint)] hover:text-[var(--dim)] transition-colors"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="18 15 12 9 6 15" />
@@ -92,23 +92,23 @@ export function CoachBar({athleteId, onPlanSaved, initialMessage}: CoachBarProps
         {/* Click target — "typewriter" placeholder */}
         <button
           onClick={handleOpen}
-          className="flex-1 text-left text-sm text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors truncate"
+          className="flex-1 text-left text-sm text-[var(--faint)] hover:text-[var(--dim)] transition-colors truncate"
         >
           Ask your coach…
         </button>
 
         {/* Keyboard hints */}
-        <div className="hidden lg:flex items-center gap-2 text-[10px] text-[var(--color-ink-3)] font-mono">
-          <span className="px-1.5 py-0.5 rounded border border-[var(--color-rule)] bg-[var(--color-paper-2)]">/</span>
-          <span className="text-[var(--color-ink-3)]">commands</span>
-          <span className="ml-1 px-1.5 py-0.5 rounded border border-[var(--color-rule)] bg-[var(--color-paper-2)]">@</span>
-          <span className="text-[var(--color-ink-3)]">refs</span>
+        <div className="hidden lg:flex items-center gap-2 text-[10px] text-[var(--faint)] font-mono">
+          <span className="px-1.5 py-0.5 rounded border border-[var(--line)] bg-[var(--panel)]">/</span>
+          <span className="text-[var(--faint)]">commands</span>
+          <span className="ml-1 px-1.5 py-0.5 rounded border border-[var(--line)] bg-[var(--panel)]">@</span>
+          <span className="text-[var(--faint)]">refs</span>
         </div>
 
         {/* Open button */}
         <button
           onClick={handleOpen}
-          className="h-8 px-4 rounded-xl text-[var(--color-ink)] text-xs font-semibold transition-colors flex-shrink-0"
+          className="h-8 px-4 rounded-xl text-[var(--text)] text-xs font-semibold transition-colors flex-shrink-0"
           style={{background: 'var(--color-accent)'}}
         >
           Chat

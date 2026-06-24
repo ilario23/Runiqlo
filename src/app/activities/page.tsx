@@ -99,7 +99,7 @@ function ConnectPrompt() {
 // ─── Activity row ─────────────────────────────────────────────────────────────
 
 function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: () => void}) {
-  const color = SPORT_COLORS[activity.type] ?? 'var(--color-ink-3)';
+  const color = SPORT_COLORS[activity.type] ?? 'var(--faint)';
 
   return (
     <motion.div
@@ -112,15 +112,15 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         style={{background: color}}
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[var(--color-ink)] truncate group-hover:text-[var(--color-rust)] transition-colors">
+        <p className="text-sm font-medium text-[var(--text)] truncate group-hover:text-[var(--accent)] transition-colors">
           {activity.name}
         </p>
-        <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">
+        <p className="text-[11px] text-[var(--faint)] mt-0.5">
           {fmtDate(activity.date)} · {activity.type}
           {activity.distance > 0 && (
             <span className="sm:hidden">
               {' · '}
-              <span className="font-mono tabular-nums text-[var(--color-ink-2)]">
+              <span className="font-mono tabular-nums text-[var(--dim)]">
                 {activity.distance.toFixed(1)} km
               </span>
             </span>
@@ -129,12 +129,12 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
       </div>
       <div className="hidden sm:flex items-center gap-6 text-right flex-shrink-0">
         <div>
-          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--text)]">
             {activity.distance.toFixed(1)}
-            <span className="text-[11px] font-normal text-[var(--color-ink-3)] ml-0.5">km</span>
+            <span className="text-[11px] font-normal text-[var(--faint)] ml-0.5">km</span>
           </p>
           {activity.avgPace > 0 && (
-            <p className="text-[11px] text-[var(--color-ink-3)] font-mono tabular-nums">
+            <p className="text-[11px] text-[var(--faint)] font-mono tabular-nums">
               {formatPace(activity.avgPace)}/km
             </p>
           )}
@@ -142,29 +142,29 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         <div className="w-[56px]">
           {activity.elevationGain > 0 && (
             <>
-              <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
+              <p className="text-sm font-mono font-semibold tabular-nums text-[var(--text)]">
                 {Math.round(activity.elevationGain)}
-                <span className="text-[11px] font-normal text-[var(--color-ink-3)] ml-0.5">m</span>
+                <span className="text-[11px] font-normal text-[var(--faint)] ml-0.5">m</span>
               </p>
-              <p className="text-[11px] text-[var(--color-ink-3)]">elev</p>
+              <p className="text-[11px] text-[var(--faint)]">elev</p>
             </>
           )}
         </div>
         <div className="w-[52px]">
           {activity.avgHr > 0 && (
             <>
-              <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
+              <p className="text-sm font-mono font-semibold tabular-nums text-[var(--text)]">
                 {Math.round(activity.avgHr)}
               </p>
-              <p className="text-[11px] text-[var(--color-ink-3)]">bpm</p>
+              <p className="text-[11px] text-[var(--faint)]">bpm</p>
             </>
           )}
         </div>
         <div className="w-[56px]">
-          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--text)]">
             {formatDuration(activity.duration)}
           </p>
-          <p className="text-[11px] text-[var(--color-ink-3)]">time</p>
+          <p className="text-[11px] text-[var(--faint)]">time</p>
         </div>
       </div>
       <svg
@@ -174,7 +174,7 @@ function ActivityRow({activity, onClick}: {activity: ActivitySummary; onClick: (
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
-        className="text-[var(--color-ink-3)] group-hover:text-[var(--color-rust)]/40 flex-shrink-0 transition-colors"
+        className="text-[var(--faint)] group-hover:text-[var(--accent)]/40 flex-shrink-0 transition-colors"
       >
         <path d="M9 18l6-6-6-6" />
       </svg>
@@ -201,43 +201,43 @@ function SegmentRow({segment, onClick}: {segment: AggregatedSegment; onClick?: (
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-medium text-[var(--color-ink)] truncate group-hover:text-[var(--color-rust)] transition-colors">
+          <p className="text-sm font-medium text-[var(--text)] truncate group-hover:text-[var(--accent)] transition-colors">
             {segment.name}
           </p>
           {segment.starred && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-gold/15 text-gold flex-shrink-0">★</span>
           )}
           {segment.climb_category > 0 && (
-            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--color-paper-3)] text-[var(--color-ink-2)] flex-shrink-0">
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-[var(--panel-2)] text-[var(--dim)] flex-shrink-0">
               {CLIMB_LABELS[segment.climb_category] ?? `Cat ${segment.climb_category}`}
             </span>
           )}
         </div>
-        <p className="text-[11px] text-[var(--color-ink-3)] mt-0.5">
+        <p className="text-[11px] text-[var(--faint)] mt-0.5">
           {[segment.city, segment.state].filter(Boolean).join(', ')}
         </p>
       </div>
       <div className="hidden sm:flex items-center gap-5 flex-shrink-0">
         <div className="text-right w-[55px]">
-          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--text)]">
             {(segment.distance / 1000).toFixed(1)}
-            <span className="text-[11px] font-normal text-[var(--color-ink-3)] ml-0.5">km</span>
+            <span className="text-[11px] font-normal text-[var(--faint)] ml-0.5">km</span>
           </p>
-          <p className="text-[11px] text-[var(--color-ink-3)]">dist</p>
+          <p className="text-[11px] text-[var(--faint)]">dist</p>
         </div>
         <div className="text-right w-[44px]">
-          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--color-ink)]">{segment.effortCount}</p>
-          <p className="text-[11px] text-[var(--color-ink-3)]">runs</p>
+          <p className="text-sm font-mono font-semibold tabular-nums text-[var(--text)]">{segment.effortCount}</p>
+          <p className="text-[11px] text-[var(--faint)]">runs</p>
         </div>
         <div className="text-right w-[60px]">
           <p className="text-sm font-mono font-semibold tabular-nums text-gold">
             {fmtTime(segment.prTime)}
           </p>
-          <p className="text-[11px] text-[var(--color-ink-3)]">PR</p>
+          <p className="text-[11px] text-[var(--faint)]">PR</p>
         </div>
         <div className="text-right w-[90px]">
-          <p className="text-[11px] font-mono tabular-nums text-[var(--color-ink-3)]">{fmtSegDate(segment.lastRunDate)}</p>
-          <p className="text-[11px] text-[var(--color-ink-3)]">last run</p>
+          <p className="text-[11px] font-mono tabular-nums text-[var(--faint)]">{fmtSegDate(segment.lastRunDate)}</p>
+          <p className="text-[11px] text-[var(--faint)]">last run</p>
         </div>
       </div>
     </motion.div>
@@ -253,7 +253,7 @@ function SortBtn({
     <button
       onClick={onClick}
       className={`text-[10px] font-medium uppercase tracking-wide transition-colors flex items-center gap-1 ${
-        active ? 'text-[var(--color-ink-2)]' : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-3)]'
+        active ? 'text-[var(--dim)]' : 'text-[var(--faint)] hover:text-[var(--faint)]'
       }`}
     >
       {label}
@@ -296,7 +296,7 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
   return (
     <>
       <div className="flex items-center justify-between gap-4 flex-wrap">
-        <p className="text-sm text-[var(--color-ink-2)]">
+        <p className="text-sm text-[var(--dim)]">
           {segments
             ? `${sorted.length} segment${sorted.length !== 1 ? 's' : ''}`
             : 'Loading…'}
@@ -308,7 +308,7 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
               className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
                 starredOnly
                   ? 'border-gold/40 bg-gold/10 text-gold'
-                  : 'border-[var(--color-rule)] bg-[var(--color-paper-2)] text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)]'
+                  : 'border-[var(--line)] bg-[var(--panel)] text-[var(--faint)] hover:text-[var(--dim)]'
               }`}
             >
               ★ Starred only
@@ -318,11 +318,11 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
       </div>
 
       <div className="surface-card overflow-hidden">
-        <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-[var(--color-rule)]">
+        <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-[var(--line)]">
           <div className="w-[46px]">
             <SortBtn label="Grade" active={segSortKey === 'grade'} asc={segSortAsc} onClick={() => handleSort('grade')} />
           </div>
-          <div className="flex-1 text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide">Segment</div>
+          <div className="flex-1 text-[10px] font-medium text-[var(--faint)] uppercase tracking-wide">Segment</div>
           <div className="flex items-center gap-5">
             <div className="w-[55px] text-right">
               <SortBtn label="Dist" active={segSortKey === 'distance'} asc={segSortAsc} onClick={() => handleSort('distance')} />
@@ -354,8 +354,8 @@ function SegmentsTab({router}: {router: ReturnType<typeof useRouter>}) {
           </div>
         ) : sorted.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-sm text-[var(--color-ink-3)]">No segments found</p>
-            <p className="text-xs text-[var(--color-ink-3)] mt-1">Open an activity to load its segment data</p>
+            <p className="text-sm text-[var(--faint)]">No segments found</p>
+            <p className="text-xs text-[var(--faint)] mt-1">Open an activity to load its segment data</p>
           </div>
         ) : (
           <motion.div variants={containerVariant} initial="hidden" animate="show" className="p-2">
@@ -445,7 +445,7 @@ export default function ActivitiesPage() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-[var(--color-rule)] border-t-[var(--color-rust)] animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--line)] border-t-[var(--accent)] animate-spin" />
       </div>
     );
   }
@@ -486,8 +486,8 @@ export default function ActivitiesPage() {
                 onClick={() => switchTab(value)}
                 className={`px-4 pb-2.5 text-sm font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
                   activeTab === value
-                    ? 'text-[var(--color-ink)] border-[var(--color-accent)]'
-                    : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] border-transparent'
+                    ? 'text-[var(--text)] border-[var(--color-accent)]'
+                    : 'text-[var(--faint)] hover:text-[var(--dim)] border-transparent'
                 }`}
               >
                 {label}
@@ -508,7 +508,7 @@ export default function ActivitiesPage() {
                         key={value}
                         onClick={() => setSportFilter(value)}
                         className={`px-3 pb-2 text-xs font-medium transition-colors cursor-pointer border-b-2 -mb-px ${
-                          active ? 'text-[var(--color-ink)] border-[var(--color-accent)]' : 'text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] border-transparent'
+                          active ? 'text-[var(--text)] border-[var(--color-accent)]' : 'text-[var(--faint)] hover:text-[var(--dim)] border-transparent'
                         }`}
                         style={active && color ? {color, borderColor: color} : undefined}
                       >
@@ -518,14 +518,14 @@ export default function ActivitiesPage() {
                   })}
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--color-ink-3)]">Sort:</span>
+                  <span className="text-xs text-[var(--faint)]">Sort:</span>
                   <select
                     value={sortKey}
                     onChange={(e) => setSortKey(e.target.value as SortKey)}
-                    className="bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[var(--color-ink)]/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-[var(--color-surface-2)] transition-colors"
+                    className="bg-[var(--color-surface-1)] border border-[var(--color-border)] text-[var(--text)]/70 text-xs rounded-lg px-2.5 py-1.5 outline-none cursor-pointer hover:bg-[var(--color-surface-2)] transition-colors"
                   >
                     {SORT_OPTIONS.map((o) => (
-                      <option key={o.value} value={o.value} className="bg-[var(--color-paper)]">
+                      <option key={o.value} value={o.value} className="bg-[var(--bg)]">
                         {o.label}
                       </option>
                     ))}
@@ -534,14 +534,14 @@ export default function ActivitiesPage() {
               </div>
 
               <div className="surface-card overflow-hidden">
-                <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-[var(--color-rule)]">
+                <div className="hidden sm:flex items-center gap-4 px-4 py-2.5 border-b border-[var(--line)]">
                   <div className="w-2 flex-shrink-0" />
-                  <div className="flex-1 text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide">Activity</div>
+                  <div className="flex-1 text-[10px] font-medium text-[var(--faint)] uppercase tracking-wide">Activity</div>
                   <div className="flex items-center gap-6 text-right">
-                    <div className="w-[72px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">Distance</div>
-                    <div className="w-[56px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">Elev</div>
-                    <div className="w-[52px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">HR</div>
-                    <div className="w-[56px] text-[10px] font-medium text-[var(--color-ink-3)] uppercase tracking-wide text-right">Time</div>
+                    <div className="w-[72px] text-[10px] font-medium text-[var(--faint)] uppercase tracking-wide text-right">Distance</div>
+                    <div className="w-[56px] text-[10px] font-medium text-[var(--faint)] uppercase tracking-wide text-right">Elev</div>
+                    <div className="w-[52px] text-[10px] font-medium text-[var(--faint)] uppercase tracking-wide text-right">HR</div>
+                    <div className="w-[56px] text-[10px] font-medium text-[var(--faint)] uppercase tracking-wide text-right">Time</div>
                   </div>
                   <div className="w-[14px]" />
                 </div>
@@ -561,7 +561,7 @@ export default function ActivitiesPage() {
                   </div>
                 ) : filtered.length === 0 ? (
                   <div className="py-16 text-center">
-                    <p className="text-sm text-[var(--color-ink-3)]">No activities found</p>
+                    <p className="text-sm text-[var(--faint)]">No activities found</p>
                   </div>
                 ) : (
                   <motion.div
@@ -597,7 +597,7 @@ export default function ActivitiesPage() {
               </div>
 
               {activities && filtered.length > 0 && (
-                <p className="text-center text-[11px] text-[var(--color-ink-3)]">
+                <p className="text-center text-[11px] text-[var(--faint)]">
                   {!isFullyLoaded
                     ? `Showing ${visibleActivities.length} activities…`
                     : visibleCount >= filtered.length

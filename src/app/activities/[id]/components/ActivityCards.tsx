@@ -12,7 +12,7 @@ import {formatDuration, ZONE_COLORS, ZONE_NAMES, COLORS} from '@/lib/activityMod
 export function ZoneCard({breakdown}: {breakdown: ReturnType<typeof useActivityZoneBreakdown>['data']}) {
   if (!breakdown) return (
     <div className="py-8 text-center">
-      <p className="text-xs text-[var(--color-ink-3)]">No HR data for zone breakdown</p>
+      <p className="text-xs text-[var(--faint)]">No HR data for zone breakdown</p>
     </div>
   );
 
@@ -28,10 +28,10 @@ export function ZoneCard({breakdown}: {breakdown: ReturnType<typeof useActivityZ
         return (
           <div key={z}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] text-[var(--color-ink-2)] font-medium">Z{z} · {ZONE_NAMES[z]}</span>
-              <span className="text-[11px] text-[var(--color-ink-3)]">{pct}% · {formatDuration(zone?.time ?? 0)}</span>
+              <span className="text-[11px] text-[var(--dim)] font-medium">Z{z} · {ZONE_NAMES[z]}</span>
+              <span className="text-[11px] text-[var(--faint)]">{pct}% · {formatDuration(zone?.time ?? 0)}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-[var(--color-paper-2)] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-[var(--panel)] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{background: zColor}}
@@ -83,7 +83,7 @@ export function TrainingLoadCard({
 
   if (tl === null) {
     return (
-      <p className="text-sm text-[var(--color-ink-3)]">n/a, no HR data for this activity</p>
+      <p className="text-sm text-[var(--faint)]">n/a, no HR data for this activity</p>
     );
   }
 
@@ -112,8 +112,8 @@ export function TrainingLoadCard({
           {tlRounded}
         </span>
         <div>
-          <p className="text-xs text-[var(--color-ink-2)] font-medium">{label.text}</p>
-          <p className="text-[10px] text-[var(--color-ink-3)] mt-0.5">
+          <p className="text-xs text-[var(--dim)] font-medium">{label.text}</p>
+          <p className="text-[10px] text-[var(--faint)] mt-0.5">
             Training Load{hasZones ? ' · from HR stream' : ' · estimated from avg HR'}
           </p>
         </div>
@@ -122,7 +122,7 @@ export function TrainingLoadCard({
       {impact && (
         <div className="pt-3 border-t border-[var(--color-border)] grid grid-cols-2 gap-3">
           <div>
-            <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide mb-1">Fatigue (ATL)</p>
+            <p className="text-[10px] text-[var(--faint)] uppercase tracking-wide mb-1">Fatigue (ATL)</p>
             <p
               className="text-lg font-bold font-mono tabular-nums"
               style={{color: impact.dAtl > 0 ? COLORS.yellow : 'var(--color-text-2)'}}
@@ -131,16 +131,16 @@ export function TrainingLoadCard({
             </p>
           </div>
           <div>
-            <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide mb-1">Freshness (TSB)</p>
-            <p className="text-lg font-bold font-mono tabular-nums text-[var(--color-ink)]">
+            <p className="text-[10px] text-[var(--faint)] uppercase tracking-wide mb-1">Freshness (TSB)</p>
+            <p className="text-lg font-bold font-mono tabular-nums text-[var(--text)]">
               {impact.tsbBefore.toFixed(0)}
-              <span className="text-[var(--color-ink-3)] mx-1">→</span>
+              <span className="text-[var(--faint)] mx-1">→</span>
               <span style={{color: impact.tsbAfter < impact.tsbBefore ? COLORS.red : COLORS.green}}>
                 {impact.tsbAfter.toFixed(0)}
               </span>
             </p>
           </div>
-          <p className="col-span-2 text-[10px] text-[var(--color-ink-3)] leading-relaxed">
+          <p className="col-span-2 text-[10px] text-[var(--faint)] leading-relaxed">
             Net effect on the day this activity was logged (includes any other activities that day).
           </p>
         </div>

@@ -68,9 +68,9 @@ function parsePhases(text: string | null | undefined): {label: string; text: str
 }
 
 function getZoneColor(intensityDescription: string | null | undefined): string {
-  if (!intensityDescription) return 'bg-[var(--color-paper-2)] text-[var(--color-ink-2)]';
+  if (!intensityDescription) return 'bg-[var(--panel)] text-[var(--dim)]';
   const match = intensityDescription.match(/zone\s*([1-6])/i);
-  if (!match) return 'bg-[var(--color-paper-2)] text-[var(--color-ink-2)]';
+  if (!match) return 'bg-[var(--panel)] text-[var(--dim)]';
   const zone = parseInt(match[1]);
   if (zone <= 2) return 'bg-accent-green/15 text-accent-green';
   if (zone === 3) return 'bg-accent-yellow/15 text-accent-yellow';
@@ -131,7 +131,7 @@ export function WorkoutDetailPanel({
     cycling:      {color: 'border-accent-blue/30 bg-accent-blue/5',     icon: Bike,       iconColor: 'text-accent-blue',   accent: COLORS.blue},
     yoga:         {color: 'border-accent-purple/30 bg-accent-purple/5', icon: Leaf,       iconColor: 'text-accent-purple', accent: COLORS.purple},
     cross_training:{color: 'border-accent-cyan/30 bg-accent-cyan/5',      icon: Shuffle,    iconColor: 'text-accent-cyan',   accent: COLORS.cyan},
-    rest:         {color: 'border-[var(--color-rule)] bg-[var(--color-paper-2)]',            icon: Moon,       iconColor: 'text-[var(--color-ink-3)]',      accent: 'var(--color-ink-3)'},
+    rest:         {color: 'border-[var(--line)] bg-[var(--panel)]',            icon: Moon,       iconColor: 'text-[var(--faint)]',      accent: 'var(--faint)'},
     swim:         {color: 'border-accent-cyan/30 bg-accent-cyan/5',       icon: Waves,      iconColor: 'text-accent-cyan',   accent: COLORS.cyan},
     walk:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Footprints, iconColor: 'text-accent-green',  accent: COLORS.green},
     hike:         {color: 'border-accent-green/30 bg-accent-green/5',   icon: Mountain,   iconColor: 'text-accent-green',  accent: COLORS.green},
@@ -157,12 +157,12 @@ export function WorkoutDetailPanel({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-[var(--color-ink)]">{label}</span>
+              <span className="text-sm font-semibold text-[var(--text)]">{label}</span>
               {workout.completed && (
                 <span className="text-xs text-accent-green font-medium bg-accent-green/10 px-2 py-0.5 rounded-full">✓ Done</span>
               )}
             </div>
-            <div className="text-xs text-[var(--color-ink-3)] mt-0.5">
+            <div className="text-xs text-[var(--faint)] mt-0.5">
               {DAY_NAMES_FULL[dayIndex]}
               {workout.distanceKm && <span> · {workout.distanceKm} km</span>}
               {!workout.distanceKm && workout.durationMinutes && <span> · {workout.durationMinutes} min</span>}
@@ -182,7 +182,7 @@ export function WorkoutDetailPanel({
       {/* Effort badge */}
       {workout.intensityDescription && (
         <div className="mb-4">
-          <div className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold mb-1.5">Effort</div>
+          <div className="text-[10px] uppercase tracking-widest text-[var(--faint)] font-semibold mb-1.5">Effort</div>
           <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${zoneColor}`}>
             {workout.intensityDescription}
           </span>
@@ -192,21 +192,21 @@ export function WorkoutDetailPanel({
       {/* Session breakdown */}
       {(structuredBlocks || workout.specificInstructions) && (
         <div>
-          <div className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold mb-2">Session</div>
+          <div className="text-[10px] uppercase tracking-widest text-[var(--faint)] font-semibold mb-2">Session</div>
           {structuredBlocks ? (
             <StructuredWorkoutDisplay blocks={structuredBlocks} />
           ) : (
             <div className="rounded-xl bg-[var(--color-surface-0)] border border-[var(--color-border)] overflow-hidden">
               {phases.map((phase, idx) => (
                 <div key={idx} className={`flex gap-3 px-3 py-2.5 ${idx > 0 ? 'border-t border-[var(--color-border)]' : ''}`}>
-                  <span className="w-5 h-5 rounded-full bg-[var(--color-surface-1)] flex items-center justify-center text-[10px] font-semibold text-[var(--color-ink-3)] flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-[var(--color-surface-1)] flex items-center justify-center text-[10px] font-semibold text-[var(--faint)] flex-shrink-0 mt-0.5">
                     {idx + 1}
                   </span>
                   <div className="flex-1 min-w-0">
                     {phase.label && (
-                      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--color-ink-3)] mb-0.5">{phase.label}</div>
+                      <div className="text-[10px] uppercase tracking-wider font-semibold text-[var(--faint)] mb-0.5">{phase.label}</div>
                     )}
-                    <p className="text-sm text-[var(--color-ink)] leading-relaxed">{phase.text}</p>
+                    <p className="text-sm text-[var(--text)] leading-relaxed">{phase.text}</p>
                   </div>
                 </div>
               ))}
@@ -218,8 +218,8 @@ export function WorkoutDetailPanel({
       {/* Convert to another sport */}
       {!workout.completed && CONVERTIBLE_RUN_TYPES.has(workout.type) && workout.durationMinutes && (
         <div className="mt-4">
-          <div className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold mb-1">Convert to another sport</div>
-          <p className="text-[11px] text-[var(--color-ink-3)] mb-2.5">Maintain aerobic stimulus · lower impact</p>
+          <div className="text-[10px] uppercase tracking-widest text-[var(--faint)] font-semibold mb-1">Convert to another sport</div>
+          <p className="text-[11px] text-[var(--faint)] mb-2.5">Maintain aerobic stimulus · lower impact</p>
           {convertTarget === null ? (
             <div className="flex flex-wrap gap-2">
               {(Object.keys(CONVERT_SPORT_CONFIG) as ConvertibleSport[]).map(sport => {
@@ -246,8 +246,8 @@ export function WorkoutDetailPanel({
                 const scfg = CONVERT_SPORT_CONFIG[convertTarget];
                 return (
                   <>
-                    <span className="text-xs text-[var(--color-ink-2)]">
-                      Convert to <span className="text-[var(--color-ink)] font-medium">{scfg.label} · {duration} min</span>?
+                    <span className="text-xs text-[var(--dim)]">
+                      Convert to <span className="text-[var(--text)] font-medium">{scfg.label} · {duration} min</span>?
                     </span>
                     <button
                       disabled={converting}
@@ -275,13 +275,13 @@ export function WorkoutDetailPanel({
                           setConverting(false);
                         }
                       }}
-                      className="px-3 py-1.5 rounded-xl bg-[var(--color-paper-2)] border border-[var(--color-rule)] text-xs font-semibold text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] transition-colors disabled:opacity-40"
+                      className="px-3 py-1.5 rounded-xl bg-[var(--panel)] border border-[var(--line)] text-xs font-semibold text-[var(--text)] hover:bg-[var(--panel-2)] transition-colors disabled:opacity-40"
                     >
                       {converting ? 'Saving…' : 'Confirm'}
                     </button>
                     <button
                       onClick={() => setConvertTarget(null)}
-                      className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)] transition-colors"
+                      className="text-xs text-[var(--faint)] hover:text-[var(--text)] transition-colors"
                     >
                       Cancel
                     </button>
@@ -302,12 +302,12 @@ export function WorkoutDetailPanel({
           >
             View details
           </a>
-          <span className="text-[var(--color-ink-3)]">·</span>
+          <span className="text-[var(--faint)]">·</span>
           <a
             href={`https://www.strava.com/activities/${workout.linkedStravaActivityId}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-[var(--color-ink-3)] hover:text-brand hover:underline"
+            className="inline-flex items-center gap-1 text-xs text-[var(--faint)] hover:text-brand hover:underline"
           >
             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
               <path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169" />
@@ -338,7 +338,7 @@ export function WorkoutDetailPanel({
               .catch(() => setCandidates([]))
               .finally(() => { candidatesInFlight.current = false; setLoadingCandidates(false); });
           }}
-          className="mt-3 text-xs text-[var(--color-ink-2)] hover:text-[var(--color-ink)] underline transition-colors"
+          className="mt-3 text-xs text-[var(--dim)] hover:text-[var(--text)] underline transition-colors"
         >
           Mark complete
         </button>
@@ -346,7 +346,7 @@ export function WorkoutDetailPanel({
       {!workout.completed && canLink && showPicker && (
         <div className="mt-3 space-y-2.5">
           {loadingCandidates ? (
-            <div className="flex items-center gap-2 text-xs text-[var(--color-ink-3)]">
+            <div className="flex items-center gap-2 text-xs text-[var(--faint)]">
               <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
               </svg>
@@ -355,12 +355,12 @@ export function WorkoutDetailPanel({
           ) : (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] uppercase tracking-widest text-[var(--color-ink-3)] font-semibold">
+                <p className="text-[10px] uppercase tracking-widest text-[var(--faint)] font-semibold">
                   {candidates && candidates.length > 0 ? 'Pick the matching activity' : 'No nearby activities'}
                 </p>
                 <button
                   onClick={() => { setShowPicker(false); setCandidates(null); setManualMode(false); setActivityIdInput(''); }}
-                  className="text-[10px] text-[var(--color-ink-3)] hover:text-[var(--color-ink-2)] transition-colors uppercase tracking-wider"
+                  className="text-[10px] text-[var(--faint)] hover:text-[var(--dim)] transition-colors uppercase tracking-wider"
                 >
                   Cancel
                 </button>
@@ -384,23 +384,23 @@ export function WorkoutDetailPanel({
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
-                          <CandidateIcon className="w-4 h-4 mt-0.5 text-[var(--color-ink-2)] flex-shrink-0" />
+                          <CandidateIcon className="w-4 h-4 mt-0.5 text-[var(--dim)] flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-sm font-medium text-[var(--color-ink)] truncate">{c.name}</span>
+                              <span className="text-sm font-medium text-[var(--text)] truncate">{c.name}</span>
                               {c.isBestMatch && (
                                 <span className="text-[9px] uppercase tracking-wider text-accent-green font-bold bg-accent-green/15 px-1.5 py-0.5 rounded">Best match</span>
                               )}
                               {c.alreadyLinked && (
-                                <span className="text-[9px] uppercase tracking-wider text-[var(--color-ink-3)] font-medium bg-[var(--color-surface-1)] px-1.5 py-0.5 rounded">Already linked</span>
+                                <span className="text-[9px] uppercase tracking-wider text-[var(--faint)] font-medium bg-[var(--color-surface-1)] px-1.5 py-0.5 rounded">Already linked</span>
                               )}
                             </div>
-                            <div className="text-xs text-[var(--color-ink-2)] mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <div className="text-xs text-[var(--dim)] mt-0.5 flex items-center gap-1.5 flex-wrap">
                               {c.distanceKm > 0 && <span>{c.distanceKm} km</span>}
                               {c.durationMin > 0 && <span>· {c.durationMin >= 60 ? `${Math.floor(c.durationMin/60)}h ${c.durationMin%60}m` : `${c.durationMin}min`}</span>}
                               {c.avgPace && <span>· {c.avgPace}</span>}
-                              {c.startTime && <span className="text-[var(--color-ink-3)]">· {c.startTime}</span>}
-                              {c.date !== selected.date && <span className="text-[var(--color-ink-3)]">· {c.date}</span>}
+                              {c.startTime && <span className="text-[var(--faint)]">· {c.startTime}</span>}
+                              {c.date !== selected.date && <span className="text-[var(--faint)]">· {c.date}</span>}
                             </div>
                           </div>
                         </div>
@@ -413,7 +413,7 @@ export function WorkoutDetailPanel({
               {!manualMode && (
                 <button
                   onClick={() => setManualMode(true)}
-                  className="text-xs text-[var(--color-ink-3)] hover:text-[var(--color-ink)] underline transition-colors"
+                  className="text-xs text-[var(--faint)] hover:text-[var(--text)] underline transition-colors"
                 >
                   {candidates && candidates.length > 0 ? "Don't see it? Enter ID manually" : 'Enter ID manually'}
                 </button>
@@ -432,7 +432,7 @@ export function WorkoutDetailPanel({
                       }
                     }}
                     aria-label="Activity ID"
-                    className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm text-[var(--color-ink)] placeholder-white/25 focus:outline-none focus:border-[var(--color-accent)]/50 font-mono"
+                    className="flex-1 bg-[var(--color-surface-1)] border border-[var(--color-border)] rounded-lg px-3 py-1.5 text-sm text-[var(--text)] placeholder-white/25 focus:outline-none focus:border-[var(--color-accent)]/50 font-mono"
                     autoFocus
                   />
                   <button

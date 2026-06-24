@@ -146,7 +146,7 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
       role="img"
       aria-label="Map of the activity route"
       className="w-full h-[300px] rounded-xl overflow-hidden"
-      style={{background: 'var(--color-paper-2)'}}
+      style={{background: 'var(--panel)'}}
     />
   );
 }

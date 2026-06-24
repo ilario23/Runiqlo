@@ -142,7 +142,7 @@ export const COMMANDS: CommandDef[] = [
       const week = await fetchWeek(weekStart, athleteId);
       const t = today();
       if (!week) {
-        return `Please generate the training plan for the week starting ${weekStart}. Call getRecentActivities and getFitnessSummary first, then ask how many days I have available, and save with saveWeeklyPlan.${rest ? ` ${rest}` : ''}`;
+        return `Please generate the training plan for the week starting ${weekStart}. Call getRecentActivities and getFitnessSummary first. Use my stored preferences (weekly_training_days, preferred_long_run_day, gym_access, training_approach) from Athlete Knowledge — only ask about any preference that is missing. Then save with saveWeeklyPlan.${rest ? ` ${rest}` : ''}`;
       }
       const formatted = formatWeekForCoach(week, t);
       const tail = rest ? ` ${rest}` : ' What would you like to know or change about this week?';

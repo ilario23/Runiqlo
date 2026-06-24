@@ -381,6 +381,11 @@ export interface StravaDetailedActivity extends StravaSummaryActivity {
   description: string;
   device_name: string;
   calories: number;
+  // Legacy location fields — often null on newer activities, used as a
+  // place-label fallback before reverse-geocoding start_latlng.
+  location_city?: string | null;
+  location_state?: string | null;
+  location_country?: string | null;
   segment_efforts: StravaSegmentEffort[];
   splits_metric: StravaSplit[];
   laps: StravaLap[];

@@ -372,7 +372,7 @@ export function Composer({athleteId, isLoading, input, setInput, onSend, onStop}
 
         {/* Input pill */}
         <form onSubmit={handleSubmit}>
-          <div className="flex items-end gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 focus-within:border-[var(--color-rule)] transition-colors shadow-lg">
+          <div className="flex items-end gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-1)] px-4 py-3 focus-within:border-[var(--line)] transition-colors shadow-lg">
             <textarea
               ref={inputRef}
               value={input}
@@ -395,7 +395,7 @@ export function Composer({athleteId, isLoading, input, setInput, onSend, onStop}
                 type="button"
                 onClick={onStop}
                 title="Stop generating"
-                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--color-border)] text-[var(--color-text-3)] hover:text-[var(--color-ink)] hover:border-[var(--color-rule)] transition-colors"
+                className="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center border border-[var(--color-border)] text-[var(--color-text-3)] hover:text-[var(--text)] hover:border-[var(--line)] transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                   <rect x="4" y="4" width="16" height="16" rx="2" />

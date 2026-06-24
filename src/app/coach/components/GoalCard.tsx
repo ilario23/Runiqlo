@@ -36,25 +36,25 @@ export function GoalCard({goal, currentPhase}: GoalCardProps) {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[var(--color-ink)] font-semibold text-sm truncate">
+              <span className="text-[var(--text)] font-semibold text-sm truncate">
                 {GOAL_LABELS[goal.goalType] ?? goal.goalType}
               </span>
               {goal.targetEventName && (
-                <span className="text-[var(--color-ink-3)] text-sm truncate">{goal.targetEventName}</span>
+                <span className="text-[var(--faint)] text-sm truncate">{goal.targetEventName}</span>
               )}
               {currentPhase && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_COLORS[currentPhase] ?? 'text-[var(--color-ink-2)] bg-[var(--color-paper-2)]'}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_COLORS[currentPhase] ?? 'text-[var(--dim)] bg-[var(--panel)]'}`}>
                   {currentPhase}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-3 mt-0.5">
               {weeksAway != null && (
-                <span className={`text-xs ${weeksAway > 0 ? 'text-[var(--color-ink-2)]' : 'text-accent-red'}`}>
+                <span className={`text-xs ${weeksAway > 0 ? 'text-[var(--dim)]' : 'text-accent-red'}`}>
                   {weeksAway > 0 ? `${weeksAway} weeks away` : 'Event passed'}
                 </span>
               )}
-              <span className="text-xs text-[var(--color-ink-3)]">{goal.experienceLevel}</span>
+              <span className="text-xs text-[var(--faint)]">{goal.experienceLevel}</span>
             </div>
           </div>
         </div>

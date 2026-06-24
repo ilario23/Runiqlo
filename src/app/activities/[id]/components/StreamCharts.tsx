@@ -48,8 +48,8 @@ function ElevTooltip({
   if (!pt) return null;
   return (
     <div className="surface-card px-2.5 py-1.5 text-[11px]">
-      <p className="text-[var(--color-ink-2)]">{pt.dist.toFixed(2)} km</p>
-      <p className="text-[var(--color-ink)] font-medium">{Math.round(Number(payload[0]?.value))} m</p>
+      <p className="text-[var(--dim)]">{pt.dist.toFixed(2)} km</p>
+      <p className="text-[var(--text)] font-medium">{Math.round(Number(payload[0]?.value))} m</p>
     </div>
   );
 }
@@ -79,7 +79,7 @@ function PaceHRTooltip({
   if (hr == null && (pace == null || pace <= 0) && cadence == null) return null;
   return (
     <div className="surface-card px-2.5 py-1.5 text-[11px] space-y-0.5">
-      <p className="text-[var(--color-ink-2)]">{pt.dist.toFixed(2)} km</p>
+      <p className="text-[var(--dim)]">{pt.dist.toFixed(2)} km</p>
       {pace != null && pace > 0 && (
         <p style={{color}} className="font-medium">{formatPace(pace)}/km</p>
       )}
@@ -121,7 +121,7 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
   if (!hasElevation) return null;
   return (
     <div>
-      <p className="text-[10px] text-[var(--color-ink-3)] uppercase tracking-wide mb-1.5">Elevation</p>
+      <p className="text-[10px] text-[var(--faint)] uppercase tracking-wide mb-1.5">Elevation</p>
       <div className="h-[100px]" role="img" aria-label="Elevation profile over the course of the activity">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart

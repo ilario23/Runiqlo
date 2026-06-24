@@ -40,7 +40,7 @@ function DecouplingTooltip({active, payload}: {active?: boolean; payload?: Array
       <p className="label">{new Date(pt.date).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}</p>
       <p className="kicker-cell" style={{fontSize: 13}}>{pt.name}</p>
       <p className="num" style={{fontSize: 13, color}}>{pt.decouplingPct > 0 ? '+' : ''}{pt.decouplingPct}% decoupling</p>
-      <p className="num" style={{fontSize: 11, color: 'var(--color-ink-3)'}}>{pt.durationMins} min</p>
+      <p className="num" style={{fontSize: 11, color: 'var(--faint)'}}>{pt.durationMins} min</p>
     </div>
   );
 }
@@ -80,9 +80,9 @@ export function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
   }));
 
   const dateField = {
-    background: 'var(--color-paper)',
-    border: '1px solid var(--color-ink)',
-    color: 'var(--color-ink)',
+    background: 'var(--bg)',
+    border: '1px solid var(--text)',
+    color: 'var(--text)',
   } as const;
 
   return (
@@ -156,7 +156,7 @@ export function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
                 domain={['dataMin', 'dataMax']}
                 scale="time"
                 tickFormatter={(v) => new Date(v as number).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
-                tick={{fill: 'var(--color-ink-3)', fontSize: 9}}
+                tick={{fill: 'var(--faint)', fontSize: 9}}
                 axisLine={false}
                 tickLine={false}
                 tickCount={5}
@@ -164,7 +164,7 @@ export function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
               <YAxis
                 dataKey="decouplingPct"
                 type="number"
-                tick={{fill: 'var(--color-ink-3)', fontSize: 9}}
+                tick={{fill: 'var(--faint)', fontSize: 9}}
                 axisLine={false}
                 tickLine={false}
                 tickFormatter={(v) => `${v as number}%`}
@@ -172,12 +172,12 @@ export function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
               />
               <ReferenceLine y={5} stroke="rgba(26,24,20,0.12)" strokeDasharray="3 3" />
               <ReferenceLine y={8} stroke="rgba(26,24,20,0.08)" strokeDasharray="3 3" />
-              <RechartsTooltip content={<DecouplingTooltip />} cursor={{strokeDasharray: '3 3', stroke: 'var(--color-rule)'}} />
+              <RechartsTooltip content={<DecouplingTooltip />} cursor={{strokeDasharray: '3 3', stroke: 'var(--line)'}} />
               <Scatter
                 data={chartData}
                 shape={(props: {cx?: number; cy?: number; payload?: {dotColor: string}}) => {
                   const {cx = 0, cy = 0, payload} = props;
-                  return <circle cx={cx} cy={cy} r={4.5} fill={payload?.dotColor ?? COLORS.green} stroke="var(--color-paper)" strokeWidth={0.75} />;
+                  return <circle cx={cx} cy={cy} r={4.5} fill={payload?.dotColor ?? COLORS.green} stroke="var(--bg)" strokeWidth={0.75} />;
                 }}
               />
             </ScatterChart>

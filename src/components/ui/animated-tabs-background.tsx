@@ -50,7 +50,7 @@ export const CleanMotionBackground = ({
                   layoutId={bgLayoutId}
                   className="absolute inset-0 rounded-md pointer-events-none"
                   initial={false}
-                  animate={{ backgroundColor: "var(--primary-hover)" }}
+                  animate={{ backgroundColor: "var(--accent-glow)" }}
                   transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 />
               )}
@@ -82,7 +82,7 @@ export const CleanMotionBackground = ({
                 layoutId={bgLayoutId}
                 className="absolute inset-0 rounded-md pointer-events-none"
                 initial={false}
-                animate={{ backgroundColor: "var(--primary-hover)" }}
+                animate={{ backgroundColor: "var(--accent-glow)" }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
               />
             )}
