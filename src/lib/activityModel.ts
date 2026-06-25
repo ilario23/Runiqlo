@@ -28,7 +28,7 @@ export interface StreamPoint {
 }
 
 export type ThemeMode = 'dark' | 'light';
-export type AccentKey = 'lime' | 'amber' | 'cyan' | 'coral';
+export type AccentKey = 'lime' | 'amber' | 'cyan' | 'coral' | 'violet';
 
 export interface UserSettings {
   maxHr: number;
@@ -67,6 +67,7 @@ export const ACCENTS: Record<AccentKey, {accent: string; accent2: string; glow: 
   amber: {accent: '#f2a33c', accent2: '#d9871f', glow: 'rgba(242,163,60,0.20)', ink: '#0a0d11'},
   cyan:  {accent: '#3fd6e0', accent2: '#1fb4be', glow: 'rgba(63,214,224,0.20)', ink: '#06181a'},
   coral: {accent: '#ff6b5a', accent2: '#e64c3b', glow: 'rgba(255,107,90,0.20)', ink: '#1a0a08'},
+  violet: {accent: '#d946ef', accent2: '#a21caf', glow: 'rgba(217,70,239,0.20)', ink: '#1a0a1f'},
 };
 
 export function formatPace(paceMinPerKm: number): string {

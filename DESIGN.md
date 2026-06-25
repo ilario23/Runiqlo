@@ -40,6 +40,7 @@ accentPresets:
   amber: { accent: "#f2a33c", accent-2: "#d9871f", glow: "rgba(242,163,60,0.20)", ink: "#0a0d11" }
   cyan:  { accent: "#3fd6e0", accent-2: "#1fb4be", glow: "rgba(63,214,224,0.20)", ink: "#06181a" }
   coral: { accent: "#ff6b5a", accent-2: "#e64c3b", glow: "rgba(255,107,90,0.20)", ink: "#1a0a08" }
+  violet: { accent: "#d946ef", accent-2: "#a21caf", glow: "rgba(217,70,239,0.20)", ink: "#1a0a1f" }
 themeLight:
   bg: "#f2f2f7"
   bg-2: "#e8e8ed"
@@ -197,7 +198,7 @@ The athlete reads this in any light, day or night: on a phone after a run, at a 
 **Key Characteristics:**
 - True-black canvas (`#000000`), with elevated graphite panels (`#151517` → `#1e1e22` → `#2a2a2f`)
 - 18px rounded panels (12px inner) with 1px hairline edges and a soft lifting shadow
-- One tunable signal accent — lime `#c6f833` default, with amber / cyan / coral presets; rationed to one per screen
+- One tunable signal accent — lime `#c6f833` default, with amber / cyan / coral / violet presets; rationed to one per screen
 - Two typefaces, two jobs: Space Grotesk (display, headlines, body, labels, UI) and IBM Plex Mono (every numeral)
 - Tabular mono numerals throughout — every metric reads like an instrument readout
 - Apple dual theme: dark by default, light toggle via `[data-theme="light"]`
@@ -208,7 +209,7 @@ A true-black-and-graphite palette with one tunable signal accent. Color is black
 
 ### Signal Accent (tunable)
 - **Accent** (`#c6f833`, lime default): The single signal. Primary CTA, active nav indicator, today's workout highlight, live dot, peak-phase marker, hero glow, sparkline stroke. Rationed; its rarity is the signal. **Accent-2** (`#a6d420`) is the pressed/hover state. **Accent-ink** (`#0a0d11`) is the text color *on* a filled accent surface. **Accent-glow** (`rgba(198,248,51,0.20)`) drives soft glows, selection, and focus tint.
-- **Presets** (runtime-swappable via `ACCENTS`): **lime** `#c6f833`, **amber** `#f2a33c`, **cyan** `#3fd6e0`, **coral** `#ff6b5a`. Each ships its own accent-2, glow, and ink. The whole UI re-tints from these CSS vars — never hardcode the lime hex in a component.
+- **Presets** (runtime-swappable via `ACCENTS`): **lime** `#c6f833`, **amber** `#f2a33c`, **cyan** `#3fd6e0`, **coral** `#ff6b5a`, **violet** `#d946ef`. Each ships its own accent-2, glow, and ink. The whole UI re-tints from these CSS vars — never hardcode the lime hex in a component.
 
 ### Form / TSB Diverging
 The training-balance scale, used for TSB and freshness indicators.
@@ -342,7 +343,7 @@ Seal (`.seal`, accent-ringed circle), marginalia (`.marginalia`, accent italic c
 - **Do** set every standalone number with `tabular-nums`; use IBM Plex Mono for tiles, ledgers, and pills.
 - **Do** drive hierarchy with Space Grotesk weight + the type scale; keep the second face (IBM Plex Mono) for numerals only.
 - **Do** ration the accent to one signal per screen: primary action, today's workout, live/peak metric, live dot.
-- **Do** reference accent via `var(--accent)` / `var(--accent-2)` / `var(--accent-glow)` / `var(--accent-ink)` so preset swaps (lime/amber/cyan/coral) re-tint everything.
+- **Do** reference accent via `var(--accent)` / `var(--accent-2)` / `var(--accent-glow)` / `var(--accent-ink)` so preset swaps (lime/amber/cyan/coral/violet) re-tint everything.
 - **Do** step a graphite tone (`panel → panel-2`) for hover/recessed states.
 - **Do** use the Apple system zone/form palette; map each hue to exactly one training meaning.
 - **Do** support both themes — verify contrast under `[data-theme="light"]` (white panels) and default dark.
