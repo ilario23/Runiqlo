@@ -170,8 +170,8 @@ export function DecouplingCard({breakdownsReady}: {breakdownsReady: boolean}) {
                 tickFormatter={(v) => `${v as number}%`}
                 domain={['auto', 'auto']}
               />
-              <ReferenceLine y={5} stroke="rgba(26,24,20,0.12)" strokeDasharray="3 3" />
-              <ReferenceLine y={8} stroke="rgba(26,24,20,0.08)" strokeDasharray="3 3" />
+              <ReferenceLine y={5} stroke="var(--line-2)" strokeDasharray="3 3" />
+              <ReferenceLine y={8} stroke="var(--line)" strokeDasharray="3 3" />
               <RechartsTooltip content={<DecouplingTooltip />} cursor={{strokeDasharray: '3 3', stroke: 'var(--line)'}} />
               <Scatter
                 data={chartData}
