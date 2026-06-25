@@ -136,12 +136,12 @@ function ElevationPanel({data, color, onHover, syncId}: ChartPanelProps) {
                 <stop offset="95%" stopColor={color} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="dist" tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
-            <YAxis yAxisId="elev" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={40} />
-            <YAxis yAxisId="elevR" orientation="right" domain={elevDomain} ticks={elevTicks} tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={32} />
+            <XAxis dataKey="dist" tick={{fill: 'var(--faint)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
+            <YAxis yAxisId="elev" domain={elevDomain} ticks={elevTicks} tick={{fill: 'var(--faint)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={40} />
+            <YAxis yAxisId="elevR" orientation="right" domain={elevDomain} ticks={elevTicks} tick={{fill: 'var(--faint)', fontSize: 8}} axisLine={false} tickLine={false} tickFormatter={(v) => `${v as number}m`} width={32} />
             <RechartsTooltip
               content={<ElevTooltip onHover={onHover} />}
-              cursor={{stroke: 'rgba(26,24,20,0.08)'}}
+              cursor={{stroke: 'var(--line-2)'}}
             />
             <Area yAxisId="elev" type="monotone" dataKey="elevation" stroke={color} strokeWidth={1.5} fill="url(#gradElev)" dot={false} activeDot={{r: 3, fill: color, strokeWidth: 0}} />
             {/* Invisible area bound to right axis so recharts renders its ticks */}
@@ -193,7 +193,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <button
             onClick={() => setShowPace((v) => !v)}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
-            style={{opacity: showPace ? 1 : 0.3, color: 'rgba(26,24,20,0.5)'}}
+            style={{opacity: showPace ? 1 : 0.3, color: 'var(--dim)'}}
           >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: color}} />
             Pace
@@ -203,7 +203,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <button
             onClick={() => setShowHR((v) => !v)}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
-            style={{opacity: showHR ? 1 : 0.3, color: 'rgba(26,24,20,0.5)'}}
+            style={{opacity: showHR ? 1 : 0.3, color: 'var(--dim)'}}
           >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: COLORS.red}} />
             HR
@@ -213,7 +213,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
           <button
             onClick={() => setShowCadence((v) => !v)}
             className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide transition-opacity"
-            style={{opacity: showCadence ? 1 : 0.3, color: 'rgba(26,24,20,0.5)'}}
+            style={{opacity: showCadence ? 1 : 0.3, color: 'var(--dim)'}}
           >
             <span className="w-3 h-[2px] rounded-full inline-block" style={{background: COLORS.purple}} />
             Cadence
@@ -234,14 +234,14 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
                 <stop offset="95%" stopColor={COLORS.red} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="dist" tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
+            <XAxis dataKey="dist" tick={{fill: 'var(--faint)', fontSize: 8}} tickFormatter={(v) => `${(v as number).toFixed(0)}km`} axisLine={false} tickLine={false} minTickGap={50} />
             <YAxis
               yAxisId="pace"
               reversed
               hide={!hasPace || !showPace}
               domain={paceDomain}
               allowDataOverflow
-              tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}}
+              tick={{fill: 'var(--faint)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => (Number(v) > 0 ? formatPace(Number(v)) : '')}
@@ -253,7 +253,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
               hide={!hasHR || !showHR}
               domain={[100, 200]}
               allowDataOverflow
-              tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}}
+              tick={{fill: 'var(--faint)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => `${v as number}`}
@@ -265,7 +265,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
               hide={!hasCadence || !showCadence}
               domain={cadenceDomain}
               allowDataOverflow
-              tick={{fill: 'rgba(26,24,20,0.25)', fontSize: 8}}
+              tick={{fill: 'var(--faint)', fontSize: 8}}
               axisLine={false}
               tickLine={false}
               tickFormatter={(v) => `${v as number}`}
@@ -273,7 +273,7 @@ function PaceHRPanel({data, color, onHover, syncId}: ChartPanelProps) {
             />
             <RechartsTooltip
               content={<PaceHRTooltip onHover={onHover} color={color} />}
-              cursor={{stroke: 'rgba(26,24,20,0.08)'}}
+              cursor={{stroke: 'var(--line-2)'}}
             />
             {hasHR && showHR && (
               <Area

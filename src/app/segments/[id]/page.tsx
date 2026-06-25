@@ -78,7 +78,7 @@ function StatTile({label, value, accent}: {label: string; value: string | number
   return (
     <div className="px-3 py-2.5 rounded-xl bg-[var(--panel)] flex flex-col gap-0.5">
       <p className="text-[11px] text-[var(--faint)] uppercase tracking-wide">{label}</p>
-      <p className="text-sm font-semibold tabular-nums" style={{color: accent ?? 'rgba(26,24,20,0.85)'}}>
+      <p className="text-sm font-semibold tabular-nums" style={{color: accent ?? 'var(--text)'}}>
         {value}
       </p>
     </div>
@@ -117,7 +117,7 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
         <LineChart data={data} margin={{top: 8, right: 8, bottom: 0, left: 0}}>
         <XAxis
           dataKey="label"
-          tick={{fontSize: 10, fill: 'rgba(26,24,20,0.3)'}}
+          tick={{fontSize: 10, fill: 'var(--faint)'}}
           axisLine={false}
           tickLine={false}
           interval="preserveStartEnd"
@@ -125,7 +125,7 @@ function ProgressChart({efforts}: {efforts: SegmentEffortRecord[]}) {
         <YAxis
           domain={[minT - padding, maxT + padding]}
           reversed
-          tick={{fontSize: 10, fill: 'rgba(26,24,20,0.3)'}}
+          tick={{fontSize: 10, fill: 'var(--faint)'}}
           axisLine={false}
           tickLine={false}
           tickFormatter={fmtTime}
