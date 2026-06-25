@@ -12,7 +12,10 @@ const csp = [
   `style-src 'self' 'unsafe-inline'`,
   `img-src 'self' data: blob: https://*.basemaps.cartocdn.com https:`,
   `font-src 'self'`,
-  `connect-src 'self' https://www.strava.com https://*.open-meteo.com${
+  // basemaps.cartocdn.com is also here, not just img-src: the service worker's
+  // fetch handler re-fetches cross-origin map tile requests itself (sw.js),
+  // and some browsers check that against connect-src rather than img-src.
+  `connect-src 'self' https://www.strava.com https://*.open-meteo.com https://*.basemaps.cartocdn.com${
     isDev ? ' ws:' : ''
   }`,
   `worker-src 'self' blob:`,

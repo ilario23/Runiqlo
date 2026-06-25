@@ -1,10 +1,13 @@
 'use client';
 
-import {useState, useEffect, useCallback, useRef} from 'react';
+import {useState, useEffect, useRef} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import {CalendarDays, Download} from 'lucide-react';
 import {WorkoutCard} from './WorkoutCard';
 import type {WeeklyPlan, PlannedDay, PlannedWorkout, WorkoutType} from '@/lib/coachTypes';
 import {WorkoutDetailPanel} from './WorkoutDetailPanel';
+import {useWeekPlan} from '@/hooks/useStrava';
+import {useStravaAuth} from '@/contexts/StravaAuthContext';
 
 function getMonday(date: Date = new Date()): string {
   const d = new Date(date);
@@ -40,14 +43,16 @@ interface WeekPlanProps {
 }
 
 export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
+  const {athlete} = useStravaAuth();
   const [weekStart, setWeekStart] = useState(initialWeekStart ?? getMonday());
-  const [plan, setPlan] = useState<WeeklyPlan | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState(false);
+  const {plan, query: weekQuery, invalidate: invalidateWeek} = useWeekPlan(weekStart);
+  const loading = weekQuery.isLoading;
+  const loadError = weekQuery.isError;
   const [selected, setSelected] = useState<SelectedWorkout | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (selected) {
@@ -64,28 +69,9 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
       })()
     : '';
 
-  const fetchPlan = useCallback(async (ws: string, signal?: AbortSignal) => {
-    setLoading(true);
-    setLoadError(false);
-    setSelected(null);
-    try {
-      const res = await fetch(`/api/coach/week?athleteId=${athleteId}&weekStart=${ws}`, {signal});
-      if (!res.ok) throw new Error();
-      const data = await res.json();
-      setPlan(data);
-    } catch (err) {
-      if (err instanceof Error && err.name === 'AbortError') return;
-      setPlan(null);
-      setLoadError(true);
-    }
-    setLoading(false);
-  }, [athleteId]);
-
   useEffect(() => {
-    const controller = new AbortController();
-    fetchPlan(weekStart, controller.signal);
-    return () => controller.abort();
-  }, [weekStart, fetchPlan]);
+    setSelected(null);
+  }, [weekStart]);
 
   const prevWeek = () => setWeekStart(addDays(weekStart, -7));
   const nextWeek = () => setWeekStart(addDays(weekStart, 7));
@@ -271,22 +257,25 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
                     workoutIndex: selected.workoutIndex,
                     stravaActivityId,
                   }),
-                }).then(() => fetchPlan(weekStart));
+                }).then(() => invalidateWeek());
               }}
               onConvert={(newType: WorkoutType, newDurationMinutes: number) => {
-                setPlan(prev => {
-                  if (!prev) return prev;
-                  const days = prev.days.map(d => {
-                    if (d.date !== selected.date) return d;
-                    const workouts = d.workouts.map((w, wi) =>
-                      wi === selected.workoutIndex
-                        ? {...w, type: newType, durationMinutes: newDurationMinutes}
-                        : w
-                    );
-                    return {...d, workouts};
-                  });
-                  return {...prev, days};
-                });
+                queryClient.setQueryData<WeeklyPlan | null>(
+                  ['coach', 'week', athlete?.id, weekStart],
+                  (prev) => {
+                    if (!prev) return prev;
+                    const days = prev.days.map(d => {
+                      if (d.date !== selected.date) return d;
+                      const workouts = d.workouts.map((w, wi) =>
+                        wi === selected.workoutIndex
+                          ? {...w, type: newType, durationMinutes: newDurationMinutes}
+                          : w
+                      );
+                      return {...d, workouts};
+                    });
+                    return {...prev, days};
+                  },
+                );
                 setSelected(prev =>
                   prev
                     ? {...prev, workout: {...prev.workout, type: newType, durationMinutes: newDurationMinutes}}
@@ -301,7 +290,7 @@ export function WeekPlan({athleteId, initialWeekStart}: WeekPlanProps) {
           <p className="text-sm text-[var(--dim)] mb-1">Couldn&apos;t load this week&apos;s plan</p>
           <p className="text-xs text-[var(--faint)] mb-3">Check your connection and try again.</p>
           <button
-            onClick={() => fetchPlan(weekStart)}
+            onClick={() => weekQuery.refetch()}
             className="text-xs font-medium px-3 py-1.5 rounded-lg bg-[var(--color-surface-1)] hover:bg-[var(--color-surface-2)] text-[var(--text)] transition-colors"
           >
             Try again

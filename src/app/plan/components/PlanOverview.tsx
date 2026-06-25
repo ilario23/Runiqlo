@@ -2,6 +2,7 @@
 
 import {useState, useEffect, useRef} from 'react';
 import type {TrainingPlan, TrainingPhase, WeekSketch, WorkoutType, GoalType} from '@/lib/coachTypes';
+import {useTrainingPlan} from '@/hooks/useStrava';
 
 // Phase palette — base / build / peak / taper movements (Apple system, bright).
 const PHASE_COLORS: Record<string, {bg: string; activeBg: string; border: string; text: string; label: string; hex: string}> = {
@@ -58,7 +59,7 @@ interface PlanOverviewProps {
 }
 
 export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDeleted}: PlanOverviewProps) {
-  const [plan, setPlan] = useState<TrainingPlan | null | undefined>(undefined);
+  const {plan} = useTrainingPlan();
   const [weekSketches, setWeekSketches] = useState<WeekSketch[] | null>(null);
   const [actualKmByWeek, setActualKmByWeek] = useState<Record<string, number>>({});
   const [editingWeek, setEditingWeek] = useState<string | null>(null);
@@ -72,11 +73,6 @@ export function PlanOverview({athleteId, onWeekClick, onPlanRestored, onPlanDele
   const [deletingPlanId, setDeletingPlanId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(`/api/coach/plan?athleteId=${athleteId}`)
-      .then(r => r.json())
-      .then(setPlan)
-      .catch(() => setPlan(null));
-
     fetch(`/api/coach/plan/sketches?athleteId=${athleteId}`)
       .then(r => r.json())
       .then((data: {weekSketches: WeekSketch[] | null; actualKmByWeek: Record<string, number>}) => {

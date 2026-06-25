@@ -46,20 +46,30 @@ export const StravaAuthProvider = ({children}: {children: ReactNode}) => {
         athlete: {id: Number(devId), username: 'dev', firstname: 'Dev', lastname: '', city: '', state: '', country: '', sex: '', profile_medium: '', profile: ''},
       });
       setIsLoading(false);
+      // Placeholder above has no avatar — fill in the real name/photo from the
+      // httpOnly broker session (the real Strava login behind dev mode) once
+      // it resolves, without blocking the initial render.
+      restoreSessionFromServer().then((restored) => {
+        if (!restored) return;
+        setTokens((prev) =>
+          prev ? {...prev, athlete: {...restored.athlete, id: prev.athlete.id}} : prev,
+        );
+      });
+      return;
+    }
+
+    const stored = getStoredTokens();
+    if (stored) {
+      setTokens(stored);
+      setIsLoading(false);
     } else {
-      const stored = getStoredTokens();
-      if (stored) {
-        setTokens(stored);
-        setIsLoading(false);
-      } else {
-        // localStorage empty but httpOnly cookies / DB session may still hold
-        // a valid login — try restoring before declaring logged-out.
-        restoreSessionFromServer()
-          .then((restored) => {
-            if (restored) setTokens(restored);
-          })
-          .finally(() => setIsLoading(false));
-      }
+      // localStorage empty but httpOnly cookies / DB session may still hold
+      // a valid login — try restoring before declaring logged-out.
+      restoreSessionFromServer()
+        .then((restored) => {
+          if (restored) setTokens(restored);
+        })
+        .finally(() => setIsLoading(false));
     }
   }, []);
 

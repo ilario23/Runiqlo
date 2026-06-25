@@ -45,10 +45,11 @@ export default function RouteMapLeaflet({segments, hoverPos, color}: RouteMapLea
     const isLight =
       typeof document !== 'undefined' &&
       document.documentElement.getAttribute('data-theme') === 'light';
-    L.tileLayer(
+    const tiles = L.tileLayer(
       `https://{s}.basemaps.cartocdn.com/${isLight ? 'light_all' : 'dark_all'}/{z}/{x}/{y}{r}.png`,
       {maxZoom: 19},
     ).addTo(map);
+    tiles.on('tileerror', (e) => console.error('Map tile failed to load:', e));
 
     mapRef.current = map;
 

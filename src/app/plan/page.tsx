@@ -1,15 +1,15 @@
 'use client';
 
-import {useState, useEffect, useCallback, Suspense} from 'react';
+import {useState, useEffect, Suspense} from 'react';
 import {useSearchParams, useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {useStravaAuth} from '@/contexts/StravaAuthContext';
+import {useGoal, useTrainingPlan} from '@/hooks/useStrava';
 import AppHeader from '@/components/AppHeader';
 import {GoalBanner} from './components/GoalBanner';
 import {WeekPlan} from './components/WeekPlan';
 import {PlanOverview} from './components/PlanOverview';
 import {AskCoachBar} from './components/AskCoachBar';
-import type {Goal, TrainingPlan} from '@/lib/coachTypes';
 import {CalendarDays} from 'lucide-react';
 import {ConnectPrompt} from '@/components/ConnectPrompt';
 
@@ -23,38 +23,15 @@ function PlanPageInner() {
   // Capture at mount — router.replace would clear searchParams on re-render
   const [weekParam] = useState(() => searchParams.get('week') ?? undefined);
 
-  const [goal, setGoal] = useState<Goal | null | undefined>(undefined);
-  const [plan, setPlan] = useState<TrainingPlan | null>(null);
+  // React Query-backed — cached across navigation, so revisiting /plan renders
+  // instantly from cache instead of re-paying the network + auth round trip.
+  const {goal: goalData, query: goalQuery, invalidate: invalidateGoal} = useGoal();
+  const {plan: planData, invalidate: invalidatePlan} = useTrainingPlan();
+  const goal = goalQuery.isLoading ? undefined : (goalData ?? null);
+  const plan = planData ?? null;
   const [view, setView] = useState<PlanView>('week');
   const [weekStart, setWeekStart] = useState<string | undefined>(weekParam);
   const [planKey, setPlanKey] = useState(0);
-
-  const athleteIdMaybe = athlete?.id;
-
-  const fetchGoal = useCallback(async () => {
-    if (!athleteIdMaybe) return;
-    try {
-      const res = await fetch(`/api/coach/goal?athleteId=${athleteIdMaybe}`);
-      setGoal(await res.json());
-    } catch {
-      setGoal(null);
-    }
-  }, [athleteIdMaybe]);
-
-  const fetchPlan = useCallback(async () => {
-    if (!athleteIdMaybe) return;
-    try {
-      const res = await fetch(`/api/coach/plan?athleteId=${athleteIdMaybe}`);
-      setPlan(await res.json());
-    } catch {
-      setPlan(null);
-    }
-  }, [athleteIdMaybe]);
-
-  useEffect(() => {
-    fetchGoal();
-    fetchPlan();
-  }, [fetchGoal, fetchPlan]);
 
   // Clean ?week= param from URL after reading it
   useEffect(() => {
@@ -183,8 +160,8 @@ function PlanPageInner() {
                   setView('week');
                 }}
                 onPlanRestored={() => {
-                  fetchGoal();
-                  fetchPlan();
+                  invalidateGoal();
+                  invalidatePlan();
                   setPlanKey(k => k + 1);
                 }}
               />
