@@ -23,6 +23,7 @@ import {
   ZONE_COLORS,
   ZONE_NAMES,
   COLORS,
+  SPORT_COLORS,
 } from '@/lib/activityModel';
 import {aggregateZoneBreakdowns} from '@/lib/zoneCompute';
 import {getLatestMetricsSnapshot, calcRiskIntelligence} from '@/utils/trainingLoad';
@@ -764,6 +765,232 @@ function MonotonyStrainCard({adv, loading}: {adv: AdvancedMetricsDataPoint[]; lo
   );
 }
 
+// ─── Activity heatmap (GitHub-style contribution calendar) ─────────────────────
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const dateKey = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+type HeatDay = {key: string; date: Date; types: Map<string, number>; totalSec: number} | null;
+
+// Intensity tiers by total moving time — color reads as activity type, opacity as volume.
+function intensityOpacity(totalSec: number): number {
+  const min = totalSec / 60;
+  if (min >= 90) return 1;
+  if (min >= 60) return 0.82;
+  if (min >= 30) return 0.62;
+  return 0.42;
+}
+
+const MONTH_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function ActivityHeatmapCard({
+  activities,
+  loading,
+}: {
+  activities: ActivitySummary[] | undefined;
+  loading: boolean;
+}) {
+  const model = useMemo(() => {
+    // Index activities by local calendar day (ActivitySummary.date is YYYY-MM-DD).
+    const dayMap = new Map<string, {types: Map<string, number>; totalSec: number}>();
+    for (const a of activities ?? []) {
+      if (!a.date) continue;
+      let bucket = dayMap.get(a.date);
+      if (!bucket) {
+        bucket = {types: new Map(), totalSec: 0};
+        dayMap.set(a.date, bucket);
+      }
+      bucket.types.set(a.type, (bucket.types.get(a.type) ?? 0) + a.duration);
+      bucket.totalSec += a.duration;
+    }
+
+    // Window: ~52 weeks ending today, aligned to a Sunday-start grid.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const start = new Date(today);
+    start.setDate(start.getDate() - 364);
+    start.setDate(start.getDate() - start.getDay()); // back up to Sunday
+
+    const weeks: HeatDay[][] = [];
+    const cursor = new Date(start);
+    while (cursor <= today) {
+      const col: HeatDay[] = [];
+      for (let r = 0; r < 7; r++) {
+        if (cursor > today) {
+          col.push(null);
+        } else {
+          const key = dateKey(cursor);
+          const bucket = dayMap.get(key);
+          col.push({
+            key,
+            date: new Date(cursor),
+            types: bucket?.types ?? new Map(),
+            totalSec: bucket?.totalSec ?? 0,
+          });
+        }
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      weeks.push(col);
+    }
+
+    // Month labels: place at the first week whose top row enters a new month.
+    const monthLabels = weeks.map((col, i) => {
+      const first = col.find((d): d is NonNullable<HeatDay> => d != null);
+      if (!first) return '';
+      const m = first.date.getMonth();
+      const prev = weeks[i - 1]?.find((d): d is NonNullable<HeatDay> => d != null);
+      if (i === 0 || (prev && prev.date.getMonth() !== m)) return MONTH_ABBR[m];
+      return '';
+    });
+
+    // Per-type totals (active days + sessions) for the legend, sorted by frequency.
+    const typeStats = new Map<string, {days: number; sessions: number}>();
+    let activeDays = 0;
+    let totalSessions = 0;
+    for (const bucket of dayMap.values()) {
+      if (bucket.types.size === 0) continue;
+      activeDays++;
+      for (const [type] of bucket.types) {
+        const s = typeStats.get(type) ?? {days: 0, sessions: 0};
+        s.days++;
+        typeStats.set(type, s);
+      }
+    }
+    for (const a of activities ?? []) {
+      if (!a.date) continue;
+      const s = typeStats.get(a.type);
+      if (s) s.sessions++;
+      totalSessions++;
+    }
+    const legend = Array.from(typeStats.entries()).sort((a, b) => b[1].sessions - a[1].sessions);
+
+    return {weeks, monthLabels, legend, activeDays, totalSessions};
+  }, [activities]);
+
+  const dominantType = (types: Map<string, number>): string | null => {
+    let best: string | null = null;
+    let bestSec = -1;
+    for (const [type, sec] of types) {
+      if (sec > bestSec) {
+        bestSec = sec;
+        best = type;
+      }
+    }
+    return best;
+  };
+
+  const CELL = 11;
+  const GAP = 3;
+  const dayRowLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+
+  return (
+    <div className="p-5 md:p-7" style={{borderBottom: '1px solid var(--text)'}}>
+      <div className="flex items-baseline justify-between gap-3 flex-wrap">
+        <div>
+          <span className="h-section" style={{fontSize: 22}}>Activity calendar</span>
+          <p className="label" style={{marginTop: 4}}>Last 52 weeks · color by sport</p>
+        </div>
+        {model.totalSessions > 0 && (
+          <div style={{textAlign: 'right'}}>
+            <div className="label">{model.activeDays} active days</div>
+            <div className="num" style={{fontSize: 18}}>{model.totalSessions} sessions</div>
+          </div>
+        )}
+      </div>
+
+      {loading && model.totalSessions === 0 ? (
+        <Skeleton className="h-[140px] w-full mt-5" />
+      ) : model.totalSessions === 0 ? (
+        <div className="flex items-center justify-center" style={{minHeight: 120}}>
+          <p className="body-serif" style={{fontStyle: 'italic'}}>No activities in the past year yet.</p>
+        </div>
+      ) : (
+        <>
+          <div className="mt-5 overflow-x-auto pb-1">
+            <div style={{display: 'inline-flex', flexDirection: 'column', gap: GAP}}>
+              {/* month labels */}
+              <div style={{display: 'flex', gap: GAP, marginLeft: 30}}>
+                {model.monthLabels.map((label, i) => (
+                  <div
+                    key={i}
+                    className="label"
+                    style={{width: CELL, fontSize: 9, lineHeight: 1, whiteSpace: 'nowrap', overflow: 'visible'}}
+                  >
+                    {label}
+                  </div>
+                ))}
+              </div>
+              {/* day labels + grid */}
+              <div style={{display: 'flex', gap: GAP}}>
+                <div style={{display: 'flex', flexDirection: 'column', gap: GAP, width: 27}}>
+                  {dayRowLabels.map((label, r) => (
+                    <div
+                      key={r}
+                      className="label"
+                      style={{height: CELL, fontSize: 8, lineHeight: `${CELL}px`, textAlign: 'right'}}
+                    >
+                      {label}
+                    </div>
+                  ))}
+                </div>
+                <div style={{display: 'flex', gap: GAP}}>
+                  {model.weeks.map((col, i) => (
+                    <div key={i} style={{display: 'flex', flexDirection: 'column', gap: GAP}}>
+                      {col.map((day, r) => {
+                        if (!day) {
+                          return <div key={r} style={{width: CELL, height: CELL}} />;
+                        }
+                        const type = dominantType(day.types);
+                        const hasActivity = type != null;
+                        const color = hasActivity
+                          ? SPORT_COLORS[type] ?? COLORS.grey
+                          : 'var(--panel-2)';
+                        const opacity = hasActivity ? intensityOpacity(day.totalSec) : 1;
+                        const title = hasActivity
+                          ? `${day.date.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'})} · ${Array.from(
+                              day.types.keys(),
+                            ).join(', ')} · ${formatDuration(day.totalSec)}`
+                          : day.date.toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'});
+                        return (
+                          <div
+                            key={r}
+                            title={title}
+                            style={{
+                              width: CELL,
+                              height: CELL,
+                              background: color,
+                              opacity,
+                              borderRadius: 2,
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* sport legend */}
+          <div className="flex items-center gap-4 flex-wrap mt-4">
+            {model.legend.map(([type, s]) => (
+              <div key={type} className="flex items-center gap-1.5">
+                <span
+                  className="inline-block"
+                  style={{width: 9, height: 9, borderRadius: 2, background: SPORT_COLORS[type] ?? COLORS.grey}}
+                />
+                <span className="label" style={{color: 'var(--dim)'}}>{type}</span>
+                <span className="num" style={{fontSize: 10, color: 'var(--faint)'}}>{s.sessions}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ─── Season ledger ────────────────────────────────────────────────────────────────
 
 function SeasonLedger() {
@@ -922,6 +1149,9 @@ export default function FitnessPage() {
             />
             <DecouplingCard breakdownsReady={!zonesLoading && !!breakdownMap} />
           </div>
+
+          {/* ── Activity calendar heatmap ─────────────────────────────────── */}
+          <ActivityHeatmapCard activities={activities} loading={!activities} />
 
           {/* ── Season record ledger ──────────────────────────────────────── */}
           <SeasonLedger />
