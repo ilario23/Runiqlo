@@ -38,7 +38,7 @@ import type {
 import {fetchStarredSegments} from '@/lib/strava';
 import {computeZoneBreakdown} from '@/lib/zoneCompute';
 import {computeDecoupling, type DecouplingResult} from '@/lib/aerobicDecoupling';
-import type {WeeklyPlan} from '@/lib/coachTypes';
+import type {WeeklyPlan, Goal, TrainingPlan} from '@/lib/coachTypes';
 
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * 60 * 60 * 1000;
@@ -557,6 +557,57 @@ export const useWeekPlan = (weekStart: string) => {
 
   const invalidate = () =>
     queryClient.invalidateQueries({queryKey: ['coach', 'week', athlete?.id, weekStart]});
+
+  return {plan: query.data, query, invalidate};
+};
+
+// ── Goal + training plan (plan page) ────────────────────────────────────────
+// Same React Query caching as useWeekPlan — the /plan page previously fetched
+// these with raw useState/useEffect, so every visit re-paid the network + auth
+// round trip and showed a full skeleton, and PlanOverview fetched the same
+// /api/coach/plan a second time independently. Sharing the query key dedupes
+// that and lets cached data render instantly on revisit.
+
+export const useGoal = () => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery<Goal | null>({
+    queryKey: ['coach', 'goal', athlete?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/coach/goal?athleteId=${athlete!.id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) ?? null;
+    },
+    enabled: isAuthenticated && !!athlete?.id,
+    staleTime: ONE_MIN,
+    gcTime: ONE_DAY,
+    refetchOnWindowFocus: true,
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({queryKey: ['coach', 'goal', athlete?.id]});
+
+  return {goal: query.data, query, invalidate};
+};
+
+export const useTrainingPlan = () => {
+  const {isAuthenticated, athlete} = useStravaAuth();
+  const queryClient = useQueryClient();
+
+  const query = useQuery<TrainingPlan | null>({
+    queryKey: ['coach', 'plan', athlete?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/coach/plan?athleteId=${athlete!.id}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return (await res.json()) ?? null;
+    },
+    enabled: isAuthenticated && !!athlete?.id,
+    staleTime: ONE_MIN,
+    gcTime: ONE_DAY,
+    refetchOnWindowFocus: true,
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({queryKey: ['coach', 'plan', athlete?.id]});
 
   return {plan: query.data, query, invalidate};
 };
