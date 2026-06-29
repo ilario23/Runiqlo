@@ -374,7 +374,7 @@ export default function ProfilePage() {
                     <div>
                       <h1 className="text-[26px] md:text-[32px] font-bold tracking-tight leading-none">
                         <span className="text-[var(--text)]">{athlete.firstname} </span>
-                        <span style={{color: 'rgba(26,24,20,0.4)'}} className="font-medium">{athlete.lastname}</span>
+                        <span style={{color: 'var(--faint)'}} className="font-medium">{athlete.lastname}</span>
                       </h1>
                       <div className="flex items-center gap-2.5 mt-2 flex-wrap">
                         {athlete.username && (
