@@ -79,7 +79,7 @@ function CoachModelCard() {
             return (
               <div key={vendor}>
                 <p className="text-[10px] font-medium uppercase tracking-wide mb-1.5 px-1"
-                   style={{color: isActiveVendor ? 'rgba(26,24,20,0.4)' : 'rgba(26,24,20,0.15)'}}>
+                   style={{color: isActiveVendor ? 'var(--faint)' : 'var(--faintest)'}}>
                   {vendor === 'anthropic' ? 'Anthropic' : 'OpenAI'}
                   {!isActiveVendor && <span className="ml-1.5 normal-case">(not configured)</span>}
                 </p>

@@ -168,7 +168,7 @@ export default function AthleteNotesCard() {
                     className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border"
                     style={{
                       borderColor: `${SEVERITY_COLORS[inj.severity]}30`,
-                      color: inj.resolved ? 'rgba(26,24,20,0.3)' : SEVERITY_COLORS[inj.severity],
+                      color: inj.resolved ? 'var(--faint)' : SEVERITY_COLORS[inj.severity],
                       background: `${SEVERITY_COLORS[inj.severity]}10`,
                     }}
                   >
