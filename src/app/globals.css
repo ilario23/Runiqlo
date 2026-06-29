@@ -491,7 +491,10 @@ table.ledger td.kicker-cell { font-family: var(--sans); font-style: normal; colo
 }
 .menu__item::after {
   content: ''; position: absolute;
-  bottom: max(6px, calc(env(safe-area-inset-bottom) + 4px));
+  /* Must stay inside the padding-bottom boundary (same max() as .menu__item
+     padding below), else on iOS PWA (large safe-area-inset-bottom) this line
+     lands above the content edge and draws through the label text. */
+  bottom: calc(max(8px, env(safe-area-inset-bottom)) - 4px);
   left: 50%; transform: translateX(-50%);
   width: var(--lineWidth, 20px); height: 2px; border-radius: 999px;
   background-color: var(--component-active-color, var(--component-active-color-default));

@@ -51,6 +51,9 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+  // Cache API only supports http(s); chrome-extension:// and similar
+  // schemes can still hit this listener (extensions, devtools) and crash put().
+  if (!url.protocol.startsWith('http')) return;
   const sameOrigin = url.origin === self.location.origin;
 
   // App shell: HTML navigations → network-first, fall back to cached shell.
