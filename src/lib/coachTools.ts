@@ -7,6 +7,7 @@ import {transformActivity, transformStreams} from './strava';
 import {formatPace} from './activityModel';
 import {computeKmSplits, downsampleStream} from './activityDataTiers';
 import {fetchHistoricalWeather, fetchWeatherForecast, windDirectionLabel} from './weather';
+import {fetchSearchAnswer, fetchUrlContents, describeExaFailure} from './exa';
 import {invalidateCoachPromptCache} from './coachContext';
 import {KNOWLEDGE_TOPIC_KEYS, KNOWLEDGE_TOPIC_SUMMARY, getKnowledgeTopic} from './coachKnowledge';
 import {calcVdot, DISTANCE_METERS_MAP} from './vdot';
@@ -152,6 +153,11 @@ function summarizeWeek(days: Array<{date: string; dayOfWeek: number; dayNotes?: 
 
 export function getCoachTools(athleteId: number) {
   const db = getDb();
+  // Tool registration gate: with no key, these tools never exist on the
+  // object below, so the model's tool schema never mentions web search at
+  // all — not just a runtime no-op. Read fresh per call since this function
+  // runs once per chat request (no module-level caching of the decision).
+  const exaEnabled = Boolean(process.env.EXA_API_KEY);
 
   // Knowledge topics fetched during THIS chat request (closure lives one request,
   // spanning the agent's multi-step loop). Used to gate plan creation behind a
@@ -1203,6 +1209,35 @@ export function getCoachTools(athleteId: number) {
         };
       },
     }),
+
+    ...(exaEnabled ? {
+      searchWeb: tool({
+        description:
+          "Search the web for current information — gear/shoe reviews, race calendars, news, general running questions outside this app's data. Do NOT use for training-science topics (pacing, periodization, injury prevention, nutrition) — use getCoachingKnowledge for those instead. Returns a synthesized answer with source citations.",
+        inputSchema: z.object({
+          query: z.string().describe('A specific, well-formed question to search the web for.'),
+        }),
+        execute: async ({query}) => {
+          const result = await fetchSearchAnswer(query);
+          if (!result.ok) return {error: describeExaFailure(result.reason)};
+          return {answer: result.data.answer, sources: result.data.citations};
+        },
+      }),
+      fetchUrlContent: tool({
+        description:
+          'Fetch the clean text content of a specific URL the athlete shared (e.g. an article they pasted). More reliable than searchWeb when the URL is already known.',
+        inputSchema: z.object({
+          url: z.string().url().describe('The exact URL the athlete shared.'),
+        }),
+        execute: async ({url}) => {
+          const result = await fetchUrlContents([url]);
+          if (!result.ok) return {error: describeExaFailure(result.reason)};
+          const page = result.data[0];
+          if (!page) return {error: 'Could not retrieve that URL.'};
+          return {title: page.title, text: page.text, url: page.url};
+        },
+      }),
+    } : {}),
 
     linkCompletedActivity: tool({
       description:

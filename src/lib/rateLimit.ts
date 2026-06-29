@@ -49,3 +49,26 @@ export const rateLimit = (
   }
   return null;
 };
+
+/**
+ * Same sliding-window bucket as `rateLimit`, but keyed globally (not per-IP) —
+ * for capping total usage of a metered third-party API regardless of caller.
+ * Returns true when the call should be BLOCKED (budget exhausted this window).
+ */
+export const globalRateLimit = (scope: string, limit: number, windowMs: number): boolean => {
+  const key = `global:${scope}`;
+  const now = Date.now();
+  const bucket = buckets.get(key);
+
+  if (!bucket || now - bucket.windowStart >= windowMs) {
+    if (buckets.size >= MAX_BUCKETS) {
+      const oldest = buckets.keys().next().value;
+      if (oldest) buckets.delete(oldest);
+    }
+    buckets.set(key, {count: 1, windowStart: now});
+    return false;
+  }
+
+  bucket.count += 1;
+  return bucket.count > limit;
+};

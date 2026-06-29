@@ -20,7 +20,7 @@ export const getDb = (): PostgresJsDatabase<typeof schema> => {
     prepare: false,
     idle_timeout: 20,
     max_lifetime: 60 * 15,
-    max: 5,
+    max: 3,
   });
   globalThis.__db = drizzle(client, {schema});
   return globalThis.__db;

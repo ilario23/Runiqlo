@@ -36,6 +36,7 @@ npx vitest run src/lib/__tests__/chatUtils.test.ts
 - `NEXT_PUBLIC_DEV_ATHLETE_ID` — set to bypass OAuth, auto-login as dev athlete
 - `NEXT_PUBLIC_STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` — Strava OAuth
 - `DATABASE_URL` — Postgres connection string
+- `EXA_API_KEY` — optional; enables the coach's `searchWeb`/`fetchUrlContent` tools (Exa AI). Unset = tools not registered at all. `EXA_DAILY_BUDGET` caps total Exa calls/day regardless of remaining account credits (default 50).
 
 ### API Auth & Rate Limiting
 
@@ -61,7 +62,7 @@ Fitness metrics (CTL/ATL/TSB) computed in `src/utils/trainingLoad.ts`, cached in
 Coach: AI agent in `src/app/api/coach/chat/route.ts`:
 
 - **System prompt** built dynamically per-athlete in `src/lib/coachContext.ts` — injects fitness snapshot, goal, active plan, this week's schedule, athlete notes. Cached in-process 60s.
-- **Tools** defined in `src/lib/coachTools.ts` — read/write DB directly. Key tools: `getFitnessSummary`, `getRecentActivities`, `saveTrainingPlan`, `saveWeeklyPlan`, `setGoal`, `updateAthleteNotes`, `linkCompletedActivity`, `askQuestion`, weather tools.
+- **Tools** defined in `src/lib/coachTools.ts` — read/write DB directly. Key tools: `getFitnessSummary`, `getRecentActivities`, `saveTrainingPlan`, `saveWeeklyPlan`, `setGoal`, `updateAthleteNotes`, `linkCompletedActivity`, `askQuestion`, weather tools, and `searchWeb`/`fetchUrlContent` (Exa AI, registered only when `EXA_API_KEY` is set — see `src/lib/exa.ts`).
 - **Chat history** persisted in `coach_messages` table, scoped by `athleteId` + `sessionId`. Max 40 messages loaded; pruned above 80.
 - Agent uses `streamText` with `stopWhen: stepCountIs(10)` to bound multi-step tool calls.
 
